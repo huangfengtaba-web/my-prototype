@@ -1,0 +1,88 @@
+/* ===== 两页共有的基础组件 ===== */
+
+/* 按钮 */
+.btn{height:32px;padding:0 15px;border-radius:var(--radius);border:1px solid var(--colorBorder);background:#fff;color:var(--colorText);font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap;font-family:inherit}
+.btn:hover{color:var(--colorPrimary);border-color:var(--colorPrimary)}
+.btn.primary{background:var(--colorPrimary);border-color:var(--colorPrimary);color:#fff}
+.btn.primary:hover{background:var(--colorPrimaryHover);border-color:var(--colorPrimaryHover);color:#fff}
+.btn.sm{height:28px;padding:0 10px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.link{border-color:transparent;background:transparent;color:var(--colorPrimary);padding:0 4px;height:24px}
+.btn.link:hover{background:var(--primaryBg)}
+.btn.link.danger{color:var(--colorError)}
+.btn.link.danger:hover{background:var(--errorBg)}
+.btn.pri{background:var(--primaryBg);border-color:var(--primaryBorder);color:var(--colorPrimary)}
+
+/* 卡片 */
+.card{background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow3);padding:24px;margin-bottom:16px}
+.card.np{padding:0}
+.card-h{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.card-h .t{font-size:16px;font-weight:600}
+.card-h .sub{font-size:12px;color:var(--colorTextTertiary)}
+.card-h .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.card h3{font-size:15px;margin:0 0 12px}
+.card .desc{font-size:12.5px;color:var(--colorTextTertiary);line-height:1.8;margin:0 0 12px}
+
+/* 页签 */
+.tabs{display:flex;gap:32px;border-bottom:1px solid var(--colorBorderSecondary);margin-bottom:20px}
+.tabs .tab{padding:10px 0 12px;font-size:14px;color:var(--colorTextSecondary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:6px;user-select:none}
+.tabs .tab.on{color:var(--colorPrimary);border-color:var(--colorPrimary);font-weight:500}
+.tabs .tab .cnt{font-size:12px;background:#F0F0F0;color:var(--colorTextTertiary);border-radius:9px;padding:0 6px;height:18px;line-height:18px}
+.tabs .tab.on .cnt{background:var(--primaryBg);color:var(--colorPrimary)}
+.tabs .tab .x{cursor:pointer;color:var(--colorTextTertiary);font-size:15px;line-height:1;padding:0 2px}
+.tabs .tab .x:hover{color:var(--colorError)}
+
+/* 标签 */
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:var(--radiusSM);font-size:12px;line-height:20px;border:1px solid transparent}
+.tag.success{background:var(--successBg);color:#389E0D;border-color:var(--successBorder)}
+.tag.processing{background:var(--primaryBg);color:var(--colorPrimary);border-color:var(--primaryBorder)}
+.tag.warning{background:var(--warningBg);color:#D48806;border-color:var(--warningBorder)}
+.tag.error{background:var(--errorBg);color:var(--colorError);border-color:var(--errorBorder)}
+.tag.default{background:#FAFAFA;color:var(--colorTextSecondary);border-color:var(--colorBorder)}
+/* 表单 */
+.inp{height:32px;border:1px solid var(--colorBorder);border-radius:var(--radius);padding:0 11px;font-size:14px;outline:none;color:var(--colorText);background:#fff;font-family:inherit}
+.inp:focus{border-color:var(--colorPrimary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.inp[readonly]{background:#F5F5F5;color:var(--colorTextTertiary);cursor:not-allowed}
+textarea.inp{height:auto;padding:6px 11px;resize:vertical;line-height:1.6}
+select.inp{cursor:pointer}
+.field{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.field .lab{color:var(--colorTextSecondary);min-width:96px;text-align:right;font-size:14px}
+.field .lab i{color:var(--colorError);font-style:normal;margin-right:2px}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.toolbar .sp{margin-left:auto}
+.toolbar .inp{min-width:200px}
+.note{font-size:12px;color:var(--colorTextTertiary);line-height:1.8}
+
+/* 悬浮条 / 筛选条 */
+.fbar{display:flex;gap:12px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.fbar .fi{display:flex;align-items:center;gap:6px}
+.fbar label{font-size:13px;color:var(--colorTextSecondary);white-space:nowrap}
+.fbar .spacer{margin-left:auto}
+.fbar .cnt{font-size:12px;color:var(--colorTextTertiary)}
+
+/* 表单校验与提示 */
+.err{color:var(--colorError);font-size:12px;margin-top:4px;min-height:16px}
+.hint{font-size:12px;color:var(--colorTextTertiary);margin-top:4px}
+.empty{padding:40px;text-align:center;color:var(--colorTextQuaternary)}
+
+/* 弹窗 */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:center;justify-content:center}
+.modal{background:#fff;border-radius:var(--radiusLG);width:560px;max-width:94vw;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;max-height:88vh}
+.modal.wide{width:760px}
+.modal-h{padding:16px 24px;border-bottom:1px solid var(--colorBorderSecondary);display:flex;align-items:center;gap:8px}
+.modal-h .t{font-size:16px;font-weight:600}
+.modal-h .x{margin-left:auto;cursor:pointer;color:var(--colorTextTertiary);font-size:18px;line-height:1;padding:4px}
+.modal-b{padding:20px 24px 4px;max-height:62vh;overflow:auto;flex:1}
+.modal-f{padding:12px 24px 18px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--colorBorderSecondary);margin-top:12px}
+
+/* toast */
+.toast{position:fixed;top:64px;left:50%;transform:translateX(-50%);background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:9px 16px;font-size:13px;z-index:1200;display:flex;align-items:center;gap:8px;border-left:3px solid var(--colorSuccess);animation:tin .2s}
+.toast.err{border-left-color:var(--colorError)}
+@keyframes tin{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* 评论模式 */
+.q{display:none;width:15px;height:15px;border-radius:50%;background:var(--colorWarning);color:#fff;font-size:11px;line-height:15px;text-align:center;cursor:pointer;margin-left:4px;font-weight:700;vertical-align:middle;user-select:none}
+body.cmt-on .q{display:inline-block}
+.bubble{position:fixed;z-index:1000;max-width:300px;background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow);padding:12px 14px;font-size:13px;color:var(--colorText);border-top:3px solid var(--colorWarning)}
+.bubble .bt{font-weight:600;margin-bottom:4px}
+.bubble .bd{color:var(--colorTextSecondary);font-size:12.5px;line-height:1.65}

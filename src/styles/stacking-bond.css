@@ -1,0 +1,140 @@
+/* ===== Stacking Bond 页专属 ===== */
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+.kpi{background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow3);padding:18px 20px}
+.kpi .l{font-size:13px;color:var(--colorTextTertiary);margin-bottom:6px}
+.kpi .v{font-size:26px;font-weight:600;line-height:1.2}
+.kpi .v small{font-size:13px;font-weight:400;color:var(--colorTextTertiary);margin-left:4px}
+.kpi .s{font-size:12px;color:var(--colorTextTertiary);margin-top:4px}
+
+/* 状态胶囊 */
+.pill{display:inline-block;border-radius:var(--radiusSM);padding:1px 7px;font-size:12px;font-weight:600;white-space:nowrap}
+.pill.bound{background:#FFF2CC;color:#7A5A00}
+.pill.dec{background:#DEE8FA;color:#1F3E86}
+.pill.free{background:#EDF0F5;color:#5A6478;border:1px dashed #A6B0C2}
+.pill.pending{background:#FBE8C8;color:#7A5200;border:1px dashed #C89B4B}
+
+/* 数据表 */
+table.dt{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+table.dt th{background:#FAFAFA;text-align:left;font-weight:600;color:var(--colorText);padding:11px 14px;border-bottom:1px solid var(--colorBorderSecondary);white-space:nowrap;font-size:13px;position:sticky;top:0;z-index:2}
+table.dt th.sortable{cursor:pointer;user-select:none}
+table.dt th.sortable:hover{color:var(--colorPrimary)}
+table.dt td{padding:10px 14px;border-bottom:1px solid var(--colorSplit);color:var(--colorTextSecondary);vertical-align:middle}
+table.dt tr:hover td{background:#FAFAFA}
+table.dt td.num{text-align:right;font-variant-numeric:tabular-nums}
+table.dt td.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12.4px}
+table.dt tfoot td{background:#FAFAFA;font-weight:600;border-top:1px solid var(--colorBorderSecondary)}
+table.dt th.eqpTh{line-height:1.35;cursor:default}
+table.dt th.eqpTh .th2{display:block;font-weight:400;font-size:11px;color:var(--colorTextTertiary);white-space:nowrap}
+.tscroll{max-height:440px;overflow:auto;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius);background:#fff}
+.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+
+/* 悬浮提示 */
+#tt{position:fixed;z-index:9999;display:none;max-width:340px;background:#1E2A3D;color:#fff;border-radius:var(--radiusLG);padding:10px 12px;font-size:12.4px;line-height:1.7;box-shadow:var(--shadow);pointer-events:none}
+#tt b{color:#FFD97A}
+#tt .k{color:#9FB2CF}
+#tt .row{display:flex;justify-content:space-between;gap:14px}
+#tt hr{border:none;border-top:1px solid rgba(255,255,255,.16);margin:6px 0}
+
+/* 筛选条标签（本页原设计字号 13px） */
+
+/* 时间窗口按钮 */
+.winbar{display:flex;gap:6px;align-items:center;margin:2px 0 8px;flex-wrap:wrap}
+.winbar .lab{font-size:12.6px;color:var(--colorTextSecondary);margin-right:2px}
+.winbar button{height:26px;padding:0 10px;border-radius:13px;border:1px solid var(--colorBorder);background:#fff;color:var(--colorTextSecondary);font-size:12.4px;cursor:pointer;font-family:inherit}
+.winbar button:hover{color:var(--colorPrimary);border-color:var(--colorPrimary)}
+.winbar button.on{background:#EEF3FE;border-color:#BBD0F7;color:#4874CB;font-weight:600}
+.cnt{font-size:12px;color:var(--colorTextTertiary)}
+.segbtn{display:inline-flex;gap:4px}
+
+/* 视图切换（分段控件） */
+.viewtabs{display:inline-flex;background:#F0F0F0;border-radius:var(--radius);padding:2px;gap:2px}
+.viewtabs button{border:none;background:transparent;height:28px;padding:0 14px;border-radius:var(--radiusSM);font-size:13px;color:var(--colorTextSecondary);cursor:pointer;font-family:inherit;font-weight:500}
+.viewtabs button:hover{color:var(--colorPrimary)}
+.viewtabs button.on{background:#fff;color:var(--colorPrimary);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+
+/* 图例 */
+.legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--colorTextSecondary);margin:8px 0}
+.legend .li{display:inline-flex;align-items:center;gap:5px}
+.legend .li i{width:14px;height:11px;border-radius:3px;display:inline-block}
+.legend .li.free i{background:repeating-linear-gradient(45deg,#C9CFD8,#C9CFD8 3px,#E8ECF2 3px,#E8ECF2 6px)}
+/* 甘特 / 段带 */
+.scrollx{overflow-x:auto;overflow-y:visible;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius);background:#fff;position:relative}
+.scrollx::-webkit-scrollbar{height:11px}
+.scrollx::-webkit-scrollbar-thumb{background:#D9D9D9;border-radius:6px}
+.ruler{display:flex;position:sticky;top:0;z-index:5;background:#FAFAFA;border-bottom:1px solid var(--colorBorderSecondary)}
+.ruler .rh{position:sticky;left:0;z-index:6;background:#FAFAFA;border-right:1px solid var(--colorBorderSecondary);flex:none}
+.ruler .rc{flex:none;display:flex;align-items:center;justify-content:center;font-size:10.4px;color:var(--colorTextTertiary);border-right:1px solid var(--colorSplit)}
+.ruler .rc.wk{background:#F0F5FF;font-weight:600;color:var(--colorPrimary)}
+.grow{display:flex;border-bottom:1px solid var(--colorSplit);min-height:34px}
+.grow .gh{position:sticky;left:0;z-index:3;background:#fff;border-right:1px solid var(--colorBorderSecondary);flex:none;display:flex;flex-direction:column;justify-content:center;padding:4px 9px}
+.grow .gh b{font-size:13px}
+.grow .gh small{font-size:11px;color:var(--colorTextTertiary);line-height:1.4}
+.grow .gt{position:relative;flex:none;height:34px}
+.grow.grp .gh{background:#F5F8FC}
+.grow.grp .gt{background:#FAFCFF}
+.seg{position:absolute;top:5px;height:24px;border-radius:var(--radiusSM);display:flex;align-items:center;padding:0 6px;font-size:11px;font-weight:600;color:#fff;overflow:hidden;white-space:nowrap;cursor:default;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.seg.bound{background:var(--bound);color:#5A4200}
+.seg.dec{background:var(--dec)}
+.seg.free{background:repeating-linear-gradient(45deg,#C9CFD8,#C9CFD8 4px,#E4E9F0 4px,#E4E9F0 8px);color:#5A6478;border:1px dashed #A6B0C2}
+.seg.pending{background:#F7CE6A;color:#5A4200;border:1px dashed #B8860B}
+/* 日负载矩阵 */
+table.mx{border-collapse:separate;border-spacing:0;font-size:11px;background:#fff}
+table.mx th,table.mx td{border-right:1px solid var(--colorSplit);border-bottom:1px solid var(--colorSplit);padding:0;text-align:center;height:28px;min-width:26px;width:26px}
+table.mx thead th{position:sticky;top:0;z-index:4;background:#FAFAFA;font-size:10px;color:var(--colorTextTertiary);font-weight:600}
+table.mx thead th.wk{background:#F0F5FF;color:var(--colorPrimary);font-weight:700}
+table.mx th.rh,table.mx td.rh{position:sticky;left:0;z-index:3;background:#fff;text-align:left;padding:0 10px;min-width:124px;width:124px;font-size:12.4px;font-weight:600;border-right:1px solid var(--colorBorderSecondary)}
+table.mx thead th.rh{z-index:6;background:#FAFAFA}
+table.mx td.d{background:#fff;color:var(--colorTextSecondary);font-variant-numeric:tabular-nums}
+table.mx td.d.h1{background:#FFF6DC}
+table.mx td.d.h2{background:#FFE9AE}
+table.mx td.d.h3{background:#F7CE6A;color:#4A3600;font-weight:700}
+table.mx td.d.zero{background:#fff;color:#D9D9D9}
+table.mx td.d.cand{background:repeating-linear-gradient(45deg,#EDF0F5,#EDF0F5 3px,#F7F9FC 3px,#F7F9FC 6px);color:var(--colorTextTertiary)}
+table.mx td.d.st{box-shadow:inset 3px 0 0 var(--dec)}
+table.mx tr:hover td.d{outline:1px solid var(--primaryBorder);outline-offset:-1px}
+/* V2.0：时间筛选 —— 区间外的天列淡化（不删列、不改列宽） */
+.outd{opacity:.3}
+/* 折线 / 柱状图表卡片 */
+.barwrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-top:6px}
+.barcard{border:1px solid var(--colorBorderSecondary);border-radius:var(--radius);padding:12px 14px;cursor:pointer;background:#fff;transition:all .18s}
+.barcard:hover{border-color:var(--colorPrimary);box-shadow:0 4px 14px rgba(22,119,255,.14);transform:translateY(-2px)}
+.barcard .nm{font-size:15px;font-weight:600;display:flex;align-items:center;gap:6px}
+.barcard .go{margin-left:auto;font-size:11px;color:var(--colorTextTertiary)}
+.barcard .tot{font-size:12px;color:var(--colorTextSecondary);margin:6px 0 8px}
+.barstack{display:flex;height:10px;border-radius:5px;overflow:hidden;background:#F0F0F0}
+.barstack i{display:block;height:100%}
+.barlg{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--colorTextTertiary);margin-top:7px}
+.barlg span{display:inline-flex;align-items:center;gap:4px}
+.barlg i{width:9px;height:9px;border-radius:2px;display:inline-block}
+
+/* 热力图（Lot × Group） */
+.gmx{border-collapse:separate;border-spacing:3px;font-size:12px}
+.gmx th{font-weight:600;color:var(--colorTextTertiary);font-size:11px;padding:2px 0;white-space:nowrap}
+.gmx th.lotcol{position:sticky;left:0;z-index:3;background:#fff;text-align:left;padding-right:10px;min-width:132px}
+.gmx td.lotcol{position:sticky;left:0;z-index:2;background:#fff;text-align:left;padding:2px 10px 2px 0;min-width:132px;border-right:1px solid var(--colorBorderSecondary)}
+.gmx tr:hover td.lotcol{background:#FAFAFA}
+.gmx td.cell{padding:0;width:26px;min-width:26px}
+.gcell{display:flex;align-items:center;justify-content:center;height:26px;border-radius:var(--radiusSM);font-size:11px;font-weight:600;cursor:default;transition:transform .12s}
+.gcell:hover{transform:scale(1.14);box-shadow:0 2px 8px rgba(0,0,0,.18);z-index:4;position:relative}
+.gcell.bound{background:var(--bound);color:#5A4200}
+.gcell.dec{background:var(--dec);color:#fff}
+.gcell.pending{background:#F7CE6A;color:#5A4200;border:1px dashed #B8860B}
+.gcell.free{background:repeating-linear-gradient(45deg,#DCE1E9,#DCE1E9 3px,#EFF2F6 3px,#EFF2F6 6px);color:#5A6478;border:1px dashed #A6B0C2}
+.gcell.none{background:#FAFAFA;color:#D9D9D9;font-weight:400}
+.gaxis{display:flex;gap:3px;align-items:center;margin:2px 0 8px;flex-wrap:wrap}
+.gaxis .c{width:26px;height:22px;border-radius:var(--radiusSM);background:#F5F5F5;color:var(--colorTextTertiary);font-size:10.5px;display:flex;align-items:center;justify-content:center}
+
+/* 提示条 */
+.alert{display:flex;gap:9px;border-radius:var(--radius);padding:10px 14px;font-size:13px;line-height:1.7;margin-top:12px}
+.alert .dot{width:8px;height:8px;border-radius:50%;flex:none;margin-top:6px}
+.alert.i{background:#E6F4FF;border-color:var(--primaryBorder);color:#0958D9}
+.alert.i .dot{background:var(--colorPrimary)}
+.alert.w{background:var(--warningBg);border-color:var(--warningBorder);color:#D48806}
+.alert.w .dot{background:var(--colorWarning)}
+
+/* 数据配置弹窗（比公共 modal 更宽、内容区不额外限高） */
+.modal{width:920px}
+.modal-b{padding:20px 24px 4px;overflow:auto;flex:1;max-height:none}
+.gaxis .c.on{background:var(--primaryBg);color:var(--colorPrimary);font-weight:700}

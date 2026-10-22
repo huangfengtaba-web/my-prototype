@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>原型入口</title>
+  <link rel="stylesheet" href="/styles/variables.css">
+  <link rel="stylesheet" href="/styles/main.css">
+  <link rel="stylesheet" href="/styles/components.css">
+  <style>
+    .entry-wrap{padding:40px}
+    .entry-title{font-size:20px;font-weight:600;margin:0 0 8px}
+    .entry-sub{font-size:13px;color:var(--colorTextTertiary);margin:0 0 24px}
+    .entry-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;max-width:560px}
+    .entry-list li a{display:flex;align-items:center;gap:10px;padding:16px 20px;background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow3);color:var(--colorText);text-decoration:none;transition:all .2s}
+    .entry-list li a:hover{color:var(--colorPrimary);box-shadow:var(--shadow)}
+    .entry-list .name{font-weight:600}
+    .entry-list .path{margin-left:auto;font-size:12px;color:var(--colorTextTertiary)}
+  </style>
+</head>
+<body>
+  <div class="entry-wrap">
+    <h1 class="entry-title">原型系统入口</h1>
+    <p class="entry-sub">Pxsemi FSO · 智能生产中心 · 光刻排程</p>
+    <ul class="entry-list">
+      <li><a href="/pages/temp-layer-config/index.html"><span class="name">设备温层配置</span><span class="path">pages/temp-layer-config</span></a></li>
+      <li><a href="/pages/stacking-bond/index.html"><span class="name">Stacking Bond 产能分配 V2.0</span><span class="path">pages/stacking-bond</span></a></li>
+    </ul>
+  </div>
+</body>
+</html>

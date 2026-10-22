@@ -1,0 +1,60 @@
+/* ===== 设备温层配置页专属 ===== */
+
+/* 数据表 */
+table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
+table.tbl th{background:#FAFAFA;text-align:left;font-weight:600;color:var(--colorText);padding:12px 16px;border-bottom:1px solid var(--colorBorderSecondary);white-space:nowrap;font-size:13px}
+table.tbl td{padding:12px 16px;border-bottom:1px solid var(--colorBorderSecondary);color:var(--colorTextSecondary);vertical-align:middle}
+table.tbl tr:hover td{background:#FAFAFA}
+table.tbl td b{color:var(--colorText)}
+table.tbl .num{color:var(--colorTextQuaternary);width:56px}
+
+/* 表单标签宽度（本页原设计中为 132px） */
+.field .lab{min-width:132px}
+
+/* 温度可视化 */
+.temp{display:inline-flex;align-items:center;gap:7px;font-weight:600;color:var(--colorText)}
+.temp .bar{width:44px;height:6px;border-radius:3px;background:#F0F0F0;overflow:hidden}
+.temp .bar i{display:block;height:100%;background:linear-gradient(90deg,#69B1FF,#1677FF);border-radius:3px}
+.temp .bar.warm i{background:linear-gradient(90deg,#FFD666,#FA8C16)}
+.temp .bar.hot i{background:linear-gradient(90deg,#FFA39E,#F5222D)}
+.temp em{font-style:normal;font-size:12px;color:var(--colorTextTertiary);font-weight:400}
+
+/* 同步条 / KPI（原型预留样式，保持与原文件一致） */
+.syncbar{display:flex;align-items:center;gap:10px;background:#FAFAFA;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius);padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--colorTextSecondary)}
+.syncbar .dot{width:8px;height:8px;border-radius:50%;background:var(--colorSuccess);box-shadow:0 0 0 3px rgba(82,196,26,.15)}
+.syncbar .sp{margin-left:auto;display:flex;gap:8px;align-items:center}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+.kpi{background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow3);padding:18px 20px}
+.kpi .l{font-size:13px;color:var(--colorTextTertiary);margin-bottom:6px}
+.kpi .v{font-size:26px;font-weight:600;line-height:1.2}
+.kpi .v small{font-size:13px;font-weight:400;color:var(--colorTextTertiary);margin-left:4px}
+
+/* 高亮 / Recipe 标签 */
+mark.hl{background:#FFF1B8;color:#AD6800;padding:0 1px;border-radius:2px;font-style:normal}
+.recips{display:flex;gap:4px;flex-wrap:wrap}
+.recips .tag{background:#FAFAFA;border-color:var(--colorBorder);color:var(--colorTextSecondary)}
+.recips .more{color:var(--colorTextTertiary);font-size:12px;align-self:center}
+.recips .tag.match{border-color:var(--primaryBorder);background:var(--primaryBg);color:var(--colorPrimary);font-weight:600}
+.recips .tag.wild{border-style:dashed;border-color:var(--colorWarning);color:#D48806;background:var(--warningBg);font-weight:600}
+
+/* 通用模糊搜索下拉 */
+.combo{position:relative;min-width:260px}
+.combo .inp{width:100%;padding-right:30px;cursor:text}
+.combo .arrow{position:absolute;right:10px;top:9px;color:var(--colorTextQuaternary);pointer-events:none;font-size:12px}
+.combo-list{position:absolute;left:0;right:0;top:36px;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);max-height:216px;overflow:auto;z-index:60;padding:4px;display:none}
+.combo-list.open{display:block}
+.combo-item{height:32px;display:flex;align-items:center;padding:0 10px;border-radius:var(--radiusSM);cursor:pointer;font-size:14px;color:var(--colorText)}
+.combo-item:hover,.combo-item.hl{background:var(--primaryBg)}
+.combo-item .tick{margin-left:auto;color:var(--colorPrimary)}
+.combo-item.dis{color:var(--colorTextQuaternary);cursor:not-allowed;background:transparent}
+.combo-empty{padding:10px;text-align:center;color:var(--colorTextQuaternary);font-size:13px}
+
+/* CSV 导入 */
+.drop{border:1px dashed var(--colorBorder);border-radius:var(--radiusLG);padding:22px;text-align:center;background:#FAFAFA;cursor:pointer;transition:all .2s}
+.drop:hover{border-color:var(--colorPrimary);background:var(--primaryBg)}
+.drop .ic{font-size:22px}
+.drop .m{margin-top:6px;font-size:13px;color:var(--colorTextSecondary)}
+.drop .s{font-size:12px;color:var(--colorTextTertiary);margin-top:2px}
+.preview{margin-top:14px;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius);overflow:hidden;max-height:240px;overflow-y:auto}
+.preview table.tbl th,.preview table.tbl td{padding:8px 12px;font-size:13px}
+.badge-err{color:var(--colorError);font-weight:600}

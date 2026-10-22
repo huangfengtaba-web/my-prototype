@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>设备温层配置 · 可交互原型</title>
+  <link rel="stylesheet" href="/styles/entries/temp-layer-config.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sider">
+    <div class="logo">
+      <div class="mark">FS</div>
+      <div>
+        <div class="name">Pxsemi FSO</div>
+        <div class="sub">智能生产中心 · 光刻排程</div>
+      </div>
+    </div>
+    <nav class="menu">
+      <div class="item active"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v12M12 21a3 3 0 100-6 3 3 0 000 6zM12 3a2 2 0 100 4 2 2 0 000-4z"/></svg>temperature config</div>
+    </nav>
+  </aside>
+  <div class="main">
+    <header class="header">
+      <div class="crumb">Model Control / Production Config / <b>Device Temperature Layer</b></div>
+      <div class="right">
+        <span class="note" id="clock"></span>
+        <button class="btn" id="cmtBtn" style="display:none">💬 评论模式</button>
+      </div>
+    </header>
+    <main class="content" id="content"></main>
+  </div>
+</div>
+<div id="modalRoot"></div>
+
+<script src="/scripts/temp-layer-config/data.js"></script>
+<script src="/scripts/temp-layer-config/utils.js"></script>
+<script src="/scripts/temp-layer-config/combo.js"></script>
+<script src="/scripts/temp-layer-config/views.js"></script>
+<script src="/scripts/temp-layer-config/config-crud.js"></script>
+<script src="/scripts/temp-layer-config/modals.js"></script>
+<script src="/scripts/temp-layer-config/boot.js"></script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+:root {
+  /* ===== 基础 token（两页共用） ===== */
+  --colorPrimary:#1677FF; --colorPrimaryHover:#4096FF; --colorPrimaryActive:#0958D9;
+  --colorSuccess:#52C41A; --colorWarning:#FAAD14; --colorError:#FF4D4F;
+  --colorText:rgba(0,0,0,.88); --colorTextSecondary:rgba(0,0,0,.65); --colorTextTertiary:rgba(0,0,0,.45); --colorTextQuaternary:rgba(0,0,0,.25);
+  --bgContainer:#fff; --bgLayout:#F5F5F5;
+  --colorBorder:#D9D9D9; --colorBorderSecondary:#F0F0F0; --colorSplit:rgba(5,5,5,.06);
+  --primaryBg:#E6F4FF; --primaryBorder:#91CAFF;
+  --successBg:#F6FFED; --successBorder:#B7EB8F; --warningBg:#FFFBE6; --warningBorder:#FFE58F; --errorBg:#FFF2F0; --errorBorder:#FFCCC7;
+  --radiusSM:4px; --radius:6px; --radiusLG:8px;
+  --siderW:208px; --headerH:48px;
+  --shadow3:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --shadow:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif;
+
+  /* ===== 旧入口页遗留 token（保留兼容） ===== */
+  --primary-color: #1677ff;
+  --text-color: #222;
+  --spacing: 16px;
+
+  /* ===== Stacking Bond 语义色（仅 stacking-bond 页使用） ===== */
+  --bound:#F2BA02; --dec:#4874CB; --free:#C9CFD8; --pending:#E8A33D;
+
+  /* ===== Stacking Bond 页面使用的别名色 ===== */
+  --line:#F0F0F0; --ink2:rgba(0,0,0,.65); --muted:rgba(0,0,0,.45);
+}

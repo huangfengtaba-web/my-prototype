@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stacking Bond 产能分配 V2.0 · Pxsemi FSO</title>
+  <link rel="stylesheet" href="/styles/entries/stacking-bond.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sider">
+    <div class="logo">
+      <div class="mark">FS</div>
+      <div>
+        <div class="name">Pxsemi FSO</div>
+        <div class="sub">智能生产中心 · 光刻排程</div>
+      </div>
+    </div>
+    <nav class="menu">
+      <div class="grp">产能分配</div>
+      <div class="item active" id="menuSB">
+        <svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v8H3v-8zm0-6h2v4H3V7zm5 8h4v8H8v-8zm0-10h4v8H8V5zm6 12h4v6h-4v-6zm0-8h4v6h-4V9zm5-6h2v10h-2V3z"/></svg>
+        stacking bond
+      </div>
+    </nav>
+  </aside>
+  <div class="main">
+    <header class="header">
+      <div class="crumb">Model Control / Production Config / <b>Stacking Bond</b><span class="ver">V2.0</span></div>
+      <div class="right">
+        <span class="note" id="clock"></span>
+        <button class="btn sm" id="cfgBtn">数据配置</button>
+        <button class="btn sm" id="cmtBtn">💬 评论模式</button>
+      </div>
+    </header>
+    <main class="content" id="content"></main>
+  </div>
+</div>
+<div id="tt"></div>
+<div id="modalRoot"></div>
+
+<script src="/scripts/stacking-bond/config.js"></script>
+<script src="/scripts/stacking-bond/utils.js"></script>
+<script src="/scripts/stacking-bond/data.js"></script>
+<script src="/scripts/stacking-bond/filters.js"></script>
+<script src="/scripts/stacking-bond/recalc.js"></script>
+<script src="/scripts/stacking-bond/snippets.js"></script>
+<script src="/scripts/stacking-bond/charts.js"></script>
+<script src="/scripts/stacking-bond/views.js"></script>
+<script src="/scripts/stacking-bond/csv.js"></script>
+<script src="/scripts/stacking-bond/events.js"></script>
+<script src="/scripts/stacking-bond/boot.js"></script>
+</body>
+</html>
