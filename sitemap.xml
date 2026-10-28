@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <!-- Homepage: Open Semiconductor Fab Digital Twin Landing Page -->
+  <url>
+    <loc>https://semiconfab.org/</loc>
+    <lastmod>2026-10-07</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/" />
+  </url>
+
+  <!-- 3D/2D Digital Twin Interactive Cleanroom & Subfab -->
+  <url>
+    <loc>https://semiconfab.org/finfet</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/finfet" />
+  </url>
+
+  <!-- 3D GAAFET Nanosheet Transistor Fabrication -->
+  <url>
+    <loc>https://semiconfab.org/gaa</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/gaa" />
+  </url>
+
+  <!-- 3D DRAM 1T1C Cell Fabrication Evolution -->
+  <url>
+    <loc>https://semiconfab.org/dram</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/dram" />
+  </url>
+
+  <!-- 3D NAND Charge Trap Flash Cell Fabrication Evolution -->
+  <url>
+    <loc>https://semiconfab.org/nand</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/nand" />
+  </url>
+
+  <!-- HBM 3D Stacking & Advanced Packaging Fabrication Evolution -->
+  <url>
+    <loc>https://semiconfab.org/hbm</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/hbm" />
+  </url>
+
+  <!-- 3D/2D Digital Twin Interactive Cleanroom & Subfab -->
+  <url>
+    <loc>https://semiconfab.org/twin</loc>
+    <lastmod>2026-10-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/twin" />
+  </url>
+
+  <!-- 3D OSAT Packaging & Test Cleanroom Digital Twin -->
+  <url>
+    <loc>https://semiconfab.org/twin-osat</loc>
+    <lastmod>2026-10-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/twin-osat" />
+  </url>
+
+  <!-- 3D Digital Twin: 3nm Dual-Phase Mega Fab (3,000 Tools) -->
+  <url>
+    <loc>https://semiconfab.org/twin-mega</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/twin-mega" />
+  </url>
+
+  <!-- 2D Cleanroom Fab Floor Plan Layout Editor -->
+  <url>
+    <loc>https://semiconfab.org/layout-editor</loc>
+    <lastmod>2026-10-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/layout-editor" />
+  </url>
+
+  <!-- 253 OEM Equipment Catalog -->
+  <url>
+    <loc>https://semiconfab.org/catalog-demo</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/catalog-demo" />
+  </url>
+
+  <!-- Semiconductor Equipment Side-by-Side Comparison -->
+  <url>
+    <loc>https://semiconfab.org/compare</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/compare" />
+  </url>
+
+  <!-- Add Your Equipment: Open Equipment Submission & 3D Replacement -->
+  <url>
+    <loc>https://semiconfab.org/add-equipment</loc>
+    <lastmod>2026-10-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/add-equipment" />
+  </url>
+
+  <!-- MIMAC-2026: 300mm Fab Scheduling Benchmark -->
+  <url>
+    <loc>https://semiconfab.org/benchmark</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/benchmark" />
+  </url>
+
+  <!-- SemiconFab Equipment Schema v1.0 Data Standard -->
+  <url>
+    <loc>https://semiconfab.org/data-standard</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/data-standard" />
+  </url>
+
+  <!-- Equipment Data Verification & Provenance -->
+  <url>
+    <loc>https://semiconfab.org/verification</loc>
+    <lastmod>2026-10-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/verification" />
+  </url>
+
+  <!-- Fab Construction Costs: What's Beyond the Equipment -->
+  <url>
+    <loc>https://semiconfab.org/fab-cost</loc>
+    <lastmod>2026-10-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/fab-cost" />
+  </url>
+
+  <!-- Fab Total Capex Estimator & Cleanroom BOM Cost Model -->
+  <url>
+    <loc>https://semiconfab.org/fab-capex</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/fab-capex" />
+  </url>
+
+  <!-- Fab Data Layer: How Data Flows Across Fab Layers -->
+  <url>
+    <loc>https://semiconfab.org/fab-data-layer</loc>
+    <lastmod>2026-10-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/fab-data-layer" />
+  </url>
+
+  <!-- Fab Operations: Unified Architecture & Topic Map Overview -->
+  <url>
+    <loc>https://semiconfab.org/fab-operations</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/fab-operations" />
+  </url>
+
+  <!-- MES & Dispatch: How a Wafer Fab Runs Explainer -->
+  <url>
+    <loc>https://semiconfab.org/fab-mes</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/fab-mes" />
+  </url>
+
+  <!-- APC, Yield & Metrology: The Fab Control Loop Explainer -->
+  <url>
+    <loc>https://semiconfab.org/fab-apc-yield-metrology</loc>
+    <lastmod>2026-10-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/fab-apc-yield-metrology" />
+  </url>
+
+  <!-- Open Initiative Vision & 6 Architectural Pillars -->
+  <url>
+    <loc>https://semiconfab.org/vision</loc>
+    <lastmod>2026-10-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/vision" />
+  </url>
+
+  <!-- SemiconFab Platform User Guide -->
+  <url>
+    <loc>https://semiconfab.org/guide</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://semiconfab.org/guide" />
+  </url>
+</urlset>

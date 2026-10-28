@@ -1,0 +1,28 @@
+.DS_Store
+*.log
+Thumbs.db
+.venv/
+node_modules/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.sql
+# Local Development & Research Workspace (not for GitHub commits)
+dev/
+backups/
+pkg/
+SemiconFab-*/
+
+# Archives and build artifacts
+*.zip
+!downloads/mimac2026-simulator.zip
+output/
+.wrangler/
+
+# AI agent instructions and developer workspace memory
+GEMINI.md
+AGENTS.md
+CLAUDE.md
+.gemini/
+
+
