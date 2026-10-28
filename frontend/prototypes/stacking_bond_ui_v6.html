@@ -1,0 +1,1929 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stacking Bond 产能分配 v6 · Pxsemi FSO</title>
+<style>
+:root{
+  --colorPrimary:#1677FF; --colorPrimaryHover:#4096FF; --colorPrimaryActive:#0958D9;
+  --colorSuccess:#52C41A; --colorWarning:#FAAD14; --colorError:#FF4D4F;
+  --colorText:rgba(0,0,0,.88); --colorTextSecondary:rgba(0,0,0,.65); --colorTextTertiary:rgba(0,0,0,.45); --colorTextQuaternary:rgba(0,0,0,.25);
+  --bgContainer:#fff; --bgLayout:#F5F5F5;
+  --colorBorder:#D9D9D9; --colorBorderSecondary:#F0F0F0; --colorSplit:rgba(5,5,5,.06);
+  --primaryBg:#E6F4FF; --primaryBorder:#91CAFF;
+  --successBg:#F6FFED; --successBorder:#B7EB8F; --warningBg:#FFFBE6; --warningBorder:#FFE58F;
+  --radiusSM:4px; --radius:6px; --radiusLG:8px;
+  --siderW:208px; --headerH:48px;
+  --shadow3:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --shadow:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif;
+  /* Stacking Bond 语义色 */
+  --bound:#F2BA02; --dec:#4874CB; --free:#C9CFD8; --pending:#E8A33D;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:var(--font);font-size:14px;line-height:1.5714;color:var(--colorText);background:var(--bgLayout)}
+.app{display:flex;height:100vh;overflow:hidden}
+.sider{width:var(--siderW);flex:0 0 var(--siderW);background:#fff;border-right:1px solid var(--colorBorderSecondary);display:flex;flex-direction:column;height:100vh}
+.logo{height:var(--headerH);display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--colorBorderSecondary);flex:0 0 var(--headerH)}
+.logo .mark{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#1677FF,#69B1FF);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.logo .name{font-weight:600;font-size:14px}
+.logo .sub{font-size:11px;color:var(--colorTextTertiary);margin-top:-3px}
+.menu{padding:8px 0;overflow-y:auto;flex:1}
+.menu .grp{padding:8px 16px 4px;font-size:12px;color:var(--colorTextQuaternary)}
+.menu .item{height:40px;display:flex;align-items:center;gap:10px;padding:0 16px;cursor:pointer;color:var(--colorTextSecondary);font-size:14px;transition:background .2s}
+.menu .item:hover{background:rgba(0,0,0,.04)}
+.menu .item.active{background:var(--primaryBg);color:var(--colorPrimary);font-weight:500}
+.menu .item .ic{width:16px;height:16px;flex:0 0 16px;opacity:.85}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.header{height:var(--headerH);flex:0 0 var(--headerH);background:#fff;border-bottom:1px solid var(--colorBorderSecondary);display:flex;align-items:center;padding:0 24px;gap:12px}
+.crumb{font-size:13px;color:var(--colorTextTertiary)}
+.crumb b{color:var(--colorText);font-weight:500}
+.header .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.content{flex:1;overflow:auto;padding:24px}
+
+/* ---------- 基础组件 ---------- */
+.btn{height:32px;padding:0 15px;border-radius:var(--radius);border:1px solid var(--colorBorder);background:#fff;color:var(--colorText);font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap;font-family:inherit}
+.btn:hover{color:var(--colorPrimary);border-color:var(--colorPrimary)}
+.btn.primary{background:var(--colorPrimary);border-color:var(--colorPrimary);color:#fff}
+.btn.primary:hover{background:var(--colorPrimaryHover);border-color:var(--colorPrimaryHover);color:#fff}
+.btn.sm{height:28px;padding:0 10px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.card{background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow3);padding:24px;margin-bottom:16px}
+.card.np{padding:0}
+.card-h{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.card-h .t{font-size:16px;font-weight:600}
+.card-h .sub{font-size:12px;color:var(--colorTextTertiary)}
+.card-h .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.tabs{display:flex;gap:32px;border-bottom:1px solid var(--colorBorderSecondary);margin-bottom:20px}
+.tabs .tab{padding:10px 0 12px;font-size:14px;color:var(--colorTextSecondary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:6px;user-select:none}
+.tabs .tab.on{color:var(--colorPrimary);border-color:var(--colorPrimary);font-weight:500}
+.tabs .tab .cnt{font-size:12px;background:#F0F0F0;color:var(--colorTextTertiary);border-radius:9px;padding:0 6px;height:18px;line-height:18px}
+.tabs .tab.on .cnt{background:var(--primaryBg);color:var(--colorPrimary)}
+.tabs .tab .x{cursor:pointer;color:var(--colorTextTertiary);font-size:15px;line-height:1;padding:0 2px}
+.tabs .tab .x:hover{color:var(--colorError)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+.kpi{background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow3);padding:18px 20px}
+.kpi .l{font-size:13px;color:var(--colorTextTertiary);margin-bottom:6px}
+.kpi .v{font-size:26px;font-weight:600;line-height:1.2}
+.kpi .v small{font-size:13px;font-weight:400;color:var(--colorTextTertiary);margin-left:4px}
+.kpi .s{font-size:12px;color:var(--colorTextTertiary);margin-top:4px}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.toolbar .sp{margin-left:auto}
+.inp{height:32px;border:1px solid var(--colorBorder);border-radius:var(--radius);padding:0 11px;font-size:14px;outline:none;color:var(--colorText);background:#fff;font-family:inherit}
+.inp:focus{border-color:var(--colorPrimary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+select.inp{cursor:pointer}
+.field{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.field .lab{color:var(--colorTextSecondary);min-width:96px;text-align:right;font-size:14px}
+.note{font-size:12px;color:var(--colorTextTertiary);line-height:1.8}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:var(--radiusSM);font-size:12px;line-height:20px;border:1px solid transparent;background:#FAFAFA;color:var(--colorTextSecondary);border-color:var(--colorBorder)}
+.tag.processing{background:var(--primaryBg);color:var(--colorPrimary);border-color:var(--primaryBorder)}
+.tag.warning{background:var(--warningBg);color:#D48806;border-color:var(--warningBorder)}
+.tag.success{background:var(--successBg);color:#389E0D;border-color:var(--successBorder)}
+.pill{display:inline-block;border-radius:var(--radiusSM);padding:1px 7px;font-size:12px;font-weight:600;white-space:nowrap}
+.pill.bound{background:#FFF2CC;color:#7A5A00}
+.pill.dec{background:#DEE8FA;color:#1F3E86}
+.pill.free{background:#EDF0F5;color:#5A6478;border:1px dashed #A6B0C2}
+.pill.pending{background:#FBE8C8;color:#7A5200;border:1px dashed #C89B4B}
+.alert{display:flex;gap:9px;border-radius:var(--radius);padding:10px 14px;font-size:13px;line-height:1.7;margin-top:12px}
+.alert .dot{width:8px;height:8px;border-radius:50%;flex:none;margin-top:6px}
+.alert.i{background:#E6F4FF;border-color:var(--primaryBorder);color:#0958D9}
+.alert.i .dot{background:var(--colorPrimary)}
+.alert.w{background:var(--warningBg);border-color:var(--warningBorder);color:#D48806}
+.alert.w .dot{background:var(--colorWarning)}
+.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+
+/* ---------- 数据表 ---------- */
+table.dt{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+table.dt th{background:#FAFAFA;text-align:left;font-weight:600;color:var(--colorText);padding:11px 14px;border-bottom:1px solid var(--colorBorderSecondary);white-space:nowrap;font-size:13px;position:sticky;top:0;z-index:2}
+table.dt th.sortable{cursor:pointer;user-select:none}
+table.dt th.sortable:hover{color:var(--colorPrimary)}
+table.dt td{padding:10px 14px;border-bottom:1px solid var(--colorSplit);color:var(--colorTextSecondary);vertical-align:middle}
+table.dt tr:hover td{background:#FAFAFA}
+table.dt td.num{text-align:right;font-variant-numeric:tabular-nums}
+table.dt td.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12.4px}
+table.dt tfoot td{background:#FAFAFA;font-weight:600;border-top:1px solid var(--colorBorderSecondary)}
+table.dt th.eqpTh{line-height:1.35;cursor:default}
+table.dt th.eqpTh .th2{display:block;font-weight:400;font-size:11px;color:var(--colorTextTertiary);white-space:nowrap}
+.tscroll{max-height:440px;overflow:auto;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius);background:#fff}
+.fbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.fbar .fi{display:flex;align-items:center;gap:5px}
+.fbar label{font-size:13px;color:var(--colorTextSecondary)}
+.fbar .spacer{flex:1}
+.cnt{font-size:12px;color:var(--colorTextTertiary)}
+.segbtn{display:inline-flex;gap:4px}
+
+/* ---------- 视图切换（分段控件） ---------- */
+.viewtabs{display:inline-flex;background:#F0F0F0;border-radius:var(--radius);padding:2px;gap:2px}
+.viewtabs button{border:none;background:transparent;height:28px;padding:0 14px;border-radius:var(--radiusSM);font-size:13px;color:var(--colorTextSecondary);cursor:pointer;font-family:inherit;font-weight:500}
+.viewtabs button:hover{color:var(--colorPrimary)}
+.viewtabs button.on{background:#fff;color:var(--colorPrimary);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+
+/* ---------- 甘特 / 段带 ---------- */
+.scrollx{overflow-x:auto;overflow-y:visible;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius);background:#fff;position:relative}
+.scrollx::-webkit-scrollbar{height:11px}
+.scrollx::-webkit-scrollbar-thumb{background:#D9D9D9;border-radius:6px}
+.ruler{display:flex;position:sticky;top:0;z-index:5;background:#FAFAFA;border-bottom:1px solid var(--colorBorderSecondary)}
+.ruler .rh{position:sticky;left:0;z-index:6;background:#FAFAFA;border-right:1px solid var(--colorBorderSecondary);flex:none}
+.ruler .rc{flex:none;display:flex;align-items:center;justify-content:center;font-size:10.4px;color:var(--colorTextTertiary);border-right:1px solid var(--colorSplit)}
+.ruler .rc.wk{background:#F0F5FF;font-weight:600;color:var(--colorPrimary)}
+.grow{display:flex;border-bottom:1px solid var(--colorSplit);min-height:34px}
+.grow .gh{position:sticky;left:0;z-index:3;background:#fff;border-right:1px solid var(--colorBorderSecondary);flex:none;display:flex;flex-direction:column;justify-content:center;padding:4px 9px}
+.grow .gh b{font-size:13px}
+.grow .gh small{font-size:11px;color:var(--colorTextTertiary);line-height:1.4}
+.grow .gt{position:relative;flex:none;height:34px}
+.grow.grp .gh{background:#F5F8FC}
+.grow.grp .gt{background:#FAFCFF}
+.seg{position:absolute;top:5px;height:24px;border-radius:var(--radiusSM);display:flex;align-items:center;padding:0 6px;font-size:11px;font-weight:600;color:#fff;overflow:hidden;white-space:nowrap;cursor:default;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.seg.bound{background:var(--bound);color:#5A4200}
+.seg.dec{background:var(--dec)}
+.seg.free{background:repeating-linear-gradient(45deg,#C9CFD8,#C9CFD8 4px,#E4E9F0 4px,#E4E9F0 8px);color:#5A6478;border:1px dashed #A6B0C2}
+.seg.pending{background:#F7CE6A;color:#5A4200;border:1px dashed #B8860B}
+.legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--colorTextSecondary);margin:8px 0}
+.legend .li{display:inline-flex;align-items:center;gap:5px}
+.legend .li i{width:14px;height:11px;border-radius:3px;display:inline-block}
+.legend .li.free i{background:repeating-linear-gradient(45deg,#C9CFD8,#C9CFD8 3px,#E8ECF2 3px,#E8ECF2 6px)}
+
+/* ---------- 日负载矩阵 ---------- */
+table.mx{border-collapse:separate;border-spacing:0;font-size:11px;background:#fff}
+table.mx th,table.mx td{border-right:1px solid var(--colorSplit);border-bottom:1px solid var(--colorSplit);padding:0;text-align:center;height:28px;min-width:26px;width:26px}
+table.mx thead th{position:sticky;top:0;z-index:4;background:#FAFAFA;font-size:10px;color:var(--colorTextTertiary);font-weight:600}
+table.mx thead th.wk{background:#F0F5FF;color:var(--colorPrimary);font-weight:700}
+table.mx th.rh,table.mx td.rh{position:sticky;left:0;z-index:3;background:#fff;text-align:left;padding:0 10px;min-width:124px;width:124px;font-size:12.4px;font-weight:600;border-right:1px solid var(--colorBorderSecondary)}
+table.mx thead th.rh{z-index:6;background:#FAFAFA}
+table.mx td.d{background:#fff;color:var(--colorTextSecondary);font-variant-numeric:tabular-nums}
+table.mx td.d.h1{background:#FFF6DC}
+table.mx td.d.h2{background:#FFE9AE}
+table.mx td.d.h3{background:#F7CE6A;color:#4A3600;font-weight:700}
+table.mx td.d.zero{background:#fff;color:#D9D9D9}
+table.mx td.d.cand{background:repeating-linear-gradient(45deg,#EDF0F5,#EDF0F5 3px,#F7F9FC 3px,#F7F9FC 6px);color:var(--colorTextTertiary)}
+table.mx td.d.st{box-shadow:inset 3px 0 0 var(--dec)}
+table.mx tr:hover td.d{outline:1px solid var(--primaryBorder);outline-offset:-1px}
+
+/* ---------- 按 Group 矩阵（新） ---------- */
+.gmx{border-collapse:separate;border-spacing:3px;font-size:12px}
+.gmx th{font-weight:600;color:var(--colorTextTertiary);font-size:11px;padding:2px 0;white-space:nowrap}
+.gmx th.lotcol{position:sticky;left:0;z-index:3;background:#fff;text-align:left;padding-right:10px;min-width:132px}
+.gmx td.lotcol{position:sticky;left:0;z-index:2;background:#fff;text-align:left;padding:2px 10px 2px 0;min-width:132px;border-right:1px solid var(--colorBorderSecondary)}
+.gmx tr:hover td.lotcol{background:#FAFAFA}
+.gmx td.cell{padding:0;width:26px;min-width:26px}
+.gcell{display:flex;align-items:center;justify-content:center;height:26px;border-radius:var(--radiusSM);font-size:11px;font-weight:600;cursor:default;transition:transform .12s}
+.gcell:hover{transform:scale(1.14);box-shadow:0 2px 8px rgba(0,0,0,.18);z-index:4;position:relative}
+.gcell.bound{background:var(--bound);color:#5A4200}
+.gcell.dec{background:var(--dec);color:#fff}
+.gcell.pending{background:#F7CE6A;color:#5A4200;border:1px dashed #B8860B}
+.gcell.free{background:repeating-linear-gradient(45deg,#DCE1E9,#DCE1E9 3px,#EFF2F6 3px,#EFF2F6 6px);color:#5A6478;border:1px dashed #A6B0C2}
+.gcell.none{background:#FAFAFA;color:#D9D9D9;font-weight:400}
+.gaxis{display:flex;gap:3px;align-items:center;margin:2px 0 8px;flex-wrap:wrap}
+.gaxis .c{width:26px;height:22px;border-radius:var(--radiusSM);background:#F5F5F5;color:var(--colorTextTertiary);font-size:10.5px;display:flex;align-items:center;justify-content:center}
+.gaxis .c.on{background:var(--primaryBg);color:var(--colorPrimary);font-weight:700}
+
+/* ---------- 机台负载图（柱状） ---------- */
+.barwrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-top:6px}
+.barcard{border:1px solid var(--colorBorderSecondary);border-radius:var(--radius);padding:12px 14px;cursor:pointer;background:#fff;transition:all .18s}
+.barcard:hover{border-color:var(--colorPrimary);box-shadow:0 4px 14px rgba(22,119,255,.14);transform:translateY(-2px)}
+.barcard .nm{font-size:15px;font-weight:600;display:flex;align-items:center;gap:6px}
+.barcard .go{margin-left:auto;font-size:11px;color:var(--colorTextTertiary)}
+.barcard .tot{font-size:12px;color:var(--colorTextSecondary);margin:6px 0 8px}
+.barstack{display:flex;height:10px;border-radius:5px;overflow:hidden;background:#F0F0F0}
+.barstack i{display:block;height:100%}
+.barlg{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--colorTextTertiary);margin-top:7px}
+.barlg span{display:inline-flex;align-items:center;gap:4px}
+.barlg i{width:9px;height:9px;border-radius:2px;display:inline-block}
+
+/* ---------- 弹层 ---------- */
+#tt{position:fixed;z-index:9999;display:none;max-width:340px;background:#1E2A3D;color:#fff;border-radius:var(--radiusLG);padding:10px 12px;font-size:12.4px;line-height:1.7;box-shadow:var(--shadow);pointer-events:none}
+#tt b{color:#FFD97A}
+#tt .k{color:#9FB2CF}
+#tt .row{display:flex;justify-content:space-between;gap:14px}
+#tt hr{border:none;border-top:1px solid rgba(255,255,255,.16);margin:6px 0}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:center;justify-content:center}
+.modal{background:#fff;border-radius:var(--radiusLG);width:920px;max-width:94vw;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;max-height:88vh}
+.modal-h{padding:16px 24px;border-bottom:1px solid var(--colorBorderSecondary);display:flex;align-items:center;gap:8px}
+.modal-h .t{font-size:16px;font-weight:600}
+.modal-h .x{margin-left:auto;cursor:pointer;color:var(--colorTextTertiary);font-size:18px;line-height:1;padding:4px}
+.modal-b{padding:20px 24px 4px;overflow:auto;flex:1}
+.modal-f{padding:12px 24px 18px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--colorBorderSecondary);margin-top:12px}
+.empty{padding:40px;text-align:center;color:var(--colorTextQuaternary)}
+
+/* ---------- 评论模式 ---------- */
+.q{display:none;width:15px;height:15px;border-radius:50%;background:var(--colorWarning);color:#fff;font-size:11px;line-height:15px;text-align:center;cursor:pointer;margin-left:4px;font-weight:700;vertical-align:middle;user-select:none}
+body.cmt-on .q{display:inline-block}
+.bubble{position:fixed;z-index:1000;max-width:300px;background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow);padding:12px 14px;font-size:13px;color:var(--colorText);border-top:3px solid var(--colorWarning)}
+.bubble .bt{font-weight:600;margin-bottom:4px}
+.bubble .bd{color:var(--colorTextSecondary);font-size:12.5px;line-height:1.65}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sider">
+    <div class="logo">
+      <div class="mark">FS</div>
+      <div>
+        <div class="name">Pxsemi FSO</div>
+        <div class="sub">智能生产中心 · 光刻排程</div>
+      </div>
+    </div>
+    <nav class="menu">
+      <a class="item" href="data_zone.html">⇄ 数据接入</a>
+      <div class="grp">产能分配</div>
+      <div class="item active" id="menuSB">
+        <svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v8H3v-8zm0-6h2v4H3V7zm5 8h4v8H8v-8zm0-10h4v8H8V5zm6 12h4v6h-4v-6zm0-8h4v6h-4V9zm5-6h2v10h-2V3z"/></svg>
+        stacking bond
+      </div>
+    </nav>
+  </aside>
+  <div class="main">
+    <header class="header">
+      <div class="crumb">Model Control / Production Config / <b>Stacking Bond</b></div>
+      <div class="right">
+        <span class="note" id="clock"></span>
+        <button class="btn sm" id="cfgBtn">数据配置</button>
+        <button class="btn sm" id="cmtBtn">💬 评论模式</button>
+      </div>
+    </header>
+    <main class="content" id="content"></main>
+  </div>
+</div>
+<div id="tt"></div>
+<div id="modalRoot"></div>
+<script>
+/* ============================================================
+   0. 工具
+   ============================================================ */
+const $  = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const esc = s => String(s == null ? "" : s)
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const n1 = v => (Math.round(v * 10) / 10).toFixed(1);
+const n2 = v => (Math.round(v * 100) / 100).toFixed(2);
+const f0 = v => (v == null || isNaN(v)) ? "—" : Number(v).toLocaleString("zh-CN");
+
+/* 确定性伪随机：保证刷新数据一致 */
+function seedRnd(seed) {
+  let s = (seed >>> 0) || 1;
+  return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+}
+
+/* 统计（总体口径，除 n） */
+function stats(arr) {
+  const n = arr.length; if (!n) return { n: 0, mean: 0, varr: 0, sd: 0, cv: 0, mad: 0, range: 0, pm: 0, mx: 0, mn: 0, sum: 0 };
+  const sum = arr.reduce((a, b) => a + b, 0), mean = sum / n;
+  const varr = arr.reduce((a, b) => a + (b - mean) * (b - mean), 0) / n;
+  const sd = Math.sqrt(varr);
+  const mad = arr.reduce((a, b) => a + Math.abs(b - mean), 0) / n;
+  const mx = Math.max.apply(null, arr), mn = Math.min.apply(null, arr);
+  return { n, sum, mean, varr, sd, cv: mean ? sd / mean : 0, mad, range: mx - mn, pm: mean ? mx / mean : 0, mx, mn };
+}
+
+/* ============================================================
+   1. 配置与状态
+   ============================================================ */
+const CFG = { ct: 2, days: 120, nLots: 16, seed: 20261015, incFree: false };
+const EQPS = ["E1", "E2", "E3", "E4", "E5", "E6"];
+const PRODS = ["5002A", "5001A", "3006A"];
+const FLOWS = ["AA", "POLY", "METAL", "VIA"];      // v4：段级 Flow（光刻层流程组，演示口径）
+const STAGE_OF = { "E1": "FE", "E2": "FE", "E3": "ME", "E4": "ME", "E5": "BE", "E6": "BE" }; // v4：候选池层深 → Stage
+const ST = {
+  bound:   { n: "已绑定", c: "bound", pill: "bound" },
+  pending: { n: "待决策", c: "pending", pill: "pending" },
+  dec:     { n: "本次决策", c: "dec", pill: "dec" },
+  free:    { n: "Free Layer", c: "free", pill: "free" }
+};
+const CW = 26;                     // 每日列宽 px
+const HEAD_W = 150;                // 行头宽 px
+
+const UI = {
+  tab: "eqp",                        // v5：eqp | lot | detail（机台详情为新标签页）
+  detailEqp: null,                   // v5：打开详情标签页的机台
+  win: "all",                      // all | 1 | 2 | 3 | 4
+  eqpQ: "", lotQ: "",
+  gFilter: "",                     // Group 序号筛选，如 "10-15" / "10,11"
+  eqpFilter: "all", stFilter: "all",
+  eqpSort: { k: "eqp", dir: 1 },
+  lotSort: { k: "id", dir: 1 },
+  view: "matrix",                   // v5：eqp 页签内视图切换 matrix | cmp | load | gantt
+  grpMetric: "pics",               // pics | cnt（机台 x Group 热力图格值口径）
+  freeQ: "",                       // Free Layer 清单的 Lot 筛选
+  freeSort: { k: "lot", dir: 1 },
+  lotSegSort: { k: "lot", dir: 1 },
+  lotAxis: "day",                  // day | grp（Lot 视图横轴切换）
+  numMode: "lot",                  // v4：Group 编号口径 lot=Lot内(G1..Gn各Lot独立) | global=全局(按起始天)
+  pFilter: { product: "all", flow: "all", stage: "all", step: "all" }, // v4：段级筛选（两页签共用）
+  showCand: true,                  // 机台段带是否显示分配（待决策/Free）段
+  cmpZoom: 30,                     // v4：折线图一屏可见天数（1~30）
+  loadZoom: 30                     // v6：机台负载图一屏可见天数（1~30）
+};
+
+let LOTS = [], DAYS = 120, LOAD = null, SEGS = null, MET = null, LOADB = null, LOADD = null, NSTART = null;
+let LOADP = null, LOADF = null;     // v6：待决策 / Free 分配逐日负载
+let ALLSEGS = [], CANDL = null, CANDSEGS = null;   // v6：全局 Group 序列表 / 分配负载 / 各机台分配段
+const CMP_COLORS = { E1:"#2F6FED", E2:"#16A34A", E3:"#E08A00", E4:"#9333EA", E5:"#0891B2", E6:"#DB2777" }; // v4：折线图机台配色
+
+/* ============================================================
+   2. 数据生成（Lot 级异构 Group）
+   ============================================================ */
+function genLots() {
+  const r = seedRnd(CFG.seed);
+  const lots = [];
+  for (let i = 0; i < CFG.nLots; i++) {
+    const layers = 44 + Math.floor(r() * 17);          // 44~60 层
+    const startDay = Math.floor(r() * 4);              // 0~3 错峰
+    let nSeg = 8 + Math.floor(r() * 9);                // 8~16 段
+    if (nSeg * 2 > layers) nSeg = Math.floor(layers / 2);
+    const base = 2, rem = layers - nSeg * base;
+    const extra = new Array(nSeg).fill(0);
+    for (let k = 0; k < rem; k++) extra[Math.floor(r() * nSeg)]++;
+
+    const groups = []; let lf = 0;
+    for (let k = 0; k < nSeg; k++) {
+      const cnt = base + extra[k];
+      const lt = lf + cnt - 1;
+      const ratio = lf / Math.max(1, layers);
+      const pool = ratio < 0.34 ? ["E1", "E2"] : ratio < 0.67 ? ["E3", "E4"] : ["E5", "E6"];
+      const cand = pool.slice();
+      if (r() < 0.35) {                                 // 35% 概率跨机组交叉
+        const nb = ratio < 0.34 ? "E3" : ratio < 0.67 ? "E5" : "E3";
+        if (cand.indexOf(nb) < 0) cand.push(nb);
+      }
+      /* v4：取消「末段恒为 dec」——先按比例分配非 dec 状态，段组生成完再随机择 1 段置 dec */
+      let st = "bound";
+      { const rr = r(); if (rr < 0.15) st = "free"; else if (rr < 0.30) st = "pending"; }  // free≈15% / 待决策≈15%，bound 大头
+      /* v6：待决策 / Free 也有指定机台（mock 分配表，后续由真实分配表加载），不再候选均分 */
+      const eqp = cand[Math.floor(r() * cand.length)];
+      const pics = 8 + Math.floor(r() * 19);            // 8~26 pics
+      const stage = STAGE_OF[pool[0]];                  // v4：Stage 与候选池层深对齐 FE/ME/BE
+      const flow = FLOWS[Math.floor(r() * FLOWS.length)]; // v4：Flow 演示口径
+      const step = 1000 + Math.floor(r() * 80) * 10 + (k + 1) * 10; // v4：4 位步骤号，Lot 内按段递增
+      groups.push({ idx: k + 1, name: "G" + (k + 1), lFrom: lf, lTo: lt, cand: cand, st: st, eqp: eqp, pics: pics, flow: flow, stage: stage, step: step });
+      lf = lt + 1;
+    }
+    /* v4：每 Lot 恰 1 个「本次决策」段，位置三情形随机：开头 / 已绑定段之后 / 空白(pending/free)段之后；dec 之后仍可有其他段 */
+    const pv = r();
+    let decK = 0;
+    if (pv < 0.30) {
+      decK = 0;                                         // 情形①：以本次决策为开头
+    } else {
+      const afterB = [], afterW = [];
+      for (let k = 1; k < nSeg; k++) (groups[k - 1].st === "bound" ? afterB : afterW).push(k);
+      const pick = (pv < 0.65 || afterW.length === 0) ? afterB : (afterW.length ? afterW : afterB);
+      const pool2 = pick.length ? pick : [0];
+      decK = pool2[Math.floor(r() * pool2.length)];     // 情形②③：绑定后 / 空白后
+    }
+    groups[decK].st = "dec";
+    groups[decK].eqp = groups[decK].cand[Math.floor(r() * groups[decK].cand.length)];
+    lots.push({
+      id: "LOT-" + String.fromCharCode(65 + (i % 8)) + String(i + 1).padStart(2, "0"),
+      product: PRODS[i % PRODS.length], layers: layers, startDay: startDay, ct: CFG.ct, groups: groups
+    });
+  }
+  return lots;
+}
+
+/* 段的天区间：dayFrom = startDay + lFrom*ct ；dayTo = startDay + lTo*ct + ct - 1 —— 占「层数 × ct」天 */
+function segDays(lot, g) {
+  const a = lot.startDay + g.lFrom * lot.ct;
+  const b = lot.startDay + g.lTo * lot.ct + lot.ct - 1;
+  return { a: a, b: b, span: b - a + 1 };
+}
+
+function rebuild() {
+  LOTS = genLots();
+  let maxD = CFG.days;
+  LOTS.forEach(l => l.groups.forEach(g => { const d = segDays(l, g); if (d.b + 1 > maxD) maxD = d.b + 1; }));
+  DAYS = maxD;
+
+  const L = {}; const LB = {}; const LD = {}; const S = {}; const NS = {};
+  EQPS.forEach(e => { L[e] = new Array(DAYS).fill(0); LB[e] = new Array(DAYS).fill(0); LD[e] = new Array(DAYS).fill(0); S[e] = []; NS[e] = new Array(DAYS).fill(0); });
+  let freePics = 0;
+
+  LOTS.forEach(l => l.groups.forEach(g => {
+    const d = segDays(l, g);
+    if (g.st === "free" || g.st === "pending") {
+      if (g.st === "free") freePics += g.pics;
+      return;                 // v6：负载统一由 recalcByFilter 按分配表（mock）计入
+    }
+    const e = g.eqp; if (!e || !L[e]) return;
+    for (let t = d.a; t <= d.b && t < DAYS; t++) {
+      L[e][t] += g.pics;                                  // ★ 段内每天值完全相同
+      if (g.st === "bound") LB[e][t] += g.pics; else if (g.st === "dec") LD[e][t] += g.pics;
+    }
+    if (d.a < DAYS) NS[e][d.a]++;                         // 段起始日：当日才有新的「已绑 / 决策」发生
+    S[e].push({ lot: l, g: g, d: d });
+  }));
+  EQPS.forEach(e => S[e].sort((x, y) => x.d.a - y.d.a || x.g.idx - y.g.idx));
+
+  /* v3：全局 Group 编号 —— 全部段按起始天排序，G1 连续编到 GN */
+  ALLSEGS = [];
+  LOTS.forEach(function (l) { l.groups.forEach(function (g) { ALLSEGS.push({ lot: l, g: g, d: segDays(l, g) }); }); });
+  ALLSEGS.sort(function (x, y) { return x.d.a - y.d.a || x.lot.id.localeCompare(y.lot.id) || x.g.idx - y.g.idx; });
+  /* v4：双编号 —— lname=Lot 内序号（各 Lot 独立，主显示口径）；gname=全局序号（按起始天排序，跨 Lot 唯一） */
+  ALLSEGS.forEach(function (x, i) { x.gn = i + 1; x.g.gn = i + 1; x.g.lname = x.g.name = "G" + x.g.idx; x.g.gname = "G" + (i + 1); });
+
+  /* v6：待决策/Free 分配负载 + 各机台分配段 */
+  CANDL = {}; CANDSEGS = {};
+  EQPS.forEach(function (e) { CANDL[e] = new Array(DAYS).fill(0); CANDSEGS[e] = []; });
+  ALLSEGS.forEach(function (x) {
+    if (x.g.st !== "free" && x.g.st !== "pending") return;
+    const per = x.g.pics / x.g.cand.length;
+    x.g.cand.forEach(function (e) {
+      if (!CANDL[e]) return;
+      for (let t = x.d.a; t <= x.d.b && t < DAYS; t++) CANDL[e][t] += per;
+      CANDSEGS[e].push(x);
+    });
+  });
+
+  LOAD = L; SEGS = S; LOADB = LB; LOADD = LD; NSTART = NS;
+
+  /* 机台间口径（目标 1） */
+  const tot = {}; EQPS.forEach(e => tot[e] = L[e].reduce((a, b) => a + b, 0));
+  const tv = EQPS.map(e => tot[e]);
+  const between = stats(tv);
+  /* 单机逐日（目标 3） */
+  const per = {}; EQPS.forEach(e => per[e] = stats(L[e]));
+  /* 日峰值（目标 2）：单机单日峰值 */
+  const dailyPeak = []; for (let t = 0; t < DAYS; t++) dailyPeak.push(Math.max.apply(null, EQPS.map(e => L[e][t])));
+  const globalPeak = dailyPeak.length ? Math.max.apply(null, dailyPeak) : 0;
+
+  let nBound = 0, nFree = 0, nPending = 0, nDec = 0, nSegAll = 0, pendPics = 0;
+  LOTS.forEach(l => l.groups.forEach(g => {
+    nSegAll++;
+    if (g.st === "bound") nBound++;
+    else if (g.st === "free") nFree++;
+    else if (g.st === "pending") { nPending++; pendPics += g.pics; }
+    else nDec++;
+  }));
+
+  MET = { tot: tot, between: between, per: per, dailyPeak: dailyPeak, globalPeak: globalPeak,
+          freePics: freePics, nBound: nBound, nFree: nFree, nPending: nPending, pendPics: pendPics, nDec: nDec, nSegAll: nSegAll };
+
+  /* v5：按当前字段筛选（Product/Flow/Stage/Step + 状态）重算负载矩阵 */
+  recalcByFilter();
+}
+
+/* ============================================================
+   3. 片段渲染
+   ============================================================ */
+function kpi(k, v, s, unit) {
+  return '<div class="kpi"><div class="k">' + esc(k) + '</div><div class="v">' + v +
+    (unit ? '<small>' + esc(unit) + '</small>' : '') + '</div>' + (s ? '<div class="s">' + esc(s) + '</div>' : '') + '</div>';
+}
+
+/* v5：视图切换分段控件 */
+function viewTabs(items, cur, act) {
+  let s = '<div class="viewtabs">';
+  items.forEach(function (it) {
+    s += '<button class="' + (cur === it[0] ? "on" : "") + '" data-' + act + '="' + it[0] + '">' + esc(it[1]) + '</button>';
+  });
+  return s + '</div>';
+}
+
+/* v5：字段筛选栏（Product / Flow / Stage / Step + 状态 + 机台） */
+function fieldBar() {
+  const steps = []; LOTS.forEach(function (l) { l.groups.forEach(function (g) { if (steps.indexOf(g.step) < 0) steps.push(g.step); }); });
+  steps.sort(function (a, b) { return a - b; });
+  const pf = UI.pFilter;
+  const sel = function (key, label, vals, cmt) {
+    return '<div class="fi"><label>' + esc(label) + '</label>' + tip(cmt) +
+      '<select class="inp" data-pf="' + key + '">' +
+      '<option value="all"' + (pf[key] === "all" ? " selected" : "") + '>全部</option>' +
+      vals.map(function (v) { return '<option value="' + esc(String(v)) + '"' + (pf[key] === String(v) ? " selected" : "") + '>' + esc(v) + '</option>'; }).join("") +
+      '</select></div>';
+  };
+  return '<div class="toolbar">' +
+    '<div class="fi"><label>机台</label><input class="inp" id="qEqp" value="' + esc(UI.eqpQ) + '" placeholder="如 E3" style="width:100px"></div>' +
+    sel("product", "Product", PRODS, '产品号筛选；影响本页所有图表与下方表格') +
+    sel("flow", "Flow", FLOWS, '光刻层流程组 AA / POLY / METAL / VIA') +
+    sel("stage", "Stage", ["FE", "ME", "BE"], '工艺阶段 FE前段 / ME中段 / BE后段，与候选机台池层深对齐') +
+    sel("step", "Step", steps, '4 位光刻步骤号，Lot 内按段递增') +
+    '<div class="fi"><label>状态</label><select class="inp" data-stf="1">' +
+      '<option value="all"' + (UI.stFilter === "all" ? " selected" : "") + '>全部</option>' +
+      '<option value="bound"' + (UI.stFilter === "bound" ? " selected" : "") + '>已绑定</option>' +
+      '<option value="dec"' + (UI.stFilter === "dec" ? " selected" : "") + '>本次决策</option>' +
+      '<option value="pending"' + (UI.stFilter === "pending" ? " selected" : "") + '>待决策</option>' +
+      '<option value="free"' + (UI.stFilter === "free" ? " selected" : "") + '>Free Layer</option>' +
+    '</select></div>' +
+    '<div class="sp"></div>' +
+    '<button class="btn sm" data-csv="eqpMatrix">导出日负载矩阵 CSV</button>' +
+    '<button class="btn sm" data-csv="eqpSeg">导出机台承接明细 CSV</button>' +
+    '</div>';
+}
+
+/* v6：机台负载图（按天分组柱状图，一屏天数可调，点击柱进入详情标签页） */
+function drawLoadChart() {
+  const days = winDays();
+  const rows = EQPS.map(function (e) {
+    const t = eqpStateTotals(e, days);
+    return { e: e, b: t.b, d: t.d, p: t.p, f: t.f, tot: t.tot, segs: (SEGS[e] || []).length };
+  });
+  /* v6：按天分组柱状图 —— X=窗口内每天，每天 6 台机台各一根柱；一屏可见天数由滑块调节；点击柱进入该机台详情 */
+  const vis = Math.max(1, Math.min(30, UI.loadZoom || 30));
+  const unit = Math.max(24, Math.round(760 / vis));      // 一屏可见 vis 天 → 列宽随缩放
+  const bw = Math.max(2.4, unit * 0.11), gap = Math.max(0.8, unit * 0.03), padL = Math.max(4, unit * 0.18);
+  const gw = bw * 6 + gap * 5 + padL * 2;
+  const W = 52 + days.length * gw + 16, H = 300, PL = 52, PR = 16, PT = 20, PB = 40;
+  const plotH = H - PT - PB;
+  let mx = 0;
+  days.forEach(function (t) { EQPS.forEach(function (e) { if (LOAD[e][t] > mx) mx = LOAD[e][t]; }); });
+  mx = Math.ceil(mx * 1.1 / 10) * 10 || 10;
+  const Y = function (v) { return PT + plotH - (v / mx) * plotH; };
+  let g = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" style="display:block">';
+  for (let k = 0; k <= 4; k++) {
+    const v = mx * k / 4, y = Y(v);
+    g += '<line x1="' + PL + '" y1="' + y + '" x2="' + (W - PR) + '" y2="' + y + '" stroke="#F0F0F0"/>';
+    g += '<text x="' + (PL - 6) + '" y="' + (y + 3) + '" fill="#8A94A6" font-size="10" text-anchor="end">' + Math.round(v) + '</text>';
+  }
+  days.forEach(function (t, i) {
+    const gx = PL + i * gw + padL;
+    /* 先画当天整列 hover 带（空白处悬停看全部机台明细），柱子后画、在上层可点击 */
+    let dayTip = '<b>D' + (t + 1) + ' 各机台当日负载</b>';
+    EQPS.forEach(function (e) {
+      dayTip += '<span class="row"><span class="k">' + e + '</span><span>' + n1(LOAD[e][t]) + ' pics</span></span>';
+    });
+    dayTip += '<hr><span class="k">点击柱子进入该机台详情 →</span>';
+    g += '<rect x="' + (PL + i * gw) + '" y="' + PT + '" width="' + gw + '" height="' + plotH + '" fill="transparent" data-tip="' + esc(dayTip) + '"/>';
+    EQPS.forEach(function (e, j) {
+      const v = LOAD[e][t];
+      const tipTxt = '<b>' + e + ' · D' + (t + 1) + '</b><br>' +
+        '<span class="row"><span class="k">当日负载</span><span>' + n1(v) + ' pics</span></span>' +
+        '<span class="row"><span class="k">已绑定 / 决策</span><span>' + n1(LOADB[e][t]) + ' / ' + n1(LOADD[e][t]) + '</span></span>' +
+        '<span class="row"><span class="k">待决 / Free（分配）</span><span>' + n1(LOADP[e][t]) + ' / ' + n1(LOADF[e][t]) + '</span></span>' +
+        '<hr><span class="k">点击进入机台详情 →</span>';
+      if (v > 0) {
+        g += '<rect x="' + (gx + j * (bw + gap)) + '" y="' + Y(v) + '" width="' + bw + '" height="' + (PT + plotH - Y(v)) + '" fill="' + (CMP_COLORS[e] || "#333") + '" rx="1"/>';
+      }
+      /* 点击热区（含 v=0 时也可点入详情） */
+      g += '<rect x="' + (gx + j * (bw + gap) - 1) + '" y="' + PT + '" width="' + (bw + 2) + '" height="' + plotH + '" fill="transparent" data-eqp="' + e + '" style="cursor:pointer" data-tip="' + esc(tipTxt) + '"/>';
+    });
+    if (gw >= 26 || i % 2 === 0) g += '<text x="' + (gx + bw * 3 + gap * 2.5) + '" y="' + (H - 22) + '" fill="#8A94A6" font-size="9.5" text-anchor="middle">D' + (t + 1) + '</text>';
+  });
+  g += '</svg>';
+  return g;
+}
+function loadChartCard() {
+  const days = winDays();
+  const rows = EQPS.map(function (e) {
+    const t = eqpStateTotals(e, days);
+    return { e: e, b: t.b, d: t.d, p: t.p, f: t.f, tot: t.tot, segs: (SEGS[e] || []).length };
+  });
+  let g = drawLoadChart();
+  let s = '<div class="toolbar"><label class="note">一屏可见天数</label>' +
+    '<input type="range" min="1" max="30" value="' + (UI.loadZoom || 30) + '" data-act="loadZoom" style="width:220px">' +
+    '<b id="loadZoomLbl" style="font-size:13px">' + (UI.loadZoom || 30) + '</b><span class="note">天</span>' +
+    '<div class="sp"></div><span class="note">机台负载对比：X 轴 = 筛选窗口内每天，每天 6 根柱 = 6 台机台当日负载；<b>点击柱子进入该机台详情</b>。</span></div>';
+  s += '<div class="scrollx" id="scLoadCht" style="padding:8px 10px">' + g + '</div>';
+  s += '<div class="legend">' +
+    EQPS.map(function (e) { return '<span class="li"><i style="background:' + (CMP_COLORS[e] || "#333") + '"></i>' + e + '</span>'; }).join("") +
+    '</div>';
+  s += '<div class="tscroll" style="margin-top:14px;max-height:none"><table class="dt"><thead><tr>' +
+    '<th>机台</th><th>已绑定</th><th>本次决策</th><th>待决策</th><th>Free Layer</th>' +
+    '<th>合计（pics）</th><th>承接段数</th><th>日均（pics·天）</th><th>峰值（pics）</th><th>操作</th></tr></thead><tbody>';
+  rows.forEach(function (r) {
+    s += '<tr><td><b>' + r.e + '</b></td><td class="num">' + n1(r.b) + '</td><td class="num">' + n1(r.d) + '</td>' +
+      '<td class="num">' + n1(r.p) + '</td><td class="num">' + n1(r.f) + '</td>' +
+      '<td class="num"><b>' + n1(r.tot) + '</b></td><td class="num">' + r.segs + '</td>' +
+      '<td class="num">' + n1(r.tot / (days.length || 1)) + '</td><td class="num">' + n1(MET.per[r.e].mx) + '</td>' +
+      '<td><button class="btn sm" data-eqp="' + r.e + '">查看逐日明细</button></td></tr>';
+  });
+  s += '</tbody></table></div>';
+  return s;
+}
+
+/* v5：机台详情（独立标签页）—— 逐日四态堆叠柱形对比 */
+function viewDetail(e) {
+  const days = winDays();
+  const rows = eqpDailyStates(e, days);
+  const t = eqpStateTotals(e, days);
+  const bw = 16, step = 28;
+  const W = Math.max(760, days.length * step + 68), H = 320, PL = 52, PR = 16, PT = 20, PB = 44;
+  const plotH = H - PT - PB;
+  const mx = Math.max.apply(null, rows.map(function (r) { return r.tot; })) || 1;
+  const Y = function (v) { return PT + plotH - (v / mx) * plotH; };
+  let g = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" style="display:block">';
+  for (let k = 0; k <= 4; k++) {
+    const v = mx * k / 4, y = Y(v);
+    g += '<line x1="' + PL + '" y1="' + y + '" x2="' + (W - PR) + '" y2="' + y + '" stroke="#F0F0F0"/>';
+    g += '<text x="' + (PL - 6) + '" y="' + (y + 3) + '" fill="#8A94A6" font-size="10" text-anchor="end">' + Math.round(v) + '</text>';
+  }
+  /* 四态自下而上堆叠：已绑定 / 本次决策 / 待决策 / Free */
+  const series = [["b", "已绑定", "#F2BA02"], ["d", "本次决策", "#4874CB"], ["p", "待决策", "#F0B95A"], ["f", "Free", "#C9CFD8"]];
+  days.forEach(function (tt, i) {
+    const r = rows.filter(function (x) { return x.t === tt; })[0];
+    const gx = PL + 8 + i * step;
+    let tipTxt = '<b>' + e + ' · D' + (tt + 1) + '</b>';
+    let acc = 0;
+    series.forEach(function (se) {
+      const v = r ? r[se[0]] : 0;
+      tipTxt += '<span class="row"><span class="k">' + se[1] + '</span><span>' + n1(v) + ' pics</span></span>';
+      if (v > 0) {
+        g += '<rect x="' + gx + '" y="' + Y(acc + v) + '" width="' + bw + '" height="' + Math.max(1, (v / mx) * plotH) + '" fill="' + se[2] + '" rx="1"/>';
+      }
+      acc += v;
+    });
+    g += '<text x="' + (gx + bw / 2) + '" y="' + (H - 24) + '" fill="#8A94A6" font-size="9.5" text-anchor="middle">D' + (tt + 1) + '</text>';
+    g += '<rect x="' + (gx - 4) + '" y="' + PT + '" width="' + (bw + 8) + '" height="' + plotH + '" fill="transparent" pointer-events="all" data-tip="' + esc(tipTxt) + '"/>';
+  });
+  g += '</svg>';
+  /* v6：详情页 KPI 已按要求移除 */
+  let s = '';
+  s += '<div class="card"><div class="card-h"><div class="t">' + e + ' · 逐日四态负载堆叠对比</div>' +
+    '<div class="sub">X 轴 = 天（D1…），每根柱自下而上堆叠 = 已绑定 / 本次决策 / 待决策 / Free Layer（窗口：' + (UI.win === "all" ? "全部 " + DAYS + " 天" : ({ "1": "D1–30", "2": "D31–60", "3": "D61–90", "4": "D91–120" })[UI.win]) + '）</div>' +
+    '<div class="right"><button class="btn sm" data-act="closeDetail">← 返回 EQP Loading</button></div></div>' +
+    '<div class="legend"><span class="li"><i style="background:#F2BA02"></i>已绑定</span>' +
+    '<span class="li"><i style="background:#4874CB"></i>本次决策</span>' +
+    '<span class="li"><i style="background:#F0B95A"></i>待决策</span>' +
+    '<span class="li"><i style="background:#C9CFD8"></i>Free Layer</span></div>' +
+    '<div class="scrollx" id="scDetail" style="padding:8px 10px">' + g + '</div></div>';
+  s += '<div class="card"><div class="card-h"><div class="t">' + e + ' · 逐日明细表</div>' +
+    '<div class="sub">仅列出窗口内有负载的日期</div>' +
+    '<div class="right"><button class="btn sm" data-csv="detail">导出 CSV</button></div></div>' +
+    '<div class="tscroll" style="max-height:520px"><table class="dt"><thead><tr>' +
+    '<th>日期</th><th>已绑定</th><th>本次决策</th><th>待决策</th><th>Free Layer</th><th>当日合计</th><th>新起段</th><th>当日全场最大</th></tr></thead><tbody>';
+  rows.forEach(function (r) {
+    s += '<tr><td class="mono"><b>D' + (r.t + 1) + '</b></td>' +
+      '<td class="num">' + n1(r.b) + '</td><td class="num">' + n1(r.d) + '</td>' +
+      '<td class="num">' + n1(r.p) + '</td><td class="num">' + n1(r.f) + '</td>' +
+      '<td class="num"><b>' + n1(r.tot) + '</b></td><td class="num">' + r.ns + '</td>' +
+      '<td class="num">' + n1(r.peak) + '</td></tr>';
+  });
+  s += '</tbody></table></div></div>';
+  return s;
+}
+
+function legendBar() {
+  return '<div class="legend" style="margin:9px 0 2px">' +
+    '<span class="li"><i style="background:#F2BA02"></i>已绑定（黄）</span>' +
+    '<span class="li pending"><i></i>待决策（橙 · 已按分配表落机台）</span>' +
+    '<span class="li"><i style="background:#4874CB"></i>本次决策（蓝）</span>' +
+    '<span class="li free"><i></i>Free Layer（灰斜纹 · 已按分配表落机台）</span>' +
+    '<span class="note">色义沿用 Stacking Bond 语义色；本页无「容量 / 负载率」口径</span></div>';
+}
+
+function winBar() {
+  const wins = [["all", "全部 1–" + DAYS], ["1", "1–30"], ["2", "31–60"], ["3", "61–90"], ["4", "91–120"]];
+  let s = '<div class="winbar"><span class="lab">时间窗口</span>';
+  wins.forEach(function (w) {
+    s += '<button data-win="' + w[0] + '" class="' + (UI.win === w[0] ? "on" : "") + '">' + esc(w[1]) + '</button>';
+  });
+  return s + '</div>';   // v6：视图切换已上移至页面 tab 栏右上方，此处仅保留时间窗口
+}
+
+/* 日期刻度 */
+function ruler(headW, headLabel) {
+  let s = '<div class="ruler"><div class="rh" style="width:' + headW + 'px;min-width:' + headW + 'px;height:38px;' +
+    'display:flex;align-items:center;padding:0 9px;font-size:11.4px;font-weight:700;color:#5A6B85">' +
+    esc(headLabel) + '</div>';
+  s += '<div style="display:flex;flex:none">';
+  for (let t = 0; t < DAYS; t++) {
+    const wk = (t % 7 === 0);
+    s += '<div class="rc' + (wk ? " wk" : "") + '" style="width:' + CW + 'px;height:38px">' +
+      (wk ? "D" + (t + 1) : (t + 1)) + '</div>';
+  }
+  s += '</div></div>';
+  return s;
+}
+
+/* 段 tooltip */
+function segTip(lot, g, d) {
+  return '<b>' + esc(lot.id) + ' · G' + g.gn + '</b><br>' +
+    '<span class="row"><span class="k">产品 / 层数</span><span>' + esc(lot.product) + ' · ' + lot.layers + ' 层</span></span>' +
+    '<span class="row"><span class="k">Layer 区间</span><span>L' + g.lFrom + ' – L' + g.lTo + '（' + (g.lTo - g.lFrom + 1) + ' 层）</span></span>' +
+    '<span class="row"><span class="k">占用天区间</span><span>D' + (d.a + 1) + ' – D' + (d.b + 1) + '（' + d.span + ' 天）</span></span>' +
+    '<hr>' +
+    '<span class="row"><span class="k">候选机台</span><span>' + esc(g.cand.join(" / ")) + '</span></span>' +
+    '<span class="row"><span class="k">决策状态</span><span>' + esc(ST[g.st].n) + '</span></span>' +
+    '<span class="row"><span class="k">承接机台</span><span>' + (g.eqp ? esc(g.eqp) : "未分配") + '</span></span>' +
+    '<span class="row"><span class="k">负载</span><span>' + g.pics + ' pics</span></span>' +
+    '<hr><span class="k">每层 CT = ' + lot.ct + ' 天 → 本段连续占用 ' + d.span + ' 天，段内每日负载相同</span>';
+}
+
+/* 段级 PFSS 匹配（Product/Flow/Stage/Step，供段带明细与视图共用） */
+function segHitP(l, g) {
+  const pf = UI.pFilter;
+  return (pf.product === "all" || l.product === pf.product) &&
+    (pf.flow === "all" || g.flow === pf.flow) &&
+    (pf.stage === "all" || g.stage === pf.stage) &&
+    (pf.step === "all" || String(g.step) === pf.step);
+}
+
+/* v5：EQP Loading 字段筛选（Product/Flow/Stage/Step + 状态）→ 命中判定 */
+function segMatch(l, g) {
+  return segHitP(l, g) && (UI.stFilter === "all" || g.st === UI.stFilter);
+}
+
+/* v5：按当前筛选重算负载矩阵（筛选即时生效，各图表口径一致） */
+function recalcByFilter() {
+  const L = {}, LB = {}, LD = {}, LP = {}, LF = {}, NS = {}, S = {}, CS = {}, CL = {};
+  EQPS.forEach(function (e) {
+    L[e] = new Array(DAYS).fill(0); LB[e] = new Array(DAYS).fill(0); LD[e] = new Array(DAYS).fill(0);
+    LP[e] = new Array(DAYS).fill(0); LF[e] = new Array(DAYS).fill(0); NS[e] = new Array(DAYS).fill(0);
+    S[e] = []; CS[e] = []; CL[e] = new Array(DAYS).fill(0);
+  });
+  let freePics = 0, pendPics = 0;
+  ALLSEGS.forEach(function (x) {
+    const l = x.lot, g = x.g, d = x.d, hit = segMatch(l, g);
+    if (g.st === "free" || g.st === "pending") {
+      if (g.st === "free") { if (hit) freePics += g.pics; }
+      else { if (hit) pendPics += g.pics; }
+      if (!hit) return;
+      /* v6：待决策 / Free 按分配表（mock）全额计入指定机台，不再候选均分 */
+      const e = g.eqp; if (!e || !L[e]) return;
+      for (let t = d.a; t <= d.b && t < DAYS; t++) {
+        if (g.st === "free") LF[e][t] += g.pics; else LP[e][t] += g.pics;
+        L[e][t] += g.pics; CL[e][t] += g.pics;
+      }
+      CS[e].push(x);
+      return;
+    }
+    const e = g.eqp; if (!e || !L[e]) return;
+    if (!hit) return;
+    for (let t = d.a; t <= d.b && t < DAYS; t++) {
+      L[e][t] += g.pics;
+      if (g.st === "bound") LB[e][t] += g.pics; else if (g.st === "dec") LD[e][t] += g.pics;
+    }
+    if (d.a < DAYS) NS[e][d.a]++;
+    S[e].push({ lot: l, g: g, d: d });
+  });
+  EQPS.forEach(function (e) { S[e].sort(function (x, y) { return x.d.a - y.d.a || x.g.idx - y.g.idx; }); });
+  const tot = {}; EQPS.forEach(function (e) { tot[e] = L[e].reduce(function (a, b) { return a + b; }, 0); });
+  const tv = EQPS.map(function (e) { return tot[e]; });
+  const between = stats(tv);
+  const per = {}; EQPS.forEach(function (e) { per[e] = stats(L[e]); });
+  const dailyPeak = []; for (let t = 0; t < DAYS; t++) dailyPeak.push(Math.max.apply(null, EQPS.map(function (e) { return L[e][t]; })));
+  const globalPeak = dailyPeak.length ? Math.max.apply(null, dailyPeak) : 0;
+  LOAD = L; LOADB = LB; LOADD = LD; LOADP = LP; LOADF = LF; NSTART = NS;
+  SEGS = S; CANDSEGS = CS; CANDL = CL;
+  MET = Object.assign({}, MET, { tot: tot, between: between, per: per, dailyPeak: dailyPeak,
+    globalPeak: globalPeak, freePics: freePics, pendPics: pendPics });
+}
+
+/* v6：机台四态逐日明细（已绑定 / 本次决策 / 待决策 / Free，分配口径） */
+function eqpDailyStates(e, days) {
+  const rows = [];
+  days.forEach(function (t) {
+    const b = LOADB[e][t], d = LOADD[e][t], p = LOADP[e][t], f = LOADF[e][t];
+    const tot = b + d + p + f;
+    if (tot <= 0) return;
+    rows.push({ t: t, b: b, d: d, p: p, f: f, tot: tot, ns: NSTART[e][t], peak: MET.dailyPeak[t] });
+  });
+  return rows;
+}
+function eqpStateTotals(e, days) {
+  let b = 0, d = 0, p = 0, f = 0;
+  days.forEach(function (t) { b += LOADB[e][t]; d += LOADD[e][t]; p += LOADP[e][t]; f += LOADF[e][t]; });
+  return { b: b, d: d, p: p, f: f, tot: b + d + p + f };
+}
+function winDays() {
+  const a = UI.win === "all" ? 0 : (parseInt(UI.win, 10) - 1) * 30;
+  const b = UI.win === "all" ? DAYS - 1 : Math.min(DAYS - 1, a + 29);
+  const days = []; for (let t = a; t <= b; t++) days.push(t);
+  return days;
+}
+
+
+function viewEQP() {
+  const eqps = EQPS.filter(function (e) {
+    const q = UI.eqpQ.trim().toLowerCase();
+    return !q || e.toLowerCase().indexOf(q) >= 0;
+  });
+
+  let s = '';
+
+  /* ---- v5：字段筛选 + 图表区（视图切换已上移至页面 tab 栏右上方）---- */
+  s += '<div class="card"><div class="card-h">' +
+    '<div class="t">EQP Loading · 机台产能视图</div>' +
+    '</div>' + fieldBar() + winBar() + legendBar();
+
+  if (UI.view === "matrix") {
+    s += '<div class="scrollx" id="scEqp" style="margin-top:10px">' + eqpMatrix(eqps) + '</div>';
+  } else if (UI.view === "cmp") {
+    s += cmpPanel();
+  } else {
+    s += loadChartCard();
+  }
+  s += '</div>';
+
+  /* ---- v6：矩阵下方先归属图、再机台承接明细表 ---- */
+  s += groupOwnerTable();
+  s += eqpGroupTable(eqps);
+
+  return s;
+}
+
+/* v6：机台分配段（待决策/Free，画在指定机台行上） */
+function candSegsHtml(e) {
+  if (!UI.showCand) return '';
+  let s = '';
+  (CANDSEGS[e] || []).forEach(function (x) {
+    const left = x.d.a * 26, w = Math.max(26 * 0.6, x.d.span * 26 - 2);
+    const cls = x.g.st === "pending" ? "pending" : "free";
+    const tip = '<b>' + esc(x.lot.id) + ' · ' + esc(x.g.name) + '</b>（候选）<br>' +
+      '<span class="row"><span class="k">状态</span><span>' + esc(ST[x.g.st].n) + ' · 尚未落定</span></span>' +
+      '<span class="row"><span class="k">候选机台</span><span>' + esc(x.g.cand.join(" / ")) + '</span></span>' +
+      '<span class="row"><span class="k">层 / 天区间</span><span>L' + x.g.lFrom + '–' + x.g.lTo + ' · D' + (x.d.a + 1) + '–' + (x.d.b + 1) + '</span></span>';
+    s += '<div class="seg ' + cls + '" style="left:' + left + 'px;width:' + w + 'px;opacity:.85" data-tip="' + esc(tip) + '"></div>';
+  });
+  return s;
+}
+
+/* 段带甘特（机台分组） */
+function eqpGantt(eqps) {
+  let s = ruler(HEAD_W, "机台 / Lot · Group");
+  eqps.forEach(function (e) {
+    const list = SEGS[e];
+    s += '<div class="grow grp"><div class="gh" style="width:' + HEAD_W + 'px;min-width:' + HEAD_W + 'px">' +
+      '<b>' + e + '</b><small>承接 ' + list.length + ' 段 · 合计 ' + f0(MET.tot[e]) + ' pics</small></div>' +
+      '<div class="gt" style="width:' + (DAYS * CW) + 'px;background:#F7FAFE">' + candSegsHtml(e) + '</div></div>';
+    list.forEach(function (x) {
+      const left = x.d.a * CW, w = Math.max(CW * 0.6, x.d.span * CW - 2);
+      const tip = segTip(x.lot, x.g, x.d);
+      const label = x.d.span * 1 >= 2 ? (x.lot.id.replace("LOT-", "") + " " + x.g.name + " · " + x.g.pics + "p") : "";
+      s += '<div class="grow"><div class="gh" style="width:' + HEAD_W + 'px;min-width:' + HEAD_W + 'px;padding-left:20px">' +
+        '<b style="font-size:11.2px;font-weight:600">' + esc(x.lot.id) + ' · ' + esc(x.g.name) + '</b>' +
+        '<small>L' + x.g.lFrom + '–L' + x.g.lTo + ' · D' + (x.d.a + 1) + '–D' + (x.d.b + 1) + '</small></div>' +
+        '<div class="gt" style="width:' + (DAYS * CW) + 'px">' +
+        '<div class="seg ' + ST[x.g.st].c + ' edge-l edge-r" style="left:' + left + 'px;width:' + w + 'px" data-tip="' + esc(tip) + '">' +
+        esc(label) + '</div></div></div>';
+    });
+  });
+  return s;
+}
+
+/* 日负载矩阵 */
+function eqpMatrix(eqps) {
+  const mx = Math.max.apply(null, EQPS.map(e => Math.max.apply(null, LOAD[e])));
+  let s = '<table class="mx"><thead><tr><th class="rh">机台 / 日期</th>';
+  for (let t = 0; t < DAYS; t++) s += '<th class="' + (t % 7 === 0 ? "wk" : "") + '" data-tip="' + esc(dayBoxTip(t)) + '">' + (t + 1) + '</th>';
+  s += '</tr></thead><tbody>';
+  eqps.forEach(function (e) {
+    s += '<tr><td class="rh">' + e + '<br><span style="font-weight:400;font-size:10px;color:#8A94A6">合计 ' + f0(MET.tot[e]) + '</span></td>';
+    for (let t = 0; t < DAYS; t++) {
+      const v = LOAD[e][t];
+      const cl = CANDL[e] ? CANDL[e][t] : 0;
+      let cls = "d";
+      if (v <= 0) cls = cl > 0 ? "d cand" : "d zero";
+      else if (v > mx * 0.75) cls = "d h3";
+      else if (v > mx * 0.5) cls = "d h2";
+      else if (v > 0) cls = "d h1";
+      const bv = LOADB[e][t], dv = LOADD[e][t], ns = NSTART[e][t];
+      if (ns > 0) cls += " st";
+      const tip = '<b>' + e + ' · D' + (t + 1) + '</b><br>' +
+        '<span class="row"><span class="k">当日负载合计</span><span>' + n1(v) + ' pics</span></span>' +
+        '<span class="row"><span class="k">其中 已绑定</span><span>' + (bv > 0 ? n1(bv) + ' pics' : '无') + '</span></span>' +
+        '<span class="row"><span class="k">其中 本次决策</span><span>' + (dv > 0 ? n1(dv) + ' pics' : '无') + '</span></span>' +
+        '<span class="row"><span class="k">待决策 / Free（分配）</span><span>' + (cl > 0 ? n1(cl) + ' pics' : '无') + '</span></span>' +
+        '<hr><span class="row"><span class="k">本日新起段</span><span>' + ns + ' 段' + (ns ? '（当日才有新的已绑/决策）' : '（当日无新段，仅持续占用）') + '</span></span>' +
+        '<span class="row"><span class="k">全场当日最大</span><span>' + n1(MET.dailyPeak[t]) + ' pics</span></span>';
+      s += '<td class="' + cls + '" data-tip="' + esc(tip) + '">' + (v > 0 ? Math.round(v * 10) / 10 : "·") + '</td>';
+    }
+    s += '</tr>';
+  });
+  s += '</tbody></table>';
+  return s;
+}
+
+/* v4：日负载矩阵「日期列头」箱型图 + 数据对比折线图（仅新增，不改现有功能） */
+function dayBoxTip(t) {
+  const vals = EQPS.map(function (e) { return LOAD[e][t]; });
+  const mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
+  const srt = EQPS.map(function (e, i) { return { e: e, v: vals[i] }; }).sort(function (a, b) { return a.v - b.v; });
+  const q = function (p) { const id = (srt.length - 1) * p, lo = Math.floor(id), hi = Math.ceil(id); return lo === hi ? srt[lo].v : srt[lo].v + (srt[hi].v - srt[lo].v) * (id - lo); };
+  const q1 = q(0.25), med = q(0.5), q3 = q(0.75);
+  const mean = vals.reduce(function (a, b) { return a + b; }, 0) / vals.length;
+  const eqOf = function (v) { return srt.filter(function (o) { return Math.abs(o.v - v) < 1e-9; }).map(function (o) { return o.e; }); };
+  const fmtEq = function (arr) { return arr.join(",") + (arr.length > 1 ? " (" + arr.length + " 台)" : ""); };
+  return '<b>D' + (t + 1) + ' 各机台负载分布</b>' +
+    dayBoxSvg(t, mn, q1, med, q3, mx, srt) +
+    '<span class="row"><span class="k">min / max</span><span>' + n1(mn) + ' / ' + n1(mx) + ' pics</span></span>' +
+    '<span class="row"><span class="k">中位 / 均值</span><span>' + n1(med) + ' / ' + n1(mean) + ' pics</span></span>' +
+    '<span class="row"><span class="k">最高 / 最低</span><span>' + fmtEq(eqOf(mx)) + ' / ' + fmtEq(eqOf(mn)) + '</span></span>';
+}
+function dayBoxSvg(t, mn, q1, med, q3, mx, srt) {
+  const W = 224, H = 100, L = 10, R = W - 10, PW = R - L;
+  const amax = Math.max(mx * 1.12, 1);
+  const X = function (v) { return L + (v / amax) * PW; };
+  let s = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" style="display:block;margin:4px 0">';
+  s += '<line x1="' + L + '" y1="62" x2="' + R + '" y2="62" stroke="rgba(255,255,255,.35)" stroke-width="1"/>';
+  s += '<line x1="' + X(mn) + '" y1="30" x2="' + X(mx) + '" y2="30" stroke="rgba(255,255,255,.6)" stroke-width="1"/>';
+  s += '<line x1="' + X(mn) + '" y1="24" x2="' + X(mn) + '" y2="36" stroke="rgba(255,255,255,.6)" stroke-width="1"/>';
+  s += '<line x1="' + X(mx) + '" y1="24" x2="' + X(mx) + '" y2="36" stroke="rgba(255,255,255,.6)" stroke-width="1"/>';
+  s += '<rect x="' + X(q1) + '" y="21" width="' + (X(q3) - X(q1)) + '" height="18" fill="rgba(255,217,122,.22)" stroke="#FFD97A" stroke-width="1"/>';
+  s += '<line x1="' + X(med) + '" y1="21" x2="' + X(med) + '" y2="39" stroke="#FFD97A" stroke-width="2"/>';
+  /* v4.2：按负载值分组，同值机台合并为逗号标签，避免重叠遮挡 */
+  const groups = [];
+  srt.forEach(function (o) {
+    const g = groups[groups.length - 1];
+    if (g && Math.abs(g.v - o.v) < 1e-9) g.eqps.push(o.e);
+    else groups.push({ v: o.v, eqps: [o.e] });
+  });
+  const same = Math.abs(mx - mn) < 1e-9;
+  const labels = [];
+  groups.forEach(function (g) {
+    const px = X(g.v);
+    const isMax = Math.abs(g.v - mx) < 1e-9;
+    let txt = g.eqps.join(",");
+    /* 仅「最高」重合时加括号说明；最低不加（多为 0.0 重合，统计行已列明，且易与左侧标签拥挤） */
+    if (!same && isMax && g.eqps.length > 1) txt += " (最高)";
+    const r = 3.4 + Math.min(2.4, (g.eqps.length - 1) * 0.9);
+    s += '<circle cx="' + px + '" cy="64" r="' + r.toFixed(1) + '" fill="' + (CMP_COLORS[g.eqps[0]] || "#fff") + '"/>';
+    labels.push({ px: px, txt: txt });
+  });
+  /* 两行交错错开：默认第 1 行，与上一标签会碰撞时切到第 2 行 */
+  const rowRight = [-1e9, -1e9];
+  labels.forEach(function (lb) {
+    const w = lb.txt.length * 4.7 + (lb.txt.indexOf("(") >= 0 ? 8 : 0);
+    const left = lb.px - w / 2;
+    let row = 0;
+    if (left - rowRight[0] < 3) row = 1;
+    const anchor = lb.px < 30 ? "start" : (lb.px > W - 30 ? "end" : "middle");
+    const y = row === 0 ? 80 : 90;
+    s += '<text x="' + lb.px + '" y="' + y + '" fill="#cdd8ea" font-size="8" text-anchor="' + anchor + '">' + lb.txt + '</text>';
+    rowRight[row] = lb.px + w / 2;
+  });
+  s += '</svg>';
+  return s;
+}
+function poly(days, fv, X, Y, color, w, dashed) {
+  let d = "";
+  days.forEach(function (t, i) { d += (i === 0 ? "M" : "L") + X(i) + " " + Y(fv(t)) + " "; });
+  return '<path d="' + d.trim() + '" fill="none" stroke="' + color + '" stroke-width="' + w + '"' + (dashed ? ' stroke-dasharray="4 3"' : "") + '/>';
+}
+function cmpPanel() {
+  const wlab = UI.win === "all" ? "全部 D1–" + DAYS : ({ "1": "D1–30", "2": "D31–60", "3": "D61–90", "4": "D91–120" })[UI.win];
+  let s = '<div class="card"><h3>各机台负载对比 · 窗口：' + esc(wlab) + '</h3>' +
+    '<p class="desc">X 轴=窗口内天数，Y 轴=每日 Stacking Bond 负载 pics；每条线=一台机台（E1~E6），红色=全场当日峰值 dailyPeak，灰色虚线=当日各机台均值。下方滑块调整一屏可见天数，超出则横向滚动。</p>' +
+    '<div style="display:flex;align-items:center;gap:12px;margin:4px 0 8px">' +
+    '<label class="lab" style="margin:0">一屏可见天数</label>' +
+    '<input type="range" min="1" max="30" value="' + UI.cmpZoom + '" data-act="cmpZoom" style="width:220px">' +
+    '<b id="cmpZoomLbl" style="color:#2F4368">' + UI.cmpZoom + '</b>' +
+    '<span class="note" style="margin:0">天</span></div>' +
+    '<div class="scrollx" id="scCmp" style="border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:#fff">' +
+    drawCmpChart() + '</div>' +
+    '<div class="note" style="margin-top:6px">提示：缩放滑块滑动时仅重绘此图，不刷新上方矩阵。</div></div>';
+  return s;
+}
+function drawCmpChart() {
+  const a = UI.win === "all" ? 0 : (parseInt(UI.win, 10) - 1) * 30;
+  const b = UI.win === "all" ? DAYS - 1 : a + 29;
+  const days = []; for (let t = a; t <= b && t < DAYS; t++) days.push(t);
+  const nd = days.length;
+  const vis = Math.max(1, Math.min(30, UI.cmpZoom));
+  const VPW = 760;
+  const ppd = Math.max(10, Math.min(760, Math.round(VPW / vis)));
+  const W = nd * ppd, H = 320, PL = 46, PR = 14, PT = 16, PB = 28;
+  const plotW = W - PL - PR, plotH = H - PT - PB;
+  let maxY = 0;
+  days.forEach(function (t) { EQPS.forEach(function (e) { if (LOAD[e][t] > maxY) maxY = LOAD[e][t]; }); if (MET.dailyPeak[t] > maxY) maxY = MET.dailyPeak[t]; });
+  maxY = Math.ceil(maxY * 1.08 / 10) * 10 || 10;
+  const Y = function (v) { return PT + plotH - (v / maxY) * plotH; };
+  const X = function (i) { return PL + (nd === 1 ? plotW / 2 : i * ppd); };
+  let s = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" style="display:block">';
+  for (let k = 0; k <= 5; k++) {
+    const v = maxY * k / 5, y = Y(v);
+    s += '<line x1="' + PL + '" y1="' + y + '" x2="' + (W - PR) + '" y2="' + y + '" stroke="#EDF1F8" stroke-width="1"/>';
+    s += '<text x="' + (PL - 6) + '" y="' + (y + 3) + '" fill="#8A94A6" font-size="10" text-anchor="end">' + Math.round(v) + '</text>';
+  }
+  const step = ppd >= 18 ? 1 : (ppd >= 9 ? 5 : 10);
+  days.forEach(function (t, i) {
+    if (i % step === 0 || i === nd - 1) s += '<text x="' + X(i) + '" y="' + (H - 8) + '" fill="#8A94A6" font-size="10" text-anchor="middle">D' + (t + 1) + '</text>';
+  });
+  const meanOf = function (t) { let s2 = 0; EQPS.forEach(function (e) { s2 += LOAD[e][t]; }); return s2 / EQPS.length; };
+  s += poly(days, function (t) { return MET.dailyPeak[t]; }, X, Y, "#E5484D", 2, false);
+  s += poly(days, meanOf, X, Y, "#8A94A6", 1.5, true);
+  EQPS.forEach(function (e) { s += poly(days, function (t) { return LOAD[e][t]; }, X, Y, CMP_COLORS[e] || "#333", 1.6, false); });
+  /* v4.1：按天 hover 带 + 明细 tooltip（鼠标移入该天列即展示各机台负载明细） */
+  days.forEach(function (t, i) {
+    let tip = '<div style="font-weight:600;margin-bottom:4px">第 ' + (t + 1) + ' 天 · D' + (t + 1) + '</div>'
+      + '<div class="row"><span class="k">机台</span><span>负载 / 已绑 / 决策</span></div>';
+    EQPS.forEach(function (e) {
+      tip += '<div class="row"><span><b style="color:' + (CMP_COLORS[e] || '#fff') + '">' + e + '</b></span>'
+        + '<span>' + n1(LOAD[e][t]) + ' / ' + n1(LOADB[e][t]) + ' / ' + n1(LOADD[e][t]) + '</span></div>';
+    });
+    tip += '<hr>'
+      + '<div class="row"><span class="k">全场当日峰值</span><span>' + n1(MET.dailyPeak[t]) + ' pics</span></div>'
+      + '<div class="row"><span class="k">当日机台均值</span><span>' + n1(meanOf(t)) + ' pics</span></div>';
+    const x0 = X(i) - ppd / 2;
+    s += '<rect x="' + x0 + '" y="' + PT + '" width="' + ppd + '" height="' + plotH + '" fill="transparent" pointer-events="all" data-tip="' + esc(tip) + '"/>';
+  });
+  let lx = PL;
+  EQPS.forEach(function (e) {
+    s += '<rect x="' + lx + '" y="6" width="10" height="3" fill="' + (CMP_COLORS[e] || "#333") + '"/>';
+    s += '<text x="' + (lx + 14) + '" y="10" fill="#5A6B85" font-size="10">' + e + '</text>';
+    lx += 44;
+  });
+  s += '<rect x="' + lx + '" y="6" width="10" height="3" fill="#E5484D"/>';
+  s += '<text x="' + (lx + 14) + '" y="10" fill="#5A6B85" font-size="10">峰值</text>';
+  lx += 44;
+  s += '<line x1="' + lx + '" y1="7" x2="' + (lx + 12) + '" y2="7" stroke="#8A94A6" stroke-width="1.5" stroke-dasharray="3 2"/>';
+  s += '<text x="' + (lx + 16) + '" y="10" fill="#5A6B85" font-size="10">均值</text>';
+  s += '</svg>';
+  return s;
+}
+
+/* 机台承接 Group 明细表（c 项：机台 → Lot × Group 反查） */
+function eqpGroupTable(eqps) {
+  let rows = [];
+  eqps.forEach(function (e) {
+    SEGS[e].forEach(function (x) {
+      rows.push({ eqp: e, lot: x.lot.id, gn: x.g.gn, lFrom: x.g.lFrom, lTo: x.g.lTo,
+        dA: x.d.a + 1, dB: x.d.b + 1, span: x.d.span, st: x.g.st, cand: x.g.cand.join("/"), pics: x.g.pics });
+    });
+  });
+
+  /* v6：Group 编号只有全局一套，序号筛选恒按全局# 匹配 */
+  const fsE = gFilterSet();
+  if (fsE.on) rows = rows.filter(function (r) { return fsE.want[r.gn]; });
+  if (UI.stFilter !== "all") rows = rows.filter(function (r) { return r.st === UI.stFilter; });
+
+  const K = UI.eqpSort.k, D = UI.eqpSort.dir;
+  rows.sort(function (a, b) {
+    let x = a[K], y = b[K];
+    if (typeof x === "string") return x.localeCompare(y) * D;
+    return (x - y) * D;
+  });
+
+  const COLS = [["eqp", "机台"], ["lot", "Lot"], ["gn", "Group#"], ["lFrom", "起 Layer"], ["lTo", "止 Layer"],
+    ["dA", "起 Day"], ["dB", "止 Day"], ["span", "占天"], ["cand", "候选机台"], ["st", "状态"], ["pics", "负载 pics"]];
+
+  let s = '<div class="card"><h3>机台承接 Group 明细（机台 → Lot × Group 反查）</h3>' +
+    '<div class="fbar">' +
+    '<div class="fi"><label>Group 序号</label><input id="fG" value="' + esc(UI.gFilter) + '" placeholder="如 10-15 或 10,11" style="width:150px"></div>' +
+    '<div class="fi"><label>状态</label>' + tip('四态：已绑定(黄)/待决策(橙)/本次决策(蓝)/Free Layer(灰斜纹)；待决策与 Free 已按分配表（mock）落到指定机台') + '<select id="fSt">' +
+    '<option value="all"' + (UI.stFilter === "all" ? " selected" : "") + '>全部</option>' +
+    '<option value="bound"' + (UI.stFilter === "bound" ? " selected" : "") + '>已绑定</option>' +
+    '<option value="pending"' + (UI.stFilter === "pending" ? " selected" : "") + '>待决策</option>' +
+    '<option value="free"' + (UI.stFilter === "free" ? " selected" : "") + '>Free Layer</option>' +
+    '<option value="dec"' + (UI.stFilter === "dec" ? " selected" : "") + '>本次决策</option></select></div>' +
+    '<div class="spacer"></div><span class="cnt">共 ' + rows.length + ' 条</span>' +
+    '<button class="btn sm" data-csv="eqpSeg">导出 CSV</button></div>' +
+    '<div class="tscroll"><table class="dt"><thead><tr>';
+  COLS.forEach(function (c) {
+    const ar = (K === c[0]) ? (D > 0 ? " ▲" : " ▼") : " ⇅";
+    s += '<th class="sortable" data-sort="' + c[0] + '">' + esc(c[1]) + ar +
+      (c[0] === "gn" ? tip('全局 Group 序号：全部段按起始天排序后的唯一编号') : "") +
+      '</th>';
+  });
+  s += '</tr></thead><tbody>';
+  rows.forEach(function (r) {
+    s += '<tr>' +
+      '<td><b>' + esc(r.eqp) + '</b></td>' +
+      '<td class="mono">' + esc(r.lot) + '</td>' +
+      '<td><b>G' + r.gn + '</b></td>' +
+      '<td class="num">' + r.lFrom + '</td><td class="num">' + r.lTo + '</td>' +
+      '<td class="num">D' + r.dA + '</td><td class="num">D' + r.dB + '</td>' +
+      '<td class="num">' + r.span + '</td>' +
+      '<td class="mono">' + esc(r.cand) + '</td>' +
+      '<td><span class="pill ' + ST[r.st].pill + '">' + esc(ST[r.st].n) + '</span></td>' +
+      '<td class="num">' + r.pics + '</td></tr>';
+  });
+  s += '</tbody></table></div>';
+  if (!rows.length) {
+    s += UI.stFilter === "free"
+      ? '<div style="padding:20px;text-align:center;color:#5A6478;font-size:12px;line-height:1.8">' +
+        '<b>当前筛选下无 Free Layer 承接行。</b><br>可在机台负载图或日负载矩阵中查看分配口径。</div>'
+      : '<div style="padding:22px;text-align:center;color:#8A94A6;font-size:12px">无匹配数据</div>';
+  }
+  s += '</div>';
+  return s;
+}
+
+/* ============================================================
+   5. 页签二：Lot Stacking Bond
+   ============================================================ */
+function viewLot() {
+  const q = UI.lotQ.trim().toLowerCase();
+  const pf = UI.pFilter;
+  const segHit = function (l, g) {
+    return (pf.product === "all" || l.product === pf.product) &&
+      (pf.flow === "all" || g.flow === pf.flow) &&
+      (pf.stage === "all" || g.stage === pf.stage) &&
+      (pf.step === "all" || String(g.step) === pf.step);
+  };
+  const lots = LOTS.filter(function (l) {
+    if (q && l.id.toLowerCase().indexOf(q) < 0 && l.product.toLowerCase().indexOf(q) < 0) return false;
+    return l.groups.some(function (g) { return segHit(l, g); });
+  });
+  const K = UI.lotSort.k, D = UI.lotSort.dir;
+  function cnt(l, st) { return l.groups.filter(function (g) { return g.st === st; }).length; }
+  function lotVal(l, k) {
+    if (k === "dec" || k === "free" || k === "bound") return cnt(l, k);
+    if (k === "decSeg") { for (let i = 0; i < l.groups.length; i++) if (l.groups[i].st === "dec") return i + 1; return 0; }
+    return l[k];
+  }
+  lots.sort(function (a, b) {
+    const x = lotVal(a, K), y = lotVal(b, K);
+    if (typeof x === "string") return x.localeCompare(y) * D;
+    return (x - y) * D;
+  });
+
+  const eqpSet = {};
+  LOTS.forEach(function (l) { l.groups.forEach(function (g) { if (g.eqp) eqpSet[g.eqp] = 1; }); });
+
+  /* v5.1：KPI 已按要求移除 */
+  let s = '';
+
+  function pSel(key, label, vals, cmt) {
+    return '<div class="fi"><label>' + label + '</label>' + (cmt ? tip(cmt) : "") + '<select data-pf="' + key + '">' +
+      '<option value="all"' + (pf[key] === "all" ? " selected" : "") + '>全部</option>' +
+      vals.map(function (v) { return '<option value="' + esc(String(v)) + '"' + (pf[key] === String(v) ? " selected" : "") + '>' + esc(v) + '</option>'; }).join("") +
+      '</select></div>';
+  }
+  const stepVals = []; LOTS.forEach(function (l) { l.groups.forEach(function (g) { if (stepVals.indexOf(g.step) < 0) stepVals.push(g.step); }); });
+  stepVals.sort(function (a, b) { return a - b; });
+
+  s += '<div class="card"><h3>Lot Stacking Bond · ' + (UI.lotAxis === "grp" ? "按 Group 视图" : "按天数段带视图") + '</h3>' +
+    '<div class="fbar">' +
+    '<div class="fi"><label>横轴</label>' +
+    '<button class="btn sm' + (UI.lotAxis === "day" ? " pri" : "") + '" data-axis="day">按天数</button> ' +
+    '<button class="btn sm' + (UI.lotAxis === "grp" ? " pri" : "") + '" data-axis="grp">按 Group</button></div>' +
+    '<div class="fi"><label>Lot 筛选</label><input id="qLot" value="' + esc(UI.lotQ) + '" placeholder="如 LOT-A01 / 5002A" style="width:170px"></div>' +
+    pSel("product", "Product", PRODS, '产品号筛选；Lot 列表显示含匹配段的 Lot，段带明细表只显示匹配段') +
+    pSel("flow", "Flow", FLOWS, '光刻层流程组（演示口径：AA / POLY / METAL / VIA）') +
+    pSel("stage", "Stage", ["FE", "ME", "BE"], '工艺阶段：FE前段 / ME中段 / BE后段，与候选机台池的层深对齐（FE→E1E2、ME→E3E4、BE→E5E6）') +
+    pSel("step", "Step", stepVals, '4 位光刻步骤号，Lot 内按段递增（演示口径，可被真实数据替换）') +
+    '<div class="spacer"></div><span class="cnt">共 ' + lots.length + ' 个 Lot</span>' +
+    '<button class="btn sm" data-csv="lotSeg">导出段带明细 CSV</button>' +
+    '<button class="btn sm" data-csv="lotSum">导出 Lot 汇总 CSV</button></div>' +
+    legendBar() + winBar() +
+    '<div class="scrollx" id="scLot" style="margin-top:10px">' + (UI.lotAxis === "grp" ? lotByGroup(lots) : lotGantt(lots)) + '</div>' +
+    '<div class="note">段带宽度 = 该段层数 × 每层 CT（' + CFG.ct + ' 天）。例：某段 4 层 → 横跨 8 天，' +
+    '这 8 天的负载值<b>完全相同</b>；段与段之间无空隙的天即为该 Lot 的<b>连续加工期</b>。</div></div>';
+
+  s += lotSegTable(lots);
+  s += lotTable(lots, cnt);
+  return s;
+}
+
+/* v6.1：按天数段带视图 —— 行头与天轴之间增加 Product / Flow / Stage / Step 字段列（随天轴滚动，仅首列 Lot 冻结） */
+function lotGantt(lots) {
+  const FW = 78;
+  const heads = ["Product", "Flow", "Stage", "Step"];
+  /* 表头：Lot 列 + 4 个字段列 + 天轴 */
+  let s = '<div class="ruler"><div class="rh" style="width:' + HEAD_W + 'px;min-width:' + HEAD_W + 'px;height:38px;' +
+    'display:flex;align-items:center;padding:0 9px;font-size:11.4px;font-weight:700;color:#5A6B85">Lot / 产品</div>';
+  heads.forEach(function (h, i) {
+    s += '<div style="width:' + FW + 'px;min-width:' + FW + 'px;height:38px;display:flex;align-items:center;padding:0 7px;' +
+      'font-size:11.4px;font-weight:700;color:#5A6B85">' + h + '</div>';
+  });
+  s += '<div style="display:flex;flex:none">';
+  for (let t = 0; t < DAYS; t++) {
+    const wk = (t % 7 === 0);
+    s += '<div class="rc' + (wk ? " wk" : "") + '" style="width:' + CW + 'px;height:38px">' + (wk ? "D" + (t + 1) : (t + 1)) + '</div>';
+  }
+  s += '</div></div>';
+  /* 行：Lot 头 + 4 个字段格 + 段带 */
+  lots.forEach(function (l) {
+    const flows = [], stages = [];
+    let stMin = 1e9, stMax = 0;
+    l.groups.forEach(function (g) {
+      if (flows.indexOf(g.flow) < 0) flows.push(g.flow);
+      if (stages.indexOf(g.stage) < 0) stages.push(g.stage);
+      if (g.step < stMin) stMin = g.step; if (g.step > stMax) stMax = g.step;
+    });
+    const vals = [l.product, flows.join("/"), stages.join("/"), stMin + "–" + stMax];
+    s += '<div class="grow"><div class="gh" style="width:' + HEAD_W + 'px;min-width:' + HEAD_W + 'px">' +
+      '<b>' + esc(l.id) + '</b><small>' + l.layers + ' 层 · ' + l.groups.length + ' 段</small></div>';
+    vals.forEach(function (v, i) {
+      s += '<div style="flex:none;width:' + FW + 'px;min-width:' + FW + 'px;height:34px;' +
+        'display:flex;align-items:center;padding:0 7px;font-size:11px;color:var(--colorTextSecondary);' +
+        'border-right:1px solid var(--colorBorderSecondary);overflow:hidden;white-space:nowrap" data-tip="' + esc(heads[i] + ': ' + v) + '">' + esc(v) + '</div>';
+    });
+    s += '<div class="gt" style="width:' + (DAYS * CW) + 'px">';
+    l.groups.forEach(function (g) {
+      const d = segDays(l, g);
+      const left = d.a * CW, w = Math.max(CW * 0.6, d.span * CW - 2);
+      const tip = segTip(l, g, d);
+      const lab = w >= 52 ? (g.st === "free" ? "Free" : g.st === "pending" ? "待决策" : g.eqp) + " L" + g.lFrom + "-" + g.lTo : "";
+      s += '<div class="seg ' + ST[g.st].c + ' edge-l edge-r" style="left:' + left + 'px;width:' + w + 'px" data-tip="' + esc(tip) + '">' + esc(lab) + '</div>';
+    });
+    s += '</div></div>';
+  });
+  return s;
+}
+
+/* v6：按 Group 视图（网格矩阵：色块 + 悬浮明细；Group 编号只有全局一套） */
+function lotByGroup(lots) {
+  const fs = gFilterSet();
+  const N = ALLSEGS.length;
+  let s = '<div style="padding:14px 4px 4px">';
+  /* 列轴标 */
+  s += '<div class="gaxis" style="padding-left:146px">';
+  for (let i = 1; i <= N; i++) s += '<div class="c' + (fs.on && fs.want[i] ? " on" : "") + '">' + i + '</div>';
+  s += '</div>';
+  s += '<table class="gmx"><thead><tr><th class="lotcol">Lot / Group#</th>';
+  for (let i = 1; i <= N; i++) s += '<th>' + (i % 5 === 0 || i === 1 ? i : "") + '</th>';
+  s += '<th style="padding-left:10px;min-width:70px">合计</th></tr></thead><tbody>';
+  lots.forEach(function (l) {
+    s += '<tr><td class="lotcol"><b>' + esc(l.id) + '</b><br><span style="font-size:11px;color:#8A94A6">' + esc(l.product) + ' · ' + l.groups.length + ' 段</span></td>';
+    let tot = 0;
+    const colMap = {};
+    l.groups.forEach(function (g) { colMap[g.gn] = g; });
+    for (let i = 1; i <= N; i++) {
+      const g = colMap[i];
+      if (!g) { s += '<td class="cell"><div class="gcell none">·</div></td>'; continue; }
+      if (fs.on && !fs.want[g.gn]) {
+        s += '<td class="cell"><div class="gcell none" style="opacity:.45">G' + g.gn + '</div></td>';
+        continue;
+      }
+      tot += g.pics;
+      s += '<td class="cell"><div class="gcell ' + ST[g.st].c + '" data-tip="' + esc(segTip(l, g, segDays(l, g))) + '">G' + g.gn + '</div></td>';
+    }
+    s += '<td class="num" style="padding-left:10px;font-size:12px;color:#5A6B85">' + tot + ' pics</td></tr>';
+  });
+  s += '</tbody></table>';
+  s += '<div class="legend" style="margin-top:10px"><span class="li"><i style="background:#F2BA02"></i>已绑定</span>' +
+    '<span class="li"><i style="background:#F0B95A"></i>待决策</span>' +
+    '<span class="li"><i style="background:#4874CB"></i>本次决策</span>' +
+    '<span class="li free"><i></i>Free Layer</span>' +
+    '<span class="note">列 = 全局 Group#（按起始天排序，全场唯一）</span></div>';
+  return s + '</div>';
+}
+
+/* v4：Lot 段带明细表（全部段逐行，含待决策/Free 段；双编号 + Product/Flow/Stage/Step 列） */
+function lotSegTable(lots) {
+  var rows = [], fs = gFilterSet();
+  lots.forEach(function (l) {
+    l.groups.forEach(function (g) {
+      if (fs.on && !fs.want[g.gn]) return;
+      if (!segHitP(l, g)) return;
+      var d = segDays(l, g);
+      rows.push({ lot: l.id, product: l.product, gn: g.gn, flow: g.flow, stage: g.stage, step: g.step,
+        lFrom: g.lFrom, lTo: g.lTo,
+        dA: d.a + 1, dB: d.b + 1, span: d.span, nLayer: g.lTo - g.lFrom + 1,
+        cand: g.cand.join("/"), st: g.st, eqp: g.eqp || "未分配", pics: g.pics });
+    });
+  });
+  var K = UI.lotSegSort.k, D = UI.lotSegSort.dir;
+  rows.sort(function (a, b) {
+    var x = a[K], y = b[K];
+    if (typeof x === "string") return x.localeCompare(y) * D;
+    return (x - y) * D;
+  });
+  var tot = rows.reduce(function (a, r) { return a + r.pics; }, 0);
+  var nP = rows.filter(function (r) { return r.st === "pending"; }).length;
+  var nF = rows.filter(function (r) { return r.st === "free"; }).length;
+  var COLS = [["lot", "Lot"], ["product", "Product"], ["gn", "Group#"], ["flow", "Flow"], ["stage", "Stage"], ["step", "Step"],
+    ["lFrom", "起 Layer"], ["lTo", "止 Layer"], ["nLayer", "层数"],
+    ["dA", "起 Day"], ["dB", "止 Day"], ["span", "占天"], ["cand", "候选机台"], ["st", "状态"], ["eqp", "承接机台"], ["pics", "负载 pics"]];
+  var s = '<div class="card"><h3>Lot 段带明细表（全部段逐行）</h3>' +
+    '<div class="fbar">' +
+    /* v5.1：筛选补充 Product / Flow / Stage / Step（与视图、页签一共用同一组段级筛选） */
+    (function () {
+      var pf = UI.pFilter;
+      var steps2 = []; LOTS.forEach(function (l) { l.groups.forEach(function (g) { if (steps2.indexOf(g.step) < 0) steps2.push(g.step); }); });
+      steps2.sort(function (a, b) { return a - b; });
+      var mk = function (key, label, vals) {
+        return '<div class="fi"><label>' + label + '</label><select data-pf="' + key + '">' +
+          '<option value="all"' + (pf[key] === "all" ? " selected" : "") + '>全部</option>' +
+          vals.map(function (v) { return '<option value="' + esc(String(v)) + '"' + (pf[key] === String(v) ? " selected" : "") + '>' + esc(v) + '</option>'; }).join("") +
+          '</select></div>';
+      };
+      return mk("product", "Product", PRODS) + mk("flow", "Flow", FLOWS) + mk("stage", "Stage", ["FE", "ME", "BE"]) + mk("step", "Step", steps2);
+    })() +
+    '<div class="fi"><label>Group 序号</label><input id="fG" value="' + esc(UI.gFilter) + '" placeholder="如 10-15" style="width:130px"></div>' +
+    '<div class="spacer"></div><span class="cnt">共 ' + rows.length + ' 段 / 负载合计 ' + tot + ' pics（待决策 ' + nP + ' 段 · Free ' + nF + ' 段）</span>' +
+    '<button class="btn sm" data-csv="lotSeg">导出 CSV</button></div>' +
+    '<div class="tscroll"><table class="dt"><thead><tr>';
+  COLS.forEach(function (c) {
+    var ar = (K === c[0]) ? (D > 0 ? " ▲" : " ▼") : " ⇅";
+    s += '<th class="sortable" data-sort="' + c[0] + '" data-sortset="lotseg">' + esc(c[1]) + ar + '</th>';
+  });
+  s += '</tr></thead><tbody>';
+  rows.forEach(function (r) {
+    s += '<tr><td class="mono"><b>' + esc(r.lot) + '</b></td><td>' + esc(r.product) + '</td>' +
+      '<td><b>G' + r.gn + '</b></td>' +
+      '<td class="mono">' + esc(r.flow) + '</td><td class="mono">' + esc(r.stage) + '</td><td class="num">' + r.step + '</td>' +
+      '<td class="num">' + r.lFrom + '</td><td class="num">' + r.lTo + '</td><td class="num">' + r.nLayer + '</td>' +
+      '<td class="num">D' + r.dA + '</td><td class="num">D' + r.dB + '</td><td class="num">' + r.span + '</td>' +
+      '<td class="mono">' + esc(r.cand) + '</td>' +
+      '<td><span class="pill ' + ST[r.st].pill + '">' + esc(ST[r.st].n) + '</span></td>' +
+      '<td class="mono">' + esc(r.eqp) + '</td><td class="num">' + r.pics + '</td></tr>';
+  });
+  s += '</tbody></table></div>';
+  if (!rows.length) s += '<div style="padding:22px;text-align:center;color:#8A94A6;font-size:12px">无匹配数据</div>';
+  s += '</div>';
+  return s;
+}
+
+/* v4：段级 PFSS 匹配（Product/Flow/Stage/Step，供段带明细与视图共用） */
+function segHitP(l, g) {
+  const pf = UI.pFilter;
+  return (pf.product === "all" || l.product === pf.product) &&
+    (pf.flow === "all" || g.flow === pf.flow) &&
+    (pf.stage === "all" || g.stage === pf.stage) &&
+    (pf.step === "all" || String(g.step) === pf.step);
+}
+
+function lotTable(lots, cnt) {
+  const COLS = [["id", "Lot"], ["product", "Product"], ["startDay", "起始 Day"], ["layers", "总层数"],
+    ["groups", "段数"], ["bound", "已绑段"], ["free", "Free 段"], ["dec", "本次决策段"], ["decSeg", "dec 段位置"],
+    ["flowSet", "Flow"], ["stageSet", "Stage"], ["stepRange", "Step"], ["pics", "总负载 pics"]];
+  const K = UI.lotSort.k, D = UI.lotSort.dir;
+  let s = '<div class="card"><h3>Lot 汇总表</h3>' +
+    '<p class="desc">点表头可排序。每个 Lot 的段数与分段方式各不相同；<b>「dec 段位置」列显示该 Lot 唯一一个本次决策段的段号与承接机台</b>——它可出现在开头、已绑定段之后或空白段之后，其后仍可有其他段。</p>' +
+    '<div class="tscroll"><table class="dt"><thead><tr>';
+  COLS.forEach(function (c) {
+    const ar = (K === c[0]) ? (D > 0 ? " ▲" : " ▼") : " ⇅";
+    s += '<th class="sortable" data-sort="' + c[0] + '">' + esc(c[1]) + ar +
+      (c[0] === "decSeg" ? tip('该 Lot 唯一一个「本次决策」段的全局 Group# 与承接机台；可出现在开头、已绑定段之后或空白段之后') : "") +
+      '</th>';
+  });
+  s += '</tr></thead><tbody>';
+  lots.forEach(function (l) {
+    const di = l.groups.findIndex(function (g) { return g.st === "dec"; });
+    const dg = di >= 0 ? l.groups[di] : null;
+    const flows = [], stages = [];
+    let stMin = 1e9, stMax = 0;
+    l.groups.forEach(function (g) {
+      if (flows.indexOf(g.flow) < 0) flows.push(g.flow);
+      if (stages.indexOf(g.stage) < 0) stages.push(g.stage);
+      if (g.step < stMin) stMin = g.step; if (g.step > stMax) stMax = g.step;
+    });
+    const tot = l.groups.filter(function (g) { return g.st !== "free"; }).reduce(function (a, g) { return a + g.pics; }, 0);
+    s += '<tr><td class="mono"><b>' + esc(l.id) + '</b></td><td>' + esc(l.product) + '</td>' +
+      '<td class="num">D' + (l.startDay + 1) + '</td><td class="num">' + l.layers + '</td>' +
+      '<td class="num">' + l.groups.length + '</td>' +
+      '<td class="num">' + cnt(l, "bound") + '</td><td class="num">' + cnt(l, "free") + '</td><td class="num">' + cnt(l, "dec") + '</td>' +
+      '<td>' + (dg
+        ? '<span class="pill ' + ST[dg.st].pill + '">' + esc(dg.eqp || "—") + ' · ' + esc(dg.lname || dg.name) + '（第' + (di + 1) + '/' + l.groups.length + '段）</span>'
+        : '—') + '</td>' +
+      '<td class="mono">' + esc(flows.join("/")) + '</td>' +
+      '<td class="mono">' + esc(stages.join("/")) + '</td>' +
+      '<td class="num">' + stMin + '–' + stMax + '</td>' +
+      '<td class="num">' + tot + '</td></tr>';
+  });
+  s += '</tbody></table></div></div>';
+  return s;
+}
+
+/* ============================================================
+   5.5 新增：机台 × Group 热力图 / Lot × Group 分段表 / Free Layer 清单
+   ============================================================ */
+function maxGn() { var m = 1; LOTS.forEach(function (l) { if (l.groups.length > m) m = l.groups.length; }); return m; }
+
+function gFilterSet() {
+  var gf = UI.gFilter.trim(), want = {}, on = true, any = false;
+  if (!gf) return { want: want, on: false };
+  gf.split(/[,，\s]+/).forEach(function (p) {
+    if (!p) return; any = true;
+    var mm = p.match(/^(\d+)\s*[-~]\s*(\d+)$/);
+    if (mm) { for (var i = +mm[1]; i <= +mm[2]; i++) want[i] = 1; }
+    else if (/^\d+$/.test(p)) want[+p] = 1;
+    else on = false;
+  });
+  if (!any) on = false;
+  return { want: want, on: on, key: "gn" };   // v6：Group 编号只有全局一套
+}
+
+/* ---- v4：机台现有承接汇总 tooltip（归属图列头 / 整列悬停同步显示）---- */
+function eqpTip(e) {
+  const segs = SEGS[e] || [];
+  let pics = 0, nb = 0, nd = 0;
+  const lots = [];
+  segs.forEach(function (x) {
+    pics += x.g.pics; if (x.g.st === "dec") nd++; else nb++;
+    let f = null; for (let i = 0; i < lots.length; i++) if (lots[i].id === x.lot.id) { f = lots[i]; break; }
+    if (f) { f.n++; f.p += x.g.pics; } else lots.push({ id: x.lot.id, n: 1, p: x.g.pics });
+  });
+  let days = 0; (LOAD[e] || []).forEach(function (v) { if (v > 0) days++; });
+  const csegs = CANDSEGS[e] || [];
+  let candP = 0; csegs.forEach(function (x) { candP += x.g.pics / x.g.cand.length; });
+  return '<b>' + esc(e) + ' 现有承接汇总</b><br>' +
+    '<span class="row"><span class="k">承接段数</span><span><b>' + segs.length + '</b> 段（已绑定 ' + nb + ' · 本次决策 ' + nd + '）</span></span>' +
+    '<span class="row"><span class="k">段级负载合计</span><span><b>' + pics + '</b> pics（每段只计 1 次）</span></span>' +
+    '<span class="row"><span class="k">日累计负载</span><span>' + (MET ? MET.tot[e] : 0) + ' pics·天（占用 ' + days + ' 天，跨日重复计）</span></span>' +
+    '<span class="row"><span class="k">涉及 Lot</span><span><b>' + lots.length + '</b> 个</span></span>' +
+    lots.map(function (o) { return '<span class="row"><span class="k">' + esc(o.id) + '</span><span>' + o.n + ' 段 · ' + o.p + ' pics</span></span>'; }).join("") +
+    '<span class="row"><span class="k">待决策/Free（分配）</span><span>' + csegs.length + ' 段 · 分配负载合计 ' + Math.round(candP) + ' pics</span></span>';
+}
+
+/* ---- v4：Group → 机台 归属图（双编号 + 机台悬停汇总）---- */
+function groupOwnerTable() {
+  const fs = gFilterSet();
+  let rows = ALLSEGS;
+  if (fs.on) rows = rows.filter(function (x) { return fs.want[x.g[fs.key]]; });
+  const eqpStat = {}; EQPS.forEach(function (e) {
+    const segs = SEGS[e] || [], lp = {}; let p = 0;
+    segs.forEach(function (x) { lp[x.lot.id] = 1; p += x.g.pics; });
+    eqpStat[e] = { n: segs.length, p: p, l: Object.keys(lp).length };
+  });
+  const candTip = function (x) {
+    return '<b>' + esc(x.g.lname) + '（全局#' + x.gn + '）· ' + esc(x.lot.id) + '</b><br>' +
+      '<span class="row"><span class="k">状态</span><span>' + esc(ST[x.g.st].n) + '（尚未落定）</span></span>' +
+      '<span class="row"><span class="k">候选机台</span><span>' + esc(x.g.cand.join(" / ")) + '</span></span>' +
+      '<span class="row"><span class="k">层 / 天区间</span><span>L' + x.g.lFrom + '–' + x.g.lTo + ' · D' + (x.d.a + 1) + '–' + (x.d.b + 1) + '</span></span>';
+  };
+  const fixTip = function (x) {
+    return '<b>' + esc(x.g.lname) + '（全局#' + x.gn + '）· ' + esc(x.lot.id) + '</b><br>' +
+      '<span class="row"><span class="k">状态</span><span>' + esc(ST[x.g.st].n) + '</span></span>' +
+      '<span class="row"><span class="k">承接机台</span><span><b>' + esc(x.g.eqp) + '</b></span></span>' +
+      '<span class="row"><span class="k">层 / 天区间</span><span>L' + x.g.lFrom + '–' + x.g.lTo + ' · D' + (x.d.a + 1) + '–' + (x.d.b + 1) + '</span></span>' +
+      '<span class="row"><span class="k">负载</span><span>' + x.g.pics + ' pics</span></span>';
+  };
+  let s = '<div class="card"><h3>Group → 机台 归属图</h3>' +
+    '<div class="fbar"><div class="fi"><label>Group 序号</label>' + tip('支持 1-10 / 5,8 / 7；按全局 Group 序号匹配，非法输入自动忽略。') + '<input id="fG" value="' + esc(UI.gFilter) +
+    '" placeholder="如 1-10 或 5,8" style="width:150px"></div>' +
+    '<div class="spacer"></div><span class="cnt">共 ' + rows.length + ' 行</span>' +
+    '<button class="btn sm" data-csv="grpOwner">导出 CSV</button></div>' +
+    '<div class="tscroll" style="max-height:540px"><table class="dt"><thead><tr>' +
+    '<th>Group#</th><th>Lot</th><th>层区间</th><th>天区间</th><th>状态</th>' +
+    EQPS.map(function (e) {
+      const t = eqpStat[e];
+      return '<th class="eqpTh" data-eqp="' + e + '" data-tip="' + esc(eqpTip(e)) + '">' + tip('机台 ' + e + ' 现有承接：' + t.n + ' 段 · ' + t.p + ' pics · ' + t.l + ' 个 Lot；悬停列头可看逐 Lot 明细') + esc(e) +
+        '<span class="th2">' + t.n + '段·' + t.p + ' pics</span></th>';
+    }).join("") +
+    '<th>负载 pics</th></tr></thead><tbody>';
+  rows.forEach(function (x) {
+    s += '<tr><td class="mono"><b>G' + x.gn + '</b></td><td class="mono">' + esc(x.lot.id) + '</td>' +
+      '<td class="num">L' + x.g.lFrom + '–' + x.g.lTo + '</td>' +
+      '<td class="num">D' + (x.d.a + 1) + '–' + (x.d.b + 1) + '</td>' +
+      '<td><span class="pill ' + ST[x.g.st].pill + '">' + esc(ST[x.g.st].n) + '</span></td>';
+    EQPS.forEach(function (e) {
+      if (x.g.eqp === e) {
+        const bg = x.g.st === "pending" ? "#F0B95A" : x.g.st === "free" ? "#C9CFD8" : "#2F4368";
+        const fg = x.g.st === "free" ? "#5A6478" : "#fff";
+        s += '<td data-eqp="' + e + '" style="background:' + bg + ';color:' + fg + ';font-weight:700;cursor:default" data-tip="' + esc(fixTip(x)) + '">' + x.g.pics + '</td>';
+      } else s += '<td data-eqp="' + e + '" style="color:#D3D9E3">·</td>';
+    });
+    s += '<td class="num">' + x.g.pics + '</td></tr>';
+  });
+  s += '</tbody><tfoot><tr><td colspan="5" style="text-align:right">机台现有承接合计（悬停列头看明细）</td>' +
+    EQPS.map(function (e) {
+      const t = eqpStat[e];
+      return '<td data-eqp="' + e + '" data-tip="' + esc(eqpTip(e)) + '" style="cursor:default">' + t.n + '段·' + t.p + 'p·' + t.l + 'Lot</td>';
+    }).join("") + '<td></td></tr></tfoot></table></div>' +
+    '<div class="legend" style="margin-top:8px">' +
+    '<span class="li"><i style="background:#2F4368"></i>已绑定 / 本次决策（实心）</span>' +
+    '<span class="li"><i style="background:#F0B95A"></i>待决策（已按分配表落到机台）</span>' +
+    '<span class="li"><i style="background:#C9CFD8"></i>Free Layer（已按分配表落到机台）</span>' +
+    '<span class="li"><i style="background:#fff;border:1px solid var(--line)"></i>不相关</span></div></div>';
+  return s;
+}
+
+/* ---- v3：待决策 / Free Layer 清单 + 候选机台分布 ---- */
+function freeList() {
+  var rows = [];
+  LOTS.forEach(function (l) {
+    l.groups.forEach(function (g) {
+      if (g.st !== "free" && g.st !== "pending") return;
+      var d = segDays(l, g);
+      rows.push({ lot: l.id, product: l.product, gn: g.gn, gIdx: g.idx, gname: g.name, lFrom: g.lFrom, lTo: g.lTo,
+        dA: d.a + 1, dB: d.b + 1, span: d.span, cand: g.cand.join("/"), nCand: g.cand.length,
+        st: g.st, stN: ST[g.st].n, stPill: ST[g.st].pill, pics: g.pics });
+    });
+  });
+  return rows;
+}
+
+function freeCandBar(rows) {
+  var cnt = {}, pic = {};
+  EQPS.forEach(function (e) { cnt[e] = 0; pic[e] = 0; });
+  rows.forEach(function (r) {
+    r.cand.split("/").forEach(function (e) { if (cnt[e] != null) { cnt[e]++; pic[e] += r.pics / r.nCand; } });
+  });
+  var mx = 0; EQPS.forEach(function (e) { if (cnt[e] > mx) mx = cnt[e]; });
+  var s = '<div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:4px 0 11px">';
+  EQPS.forEach(function (e) {
+    var w = mx ? (cnt[e] / mx * 100) : 0;
+    s += '<div style="border:1px solid var(--line);border-radius:6px;padding:7px 9px;background:#FCFDFF">' +
+      '<div style="display:flex;justify-content:space-between;font-size:11.6px;color:var(--ink2)"><b>' + esc(e) +
+      '</b><span class="mono">' + cnt[e] + ' 段</span></div>' +
+      '<div style="height:6px;background:#EEF1F6;border-radius:4px;margin:6px 0 5px">' +
+      '<div style="height:6px;width:' + w.toFixed(1) + '%;background:#7B5CD6;border-radius:4px"></div></div>' +
+      '<div style="font-size:10.6px;color:var(--muted)">均分后 ' + n1(pic[e]) + ' pics</div></div>';
+  });
+  return s + '</div>';
+}
+
+function freeLayerTable() {
+  var rows = freeList(), fs = gFilterSet();
+  if (fs.on) rows = rows.filter(function (r) { return fs.want[fs.key === "idx" ? r.gIdx : r.gn]; });
+  var q = (UI.freeQ || "").trim().toLowerCase();
+  if (q) rows = rows.filter(function (r) { return r.lot.toLowerCase().indexOf(q) >= 0 || r.product.toLowerCase().indexOf(q) >= 0; });
+  var K = UI.freeSort.k, D = UI.freeSort.dir;
+  rows.sort(function (a, b) {
+    var x = a[K], y = b[K];
+    if (typeof x === "string") return x.localeCompare(y) * D;
+    return (x - y) * D;
+  });
+  var tot = rows.reduce(function (a, r) { return a + r.pics; }, 0);
+  var COLS = [["lot", "Lot"], ["gn", "Group"], ["lFrom", "起 Layer"], ["lTo", "止 Layer"],
+    ["dA", "起 Day"], ["dB", "止 Day"], ["span", "占天"], ["cand", "候选机台"], ["stN", "状态"], ["pics", "负载 pics"]];
+  var s = '<div class="card"><h3>待决策 / Free Layer 清单（尚未分配机台）</h3>' +
+    '<p class="desc"><b>待决策（橙）= 本轮排程要决定的段</b>；<b>Free Layer（灰斜纹）= 尚未纳入本轮的层</b> —— 两者是不同状态，都还没有落到机台。' +
+    '它们不在上方归属图的实心格内。勾选顶部「待决策/Free 段按候选均分计入机台」后，这些 pics 会按候选机台均分并计入机台负载。</p>' +
+    '<div class="fbar"><div class="fi"><label>Lot 筛选</label><input id="qFree" value="' + esc(UI.freeQ || "") +
+    '" placeholder="如 LOT-A01" style="width:150px"></div>' +
+    '<div class="spacer"></div><span class="cnt">共 ' + rows.length + ' 段 / ' + tot + ' pics</span>' +
+    '<button class="btn sm" data-csv="freeList">导出 CSV</button></div>' +
+    '<div style="font-size:11.4px;color:var(--muted);margin:2px 0 3px"><b>候选机台分布</b>（每个待决策/Free 段点名的机台；条长 = 被点名次数，下方为该机台均分后可得 pics）</div>' +
+    freeCandBar(rows) +
+    '<div class="tscroll"><table class="dt"><thead><tr>';
+  COLS.forEach(function (c) {
+    var ar = (K === c[0]) ? (D > 0 ? " ▲" : " ▼") : " ⇅";
+    s += '<th class="sortable" data-sort="' + c[0] + '" data-sortset="free">' + esc(c[1]) + ar + '</th>';
+  });
+  s += '</tr></thead><tbody>';
+  rows.forEach(function (r) {
+    s += '<tr><td class="mono"><b>' + esc(r.lot) + '</b></td><td><b>' + esc(r.gname) + '</b></td>' +
+      '<td class="num">' + r.lFrom + '</td><td class="num">' + r.lTo + '</td>' +
+      '<td class="num">D' + r.dA + '</td><td class="num">D' + r.dB + '</td><td class="num">' + r.span + '</td>' +
+      '<td class="mono">' + esc(r.cand) + '</td>' +
+      '<td><span class="pill ' + r.stPill + '">' + esc(r.stN) + '</span></td>' +
+      '<td class="num">' + r.pics + '</td></tr>';
+  });
+  s += '</tbody></table></div>';
+  if (!rows.length) s += '<div style="padding:22px;text-align:center;color:#8A94A6;font-size:12px">无匹配数据</div>';
+  s += '</div>';
+  return s;
+}
+
+/* ============================================================
+   6. 页签三：数据配置（Group 定义可编辑）
+   ============================================================ */
+function viewCfg() {
+  let s = '<div class="card"><h3>数据配置 · Group 定义（可编辑）</h3>' +
+    '<p class="desc">因为<b>每个 Lot 的 Group 分段都不一样</b>，本页提供逐段编辑：改「起始层 / 结束层 / 状态 / 机台 / 负载」后点「应用并重算」，' +
+    '两个视图与全部统计立即重算。改 CT 会同步改变所有段的天区间（天区间 = 层数 × CT）。</p>' +
+    '<div class="params" style="margin-bottom:12px">' +
+    '<div class="pf"><label>每层 CT（天）</label><input type="number" id="pCt2" value="' + CFG.ct + '" min="1" max="7"></div>' +
+    '<div class="pf"><label>时间轴天数（下限）</label><input type="number" id="pDays2" value="' + CFG.days + '" min="30" max="240"></div>' +
+    '<div class="pf"><label>Lot 数量</label><input type="number" id="pLots2" value="' + CFG.nLots + '" min="4" max="60"></div>' +
+    '<button class="btn pri" data-act="regen">应用并重算</button>' +
+    '<button class="btn" data-act="reset">恢复默认</button>' +
+    '<span class="cnt" style="align-self:center">共 ' + MET.nSegAll + ' 段 / ' + LOTS.length + ' 个 Lot</span></div>' +
+    '<div class="tscroll" style="max-height:560px"><table class="ed"><thead><tr>' +
+    '<th>Lot</th><th>Group</th><th>起始层</th><th>结束层</th><th>候选机台</th><th>状态</th><th>承接机台</th><th>负载 pics</th><th>天区间</th>' +
+    '</tr></thead><tbody>';
+  LOTS.forEach(function (l, li) {
+    l.groups.forEach(function (g, gi) {
+      const d = segDays(l, g);
+      s += '<tr>' +
+        '<td style="white-space:nowrap">' + esc(l.id) + '</td>' +
+        '<td><b>' + esc(g.name) + '</b></td>' +
+        '<td><input class="n" type="number" data-ed="lFrom" data-li="' + li + '" data-gi="' + gi + '" value="' + g.lFrom + '"></td>' +
+        '<td><input class="n" type="number" data-ed="lTo" data-li="' + li + '" data-gi="' + gi + '" value="' + g.lTo + '"></td>' +
+        '<td style="white-space:nowrap;font-size:11px">' + esc(g.cand.join("/")) + '</td>' +
+        '<td><select data-ed="st" data-li="' + li + '" data-gi="' + gi + '">' +
+        '<option value="bound"' + (g.st === "bound" ? " selected" : "") + '>已绑定</option>' +
+        '<option value="pending"' + (g.st === "pending" ? " selected" : "") + '>待决策（橙）</option>' +
+        '<option value="free"' + (g.st === "free" ? " selected" : "") + '>Free Layer（灰斜纹）</option>' +
+        '<option value="dec"' + (g.st === "dec" ? " selected" : "") + '>本次决策</option></select></td>' +
+        '<td><select data-ed="eqp" data-li="' + li + '" data-gi="' + gi + '"><option value="">未分配</option>' +
+        EQPS.map(function (e) { return '<option value="' + e + '"' + (g.eqp === e ? " selected" : "") + '>' + e + '</option>'; }).join("") +
+        '</select></td>' +
+        '<td><input class="n" type="number" data-ed="pics" data-li="' + li + '" data-gi="' + gi + '" value="' + g.pics + '"></td>' +
+        '<td style="white-space:nowrap;color:#8A94A6;font-size:11px">D' + (d.a + 1) + '–D' + (d.b + 1) + '（' + d.span + '天）</td>' +
+        '</tr>';
+    });
+  });
+  s += '</tbody></table></div>' +
+    '<div class="alert i"><span class="dot"></span><div><b>天区间是派生的</b>：<span class="mono">dayFrom = 起始日 + 起始层 × CT</span>、' +
+    '<span class="mono">dayTo = 起始日 + 结束层 × CT + CT − 1</span>。改层数或 CT 会同时改变段的天区间与横向段带宽度。</div></div></div>';
+  return s;
+}
+
+/* ============================================================
+   7. CSV
+   ============================================================ */
+function toCSV(head, rows) {
+  const esc2 = function (v) {
+    const s = String(v == null ? "" : v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  return "\ufeff" + head.map(esc2).join(",") + "\n" + rows.map(function (r) { return r.map(esc2).join(","); }).join("\n");
+}
+function dl(name, text) {
+  const blob = new Blob([text], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+function exportCSV(mode) {
+  let head, rows, name;
+  if (mode === "eqpMatrix") {
+    head = ["机台"]; for (let t = 1; t <= DAYS; t++) head.push("D" + t);
+    rows = EQPS.map(function (e) { return [e].concat(LOAD[e].map(function (v) { return Math.round(v * 10) / 10; })); });
+    name = "EQP日负载矩阵";
+  } else if (mode === "eqpSeg") {
+    head = ["机台", "Lot", "Group#", "Flow", "Stage", "Step", "起始Layer", "结束Layer", "起始Day", "结束Day", "占天数", "候选机台", "状态", "负载pics"];
+    rows = [];
+    EQPS.forEach(function (e) { SEGS[e].forEach(function (x) {
+      rows.push([e, x.lot.id, x.g.gn, x.g.flow, x.g.stage, x.g.step, x.g.lFrom, x.g.lTo, x.d.a + 1, x.d.b + 1, x.d.span, x.g.cand.join("/"), ST[x.g.st].n, x.g.pics]);
+    }); });
+    name = "机台承接Group明细";
+  } else if (mode === "lotSeg") {
+    head = ["Lot", "Product", "总层数", "每层CT", "起始Day", "Group#", "Flow", "Stage", "Step", "起始Layer", "结束Layer", "起始Day", "结束Day", "占天数", "候选机台", "状态", "承接机台", "负载pics"];
+    rows = [];
+    LOTS.forEach(function (l) { l.groups.forEach(function (g) {
+      const d = segDays(l, g);
+      rows.push([l.id, l.product, l.layers, l.ct, l.startDay + 1, g.gn, g.flow, g.stage, g.step, g.lFrom, g.lTo, d.a + 1, d.b + 1, d.span,
+        g.cand.join("/"), ST[g.st].n, g.eqp || "未分配", g.pics]);
+    }); });
+    name = "Lot段带明细";
+  } else if (mode === "eqpGrp") {
+    var GN = maxGn();
+    head = ["机台"]; for (var gi = 1; gi <= GN; gi++) head.push("G" + gi);
+    head.push("合计pics", "合计段数");
+    rows = EQPS.map(function (e) {
+      var r = [e], tp = 0, tc = 0;
+      for (var gj = 1; gj <= GN; gj++) {
+        var p = 0, c = 0;
+        SEGS[e].forEach(function (x) { if (x.g.idx === gj) { p += x.g.pics; c++; } });
+        r.push(Math.round(p * 10) / 10); tp += p; tc += c;
+      }
+      r.push(Math.round(tp * 10) / 10, tc);
+      return r;
+    });
+    name = "机台xGroup热力图";
+  } else if (mode === "lotGrp") {
+    var GN2 = maxGn();
+    head = ["Lot", "产品"]; for (var gk = 1; gk <= GN2; gk++) head.push("G" + gk + "机台", "G" + gk + "状态", "G" + gk + "pics");
+    rows = LOTS.map(function (l) {
+      var r = [l.id, l.product];
+      for (var gl = 1; gl <= GN2; gl++) {
+        var g2 = null; l.groups.forEach(function (x) { if (x.idx === gl) g2 = x; });
+        r.push(g2 ? (g2.eqp || "Free") : "", g2 ? ST[g2.st].n : "", g2 ? g2.pics : "");
+      }
+      return r;
+    });
+    name = "LotxGroup分段";
+  } else if (mode === "freeList") {
+    head = ["Lot", "产品", "Group", "起始Layer", "结束Layer", "起始Day", "结束Day", "占天数", "候选机台", "状态", "负载pics"];
+    rows = freeList().map(function (r) {
+      return [r.lot, r.product, r.gname, r.lFrom, r.lTo, r.dA, r.dB, r.span, r.cand, r.stN, r.pics];
+    });
+    name = "待决策FreeLayer清单";
+  } else if (mode === "grpOwner") {
+    head = ["Group#", "Lot", "Product", "Flow", "Stage", "Step", "起始Layer", "结束Layer", "起始Day", "结束Day", "占天数", "状态", "承接机台", "候选机台", "负载pics"];
+    rows = ALLSEGS.map(function (x) {
+      return [x.g.gn, x.lot.id, x.lot.product, x.g.flow, x.g.stage, x.g.step, x.g.lFrom, x.g.lTo, x.d.a + 1, x.d.b + 1, x.d.span,
+        ST[x.g.st].n, x.g.eqp || "未分配", x.g.cand.join("/"), x.g.pics];
+    });
+    name = "Group机台归属";
+  } else if (mode === "detail") {
+    const e = UI.detailEqp || "E1";
+    const days = winDays(), rws = eqpDailyStates(e, days);
+    head = ["日期", "已绑定", "本次决策", "待决策", "Free Layer", "当日合计", "新起段", "当日全场最大"];
+    rows = rws.map(function (r) {
+      return ["D" + (r.t + 1), n1(r.b), n1(r.d), n1(r.p), n1(r.f), n1(r.tot), r.ns, n1(r.peak)];
+    });
+    name = e + "逐日负载明细";
+  } else {
+    head = ["Lot", "Product", "起始Day", "总层数", "段数", "已绑段", "Free段", "本次决策段", "dec段位置", "dec段机台", "Flow", "Stage", "Step范围", "总负载pics"];
+    rows = LOTS.map(function (l) {
+      const di = l.groups.findIndex(function (g) { return g.st === "dec"; });
+      const dg = di >= 0 ? l.groups[di] : null;
+      const flows = [], stages = []; let stMin = 1e9, stMax = 0;
+      l.groups.forEach(function (g) {
+        if (flows.indexOf(g.flow) < 0) flows.push(g.flow);
+        if (stages.indexOf(g.stage) < 0) stages.push(g.stage);
+        if (g.step < stMin) stMin = g.step; if (g.step > stMax) stMax = g.step;
+      });
+      const tot = l.groups.filter(function (g) { return g.st !== "free"; }).reduce(function (a, g) { return a + g.pics; }, 0);
+      return [l.id, l.product, l.startDay + 1, l.layers, l.groups.length,
+        l.groups.filter(function (g) { return g.st === "bound"; }).length,
+        l.groups.filter(function (g) { return g.st === "free"; }).length,
+        l.groups.filter(function (g) { return g.st === "dec"; }).length,
+        dg ? ("第" + (di + 1) + "/" + l.groups.length + "段 " + (dg.lname || dg.name)) : "—",
+        dg ? (dg.eqp || "未分配") : "—",
+        flows.join("/"), stages.join("/"), stMin + "-" + stMax, tot];
+    });
+    name = "Lot汇总";
+  }
+  dl(name + "_" + DAYS + "天.csv", toCSV(head, rows));
+}
+
+/* ============================================================
+   8. 渲染与事件
+   ============================================================ */
+const TABS = ["eqp", "lot"];
+
+function render() {
+  let s = '<div class="tabs">' +
+    '<div class="tab ' + (UI.tab === "eqp" ? "on" : "") + '" data-tab="eqp">EQP Loading</div>' +
+    '<div class="tab ' + (UI.tab === "lot" ? "on" : "") + '" data-tab="lot">Lot Stacking Bond</div>';
+  if (UI.detailEqp) {
+    s += '<div class="tab ' + (UI.tab === "detail" ? "on" : "") + '" data-tab="detail">' + UI.detailEqp + ' 负载明细<span class="x" data-act="closeDetail">×</span></div>';
+  }
+  /* v5：视图切换由右上方 tab 完成（仅 EQP Loading 页签显示，段带甘特已移除） */
+  if (UI.tab === "eqp") {
+    s += '<div style="margin-left:auto">' +
+      viewTabs([["matrix", "日负载矩阵"], ["cmp", "负载对比"], ["load", "机台负载图"]], UI.view, "eqpview") +
+      '</div>';
+  }
+  s += '</div>';
+  $("#content").innerHTML = s +
+    (UI.tab === "detail" && UI.detailEqp ? viewDetail(UI.detailEqp)
+      : UI.tab === "lot" ? viewLot() : viewEQP());
+  applyWin();
+}
+
+/* 窗口滚动定位 */
+function applyWin() {
+  const el = $("#scEqp") || $("#scLot") || $("#scDetail") || $("#scCmp");
+  if (!el) return;
+  if (UI.win === "all") { el.scrollLeft = 0; return; }
+  el.scrollLeft = (parseInt(UI.win, 10) - 1) * 30 * CW;
+}
+
+document.addEventListener("click", function (ev) {
+  const t = ev.target;
+
+  /* v5：详情页 × 关闭需先于 data-tab 命中（× 位于详情 tab 内部） */
+  const xd = t.closest('[data-act="closeDetail"]');
+  if (xd) { UI.detailEqp = null; UI.tab = "eqp"; render(); return; }
+
+  const tb = t.closest("[data-tab]");
+  if (tb) { UI.tab = tb.getAttribute("data-tab"); render(); return; }
+
+  /* v5：机台负载图点击 → 打开机台详情标签页 */
+  const eq = t.closest("[data-eqp]");
+  if (eq) { UI.detailEqp = eq.getAttribute("data-eqp"); UI.tab = "detail"; render(); return; }
+
+  /* v5：EQP Loading 页签内视图切换 */
+  const vb = t.closest("[data-eqpview]");
+  if (vb) { UI.view = vb.getAttribute("data-eqpview"); render(); return; }
+
+  const wb = t.closest("[data-win]");
+  if (wb) { UI.win = wb.getAttribute("data-win"); render(); return; }
+
+  const vb2 = t.closest("[data-view]");
+  if (vb2) { UI.view = vb2.getAttribute("data-view"); render(); return; }
+
+  const ax = t.closest("[data-axis]");
+  if (ax) { UI.lotAxis = ax.getAttribute("data-axis"); render(); return; }
+
+  const st = t.closest("[data-sort]");
+  if (st) {
+    const k = st.getAttribute("data-sort");
+    const set = st.getAttribute("data-sortset");
+    const cur = set === "free" ? UI.freeSort : set === "lotseg" ? UI.lotSegSort : (UI.tab === "lot") ? UI.lotSort : UI.eqpSort;
+    if (cur.k === k) cur.dir = -cur.dir; else { cur.k = k; cur.dir = 1; }
+    render(); return;
+  }
+
+  const cs = t.closest("[data-csv]");
+  if (cs) { exportCSV(cs.getAttribute("data-csv")); return; }
+
+  const ac = t.closest("[data-act]");
+  if (ac) {
+    const a = ac.getAttribute("data-act");
+    if (a === "regen") { readParams(); rebuild(); render(); }
+    if (a === "reset") { CFG.ct = 2; CFG.days = 120; CFG.nLots = 16; CFG.seed = 20261015; CFG.incFree = false; rebuild(); render(); }
+    if (a === "numMode") { UI.numMode = ac.getAttribute("data-m") === "global" ? "global" : "lot"; render(); }
+    if (a === "cmpToggle") { UI.view = UI.view === "cmp" ? "matrix" : "cmp"; render(); }
+    if (a === "closeDetail") { UI.tab = "eqp"; UI.detailEqp = null; render(); }
+    return;
+  }
+});
+
+function readParams() {
+  const g = function (id) { const e = $("#" + id); return e ? e.value : null; };
+  const v = function (id, dft, lo, hi) {
+    const x = parseInt(g(id), 10);
+    return isNaN(x) ? dft : Math.max(lo, Math.min(hi, x));
+  };
+  CFG.ct = v("pCt", v("pCt2", CFG.ct, 1, 7), 1, 7);
+  CFG.days = v("pDays", v("pDays2", CFG.days, 30, 240), 30, 240);
+  CFG.nLots = v("pLots", v("pLots2", CFG.nLots, 4, 60), 4, 60);
+  /* CT 变更同步到每个 Lot */
+  LOTS.forEach(function (l) { l.ct = CFG.ct; });
+}
+
+document.addEventListener("input", function (ev) {
+  const el = ev.target, id = el.id;
+  if (id === "qEqp") { UI.eqpQ = el.value; render(); keepFocus("qEqp"); return; }
+  if (id === "qLot") { UI.lotQ = el.value; render(); keepFocus("qLot"); return; }
+  if (id === "fG")   { UI.gFilter = el.value; render(); keepFocus("fG"); return; }
+  if (id === "qFree") { UI.freeQ = el.value; render(); keepFocus("qFree"); return; }
+  if (el.getAttribute("data-act") === "cmpZoom") {
+    UI.cmpZoom = Math.max(1, Math.min(30, parseInt(el.value, 10) || 30));
+    const c = $("#scCmp"); if (c) { c.innerHTML = drawCmpChart(); const lb = $("#cmpZoomLbl"); if (lb) lb.textContent = UI.cmpZoom; }
+    return;
+  }
+  if (el.getAttribute("data-act") === "loadZoom") {
+    UI.loadZoom = Math.max(1, Math.min(30, parseInt(el.value, 10) || 30));
+    const c = $("#scLoadCht"); if (c) { c.innerHTML = drawLoadChart(); const lb = $("#loadZoomLbl"); if (lb) lb.textContent = UI.loadZoom; }
+    return;
+  }
+  const ed = el.getAttribute("data-ed");
+  if (ed) {
+    const li = +el.getAttribute("data-li"), gi = +el.getAttribute("data-gi");
+    const g = LOTS[li] && LOTS[li].groups[gi]; if (!g) return;
+    if (ed === "lFrom" || ed === "lTo" || ed === "pics") g[ed] = Math.max(0, parseInt(el.value, 10) || 0);
+    else g[ed] = el.value;
+    if (g.lTo < g.lFrom) g.lTo = g.lFrom;
+    rebuild(); render();
+  }
+});
+
+document.addEventListener("change", function (ev) {
+  const el = ev.target;
+  const pfKey = el.getAttribute && el.getAttribute("data-pf");
+  if (pfKey) { UI.pFilter[pfKey] = el.value; recalcByFilter(); render(); return; }
+  if (el.getAttribute && el.getAttribute("data-stf")) { UI.stFilter = el.value; recalcByFilter(); render(); return; }
+  if (el.id === "fSt") { UI.stFilter = el.value; recalcByFilter(); render(); return; }
+  if (el.id === "cFree") { CFG.incFree = !!el.checked; recalcByFilter(); render(); return; }
+  const ed = el.getAttribute("data-ed");
+  if (ed) {
+    const li = +el.getAttribute("data-li"), gi = +el.getAttribute("data-gi");
+    const g = LOTS[li] && LOTS[li].groups[gi]; if (!g) return;
+    g[ed] = el.value; rebuild(); render();
+  }
+});
+
+function keepFocus(id) {
+  const el = $("#" + id);
+  if (el) { el.focus(); try { el.setSelectionRange(el.value.length, el.value.length); } catch (e) {} }
+}
+
+/* tooltip */
+document.addEventListener("mouseover", function (ev) {
+  const el = ev.target.closest("[data-tip]");
+  const tt = $("#tt");
+  if (!el) { tt.style.display = "none"; return; }
+  tt.innerHTML = el.getAttribute("data-tip");
+  tt.style.display = "block";
+  const r = el.getBoundingClientRect();
+  let x = r.left, y = r.bottom + 8;
+  if (x + 340 > window.innerWidth) x = Math.max(8, window.innerWidth - 348);
+  if (y + 200 > window.innerHeight) y = Math.max(8, r.top - 200);
+  tt.style.left = x + "px"; tt.style.top = y + "px";
+});
+document.addEventListener("mouseout", function () { const tt = $("#tt"); if (tt) tt.style.display = "none"; });
+
+/* ============================================================
+   9. boot
+   ============================================================ */
+/* v4：评论模式（?标记 + 气泡，仅在 body.cmt-on 时显示；委托绑定，重渲染后仍生效） */
+function tip(t) { return '<span class="q" data-cm="' + esc(t) + '">?</span>'; }
+document.addEventListener("click", function (ev) {
+  const q = ev.target.closest(".q");
+  if (!q) return;
+  ev.stopImmediatePropagation();
+  document.querySelectorAll(".bubble").forEach(function (b) { b.remove(); });
+  const b = document.createElement("div");
+  b.className = "bubble";
+  b.innerHTML = '<div class="bt">字段说明</div><div class="bd">' + esc(q.getAttribute("data-cm")) + '</div>';
+  document.body.appendChild(b);
+  const r = q.getBoundingClientRect();
+  b.style.left = Math.max(8, Math.min(window.innerWidth - 330, r.left)) + "px";
+  b.style.top = Math.min(window.innerHeight - 170, r.bottom + 8) + "px";
+  setTimeout(function () {
+    const h = function () { b.remove(); document.removeEventListener("click", h); };
+    document.addEventListener("click", h);
+  }, 0);
+}, true);
+const cmtBtn = $("#cmtBtn");
+if (cmtBtn) cmtBtn.onclick = function () {
+  document.body.classList.toggle("cmt-on");
+  cmtBtn.classList.toggle("pri", document.body.classList.contains("cmt-on"));
+};
+
+/* v5：顶栏时钟 */
+(function clock() {
+  const el = $("#clock"); if (!el) return;
+  const d = new Date(), p = function (n) { return String(n).padStart(2, "0"); };
+  el.textContent = d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+  setTimeout(clock, 1000);
+})();
+
+/* v5：数据配置弹窗（顶栏按钮触发，替代原第三个页签） */
+function openCfg() {
+  $("#modalRoot").innerHTML =
+    '<div class="overlay"><div class="modal"><div class="modal-h"><div class="t">数据配置 · Group 定义（可编辑）</div>' +
+    '<div class="x" data-act="closeCfg">✕</div></div>' +
+    '<div class="modal-b">' + viewCfg() + '</div>' +
+    '<div class="modal-f"><button class="btn" data-act="closeCfg">关闭</button></div></div></div>';
+}
+const cfgBtn = $("#cfgBtn");
+if (cfgBtn) cfgBtn.onclick = openCfg;
+document.addEventListener("click", function (ev) {
+  const x = ev.target.closest('[data-act="closeCfg"]');
+  if (x) { $("#modalRoot").innerHTML = ""; return; }
+  if (ev.target.classList && ev.target.classList.contains("overlay")) { $("#modalRoot").innerHTML = ""; }
+});
+
+rebuild();
+render();
+
+/* 供无头测试用 */
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { CFG: CFG, UI: UI, LOTS: LOTS, DAYS: DAYS, LOAD: LOAD, SEGS: SEGS, MET: MET,
+    EQPS: EQPS, ST: ST, segDays: segDays, stats: stats, viewEQP: viewEQP, viewLot: viewLot, viewCfg: viewCfg,
+    exportCSV: exportCSV, TABS: TABS,
+    maxGn: maxGn, gFilterSet: gFilterSet, freeList: freeList,
+    eqpGroupMatrix: function () { return eqpGroupMatrix(EQPS); },
+    lotGroupTable: function () { return lotGroupTable(LOTS); },
+    freeLayerTable: freeLayerTable, freeCandBar: function () { return freeCandBar(freeList()); },
+    lotSegTable: function () { return lotSegTable(LOTS); },
+    ALLSEGS: function () { return ALLSEGS; }, CANDL: function () { return CANDL; },
+    groupOwnerTable: groupOwnerTable, lotByGroup: function () { return lotByGroup(LOTS); },
+    loadChartCard: loadChartCard, viewDetail: function (e) { return viewDetail(e); },
+    recalcByFilter: recalcByFilter, viewTabs: viewTabs, fieldBar: fieldBar, winDays: winDays };
+}
+</script>
+</body>
+</html>

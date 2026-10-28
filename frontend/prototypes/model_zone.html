@@ -1,0 +1,434 @@
+<!doctype html>
+<!-- GTX FSO Litho 原型 · 模型管理区 · v1 · 2026-10-24 · 对应设计书 4.7.2 模型管理（缺口 A1，P0） -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>模型管理 · Pxsemi FSO</title>
+<style>
+:root{
+  --colorPrimary:#1677FF; --colorPrimaryHover:#4096FF; --colorPrimaryActive:#0958D9;
+  --colorSuccess:#52C41A; --colorWarning:#FAAD14; --colorError:#FF4D4F;
+  --colorText:rgba(0,0,0,.88); --colorTextSecondary:rgba(0,0,0,.65); --colorTextTertiary:rgba(0,0,0,.45); --colorTextQuaternary:rgba(0,0,0,.25);
+  --bgContainer:#fff; --bgLayout:#F5F5F5;
+  --colorBorder:#D9D9D9; --colorBorderSecondary:#F0F0F0; --colorSplit:rgba(5,5,5,.06);
+  --primaryBg:#E6F4FF; --primaryBorder:#91CAFF;
+  --successBg:#F6FFED; --successBorder:#B7EB7F; --warningBg:#FFFBE6; --warningBorder:#FFE58F;
+  --errorBg:#FFF2F0; --errorBorder:#FFCCC7;
+  --radiusSM:4px; --radius:6px; --radiusLG:8px;
+  --siderW:208px; --headerH:48px;
+  --shadow3:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --shadow:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:var(--font);font-size:14px;line-height:1.5714;color:var(--colorText);background:var(--bgLayout)}
+.app{display:flex;height:100vh;overflow:hidden}
+.sider{width:var(--siderW);flex:0 0 var(--siderW);background:#fff;border-right:1px solid var(--colorBorderSecondary);display:flex;flex-direction:column;height:100vh}
+.logo{height:var(--headerH);display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--colorBorderSecondary);flex:0 0 var(--headerH)}
+.logo .mark{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#1677FF,#69B1FF);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.logo .name{font-weight:600;font-size:14px}
+.logo .sub{font-size:11px;color:var(--colorTextTertiary);margin-top:-3px}
+.menu{padding:8px 0;overflow-y:auto;flex:1}
+.menu .grp{padding:8px 16px 4px;font-size:12px;color:var(--colorTextQuaternary)}
+.menu .item{height:40px;display:flex;align-items:center;gap:10px;padding:0 16px;cursor:pointer;color:var(--colorTextSecondary);font-size:14px;transition:background .2s;text-decoration:none}
+.menu .item:hover{background:rgba(0,0,0,.04)}
+.menu .item.active{background:var(--primaryBg);color:var(--colorPrimary);font-weight:500}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.header{height:var(--headerH);flex:0 0 var(--headerH);background:#fff;border-bottom:1px solid var(--colorBorderSecondary);display:flex;align-items:center;padding:0 24px;gap:12px}
+.crumb{font-size:13px;color:var(--colorTextTertiary)}
+.crumb b{color:var(--colorText);font-weight:500}
+.header .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.content{flex:1;overflow:auto;padding:24px}
+.btn{height:32px;padding:0 15px;border-radius:var(--radius);border:1px solid var(--colorBorder);background:#fff;color:var(--colorText);font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap;font-family:inherit}
+.btn:hover{color:var(--colorPrimary);border-color:var(--colorPrimary)}
+.btn.primary{background:var(--colorPrimary);border-color:var(--colorPrimary);color:#fff}
+.btn.primary:hover{background:var(--colorPrimaryHover);border-color:var(--colorPrimaryHover);color:#fff}
+.btn.link{border-color:transparent;background:transparent;color:var(--colorPrimary);padding:0 4px;height:24px}
+.btn.link:hover{background:var(--primaryBg)}
+.btn.link.danger{color:var(--colorError)}
+.btn.link.danger:hover{background:var(--errorBg)}
+.btn.sm{height:28px;padding:0 10px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.card{background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow3);padding:24px;margin-bottom:16px}
+.card.np{padding:0}
+.card-h{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.card-h .t{font-size:16px;font-weight:600}
+.card-h .sub{font-size:12px;color:var(--colorTextTertiary)}
+.card-h .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:var(--radiusSM);font-size:12px;line-height:20px;border:1px solid transparent}
+.tag.success{background:var(--successBg);color:#389E0D;border-color:var(--successBorder)}
+.tag.processing{background:var(--primaryBg);color:var(--colorPrimary);border-color:var(--primaryBorder)}
+.tag.warning{background:var(--warningBg);color:#D48806;border-color:var(--warningBorder)}
+.tag.error{background:var(--errorBg);color:var(--colorError);border-color:var(--errorBorder)}
+.tag.default{background:#FAFAFA;color:var(--colorTextSecondary);border-color:var(--colorBorder)}
+table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
+table.tbl th{background:#FAFAFA;text-align:left;font-weight:600;color:var(--colorText);padding:12px 16px;border-bottom:1px solid var(--colorBorderSecondary);white-space:nowrap;font-size:13px}
+table.tbl td{padding:12px 16px;border-bottom:1px solid var(--colorBorderSecondary);color:var(--colorTextSecondary);vertical-align:middle}
+table.tbl tr:hover td{background:#FAFAFA}
+table.tbl td b{color:var(--colorText)}
+.field{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.field .lab{color:var(--colorTextSecondary);min-width:132px;text-align:right;font-size:14px}
+.field .lab i{color:var(--colorError);font-style:normal;margin-right:2px}
+.inp{height:32px;border:1px solid var(--colorBorder);border-radius:var(--radius);padding:0 11px;font-size:14px;outline:none;color:var(--colorText);background:#fff;font-family:inherit}
+.inp:focus{border-color:var(--colorPrimary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.inp[readonly]{background:#F5F5F5;color:var(--colorTextTertiary);cursor:not-allowed}
+select.inp{cursor:pointer}
+.tabs{display:flex;gap:32px;border-bottom:1px solid var(--colorBorderSecondary);margin-bottom:20px}
+.tabs .tab{padding:10px 0 12px;font-size:14px;color:var(--colorTextSecondary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs .tab.on{color:var(--colorPrimary);border-color:var(--colorPrimary);font-weight:500}
+.note{font-size:12px;color:var(--colorTextTertiary)}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.toolbar .sp{margin-left:auto}
+.err{color:var(--colorError);font-size:12px;margin-top:4px;min-height:16px}
+.hint{font-size:12px;color:var(--colorTextTertiary);margin-top:4px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:center;justify-content:center}
+.modal{background:#fff;border-radius:var(--radiusLG);width:560px;max-width:94vw;box-shadow:var(--shadow);overflow:hidden}
+.modal.wide{width:760px}
+.modal-h{padding:16px 24px;border-bottom:1px solid var(--colorBorderSecondary);display:flex;align-items:center;gap:8px}
+.modal-h .t{font-size:16px;font-weight:600}
+.modal-h .x{margin-left:auto;cursor:pointer;color:var(--colorTextTertiary);font-size:18px;line-height:1;padding:4px}
+.modal-b{padding:20px 24px 4px;max-height:62vh;overflow:auto}
+.modal-f{padding:12px 24px 18px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--colorBorderSecondary);margin-top:12px}
+.toast{position:fixed;top:64px;left:50%;transform:translateX(-50%);background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:9px 16px;font-size:13px;z-index:1200;display:flex;align-items:center;gap:8px;border-left:3px solid var(--colorSuccess);animation:tin .2s}
+.toast.err{border-left-color:var(--colorError)}
+@keyframes tin{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
+.empty{padding:40px;text-align:center;color:var(--colorTextQuaternary)}
+.sw{width:36px;height:20px;border-radius:10px;background:#D9D9D9;position:relative;cursor:pointer;transition:background .2s;display:inline-block;vertical-align:middle}
+.sw i{position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.sw.on{background:var(--colorSuccess)}
+.sw.on i{left:18px}
+.radio{display:inline-flex;align-items:center;gap:6px;margin-right:18px;cursor:pointer;font-size:14px;color:var(--colorTextSecondary)}
+.radio input{accent-color:var(--colorPrimary)}
+.q{display:none;width:15px;height:15px;border-radius:50%;background:var(--colorWarning);color:#fff;font-size:11px;line-height:15px;text-align:center;cursor:pointer;margin-left:4px;font-weight:700;vertical-align:middle;user-select:none}
+body.cmt-on .q{display:inline-block}
+.bubble{position:fixed;z-index:1000;max-width:320px;background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow);padding:12px 14px;font-size:13px;color:var(--colorText);border-top:3px solid var(--colorWarning)}
+.bubble .bt{font-weight:600;margin-bottom:4px}
+.bubble .bd{color:var(--colorTextSecondary);font-size:12.5px;line-height:1.65}
+table.tbl th.sortable{cursor:pointer;user-select:none}
+table.tbl th.sortable:hover{color:var(--colorPrimary)}
+table.tbl th .si{font-size:10px;margin-left:2px;color:var(--colorTextQuaternary)}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sider">
+    <div class="logo"><div class="mark">FS</div><div><div class="name">Pxsemi FSO</div><div class="sub">智能生产中心 · 光刻排程</div></div></div>
+    <nav class="menu">
+      <div class="grp">总览</div>
+      <a class="item" href="../index.html">◈ 系统总览</a>
+      <div class="grp">数据接入</div>
+      <a class="item" href="data_zone.html">⇄ 数据接入</a>
+      <div class="grp">数据配置</div>
+      <a class="item" href="config_zone.html">⚙ Production Config</a>
+      <div class="grp">模型管理</div>
+      <a class="item active" href="model_zone.html">▦ Model Control</a>
+      <div class="grp">排程结果</div>
+      <a class="item" href="result_litho.html">▤ Litho 排程结果</a>
+      <a class="item" href="result_reticle.html">▣ Reticle 排程结果</a>
+      <div class="grp">日志</div>
+      <a class="item" href="log_zone.html">☰ 调度日志</a>
+      <div class="grp">扩展页面（复用）</div>
+      <a class="item" href="stacking_bond_ui_v6.html">◱ Stacking Bond</a>
+      <a class="item" href="equip_temp_layer_config.html">◌ 温层配置详细版</a>
+    </nav>
+  </aside>
+  <div class="main">
+    <header class="header">
+      <div class="crumb">Model Control / <b id="crumbCur">Eqp Group</b></div>
+      <div class="right"><span class="note" id="clock"></span><button class="btn sm" id="cmtBtn">💬 评论模式</button></div>
+    </header>
+    <main class="content" id="content"></main>
+  </div>
+</div>
+<div id="modalRoot"></div>
+<script>
+/* ============ 工具 ============ */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(msg,isErr){const el=document.createElement('div');el.className='toast'+(isErr?' err':'');el.innerHTML=(isErr?'⚠️ ':'✅ ')+'<span>'+esc(msg)+'</span>';document.body.appendChild(el);setTimeout(()=>el.remove(),2400);}
+function tip(t){return '<span class="q" data-cm="'+esc(t)+'">?</span>';}
+function now(){const d=new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());}
+function showModal(title,body,footer,wide){$('#modalRoot').innerHTML='<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal '+(wide?'wide':'')+'"><div class="modal-h"><span class="t">'+esc(title)+'</span><span class="x" onclick="closeModal()">✕</span></div><div class="modal-b">'+body+'</div><div class="modal-f">'+(footer||'<button class="btn" onclick="closeModal()">关闭</button>')+'</div></div></div>';}
+function closeModal(){$('#modalRoot').innerHTML='';}
+
+/* ============ mock 数据（口径：设计书 4.7.2） ============ */
+const AREAS=['Litho','Etch','Diffusion','Wet'];
+const MODELS=['Diffusion','Etch','Litho','Reticle Inspection','Wet'];
+const RUNNING_MODES={Litho:[],Etch:['serial','parallel','combinationS','combinationP'],Diffusion:['Dual Boat','One Boat'],Wet:['Bench','Single Wafer']};
+const D={
+  eqpGroups:[
+    {name:'LITHO_IMM_A',model:'Litho',eqpType:'L-IMMI-S',runMode:'—',area:'Litho',kpi:'Yes',sch:'Yes',occupied:true},
+    {name:'LITHO_IMM_B',model:'Litho',eqpType:'L-YIMMI-S',runMode:'—',area:'Litho',kpi:'Yes',sch:'Yes',occupied:true},
+    {name:'LITHO_BARC',model:'Litho',eqpType:'L-BARC-S',runMode:'—',area:'Litho',kpi:'No',sch:'Yes',occupied:false},
+    {name:'ETCH_DRY_A',model:'Etch',eqpType:'E-ETCH-S',runMode:'serial',area:'Etch',kpi:'Yes',sch:'Yes',occupied:false},
+    {name:'WET_BENCH_A',model:'Wet',eqpType:'W-BENCH-S',runMode:'Bench',area:'Wet',kpi:'No',sch:'No',occupied:false},
+  ],
+  params:[
+    {mtype:'Scheduling',set:'Lot',item:'coming_wip',type:'Filter',status:true,scope:['Single Wafer','Batch'],mo:'O',vars:[{n:'maxTime',cond:'<=',val:'12h'},{n:'maxStep',cond:'<=',val:'10'}],desc:'排程 coming wip 数据范围',model:'Litho_Main'},
+    {mtype:'Scheduling',set:'Lot',item:'lot_priority',type:'Priority',status:true,scope:['Single Wafer','MultiChamber'],mo:'M',vars:[{n:'maxLot',cond:'==',val:'50'}],desc:'优先级分档 Lot 上限',model:'Litho_Main'},
+    {mtype:'Scheduling',set:'Eqp',item:'eqp_status',type:'Supplement',status:true,scope:['Batch'],mo:'M',vars:[],desc:'机台状态补充',model:''},
+    {mtype:'Scheduling',set:'Runpath',item:'runpath_check',type:'Filter',status:false,scope:['Single Wafer'],mo:'O',vars:[{n:'nStep',cond:'>=',val:'3'}],desc:'RunPath 通路检查步长',model:''},
+    {mtype:'Planning',set:'—',item:'capacity_plan',type:'—',status:true,scope:[],mo:'O',vars:[],desc:'产能规划（Planning 模型）',model:''},
+  ],
+  schedModels:[
+    {name:'Litho_Main',model:'Litho',grp:'LITHO_IMM_A',status:'on',auto:true,stype:'CRON',exec:'0 */10 * * * ?',execDesc:'每 10 分钟',running:false},
+    {name:'Litho_BARC_Rel',model:'Litho',grp:'LITHO_BARC',status:'off',auto:false,stype:'FIX DELAY',exec:'15',execDesc:'每 15 分钟',running:false},
+    {name:'Etch_A_V1',model:'Etch',grp:'ETCH_DRY_A',status:'on',auto:true,stype:'CRON',exec:'0 0 * * * ?',execDesc:'每小时',running:true},
+  ],
+  cfg:{name:'Litho_Main',model:'Litho',grp:'LITHO_IMM_A',params:['coming_wip','lot_priority']},
+};
+const state={tab:'eqp',editing:null,selCfgParam:null};
+/* 列头排序（data-sort 三角指示） */
+const SORTS={};
+function thSort(tid,k,lab){const s=SORTS[tid]||{};const d=s.k===k?(s.d||1):0;return '<th class="sortable" data-sort="'+k+'" onclick="sortTbl(\''+tid+'\',\''+k+'\')">'+lab+'<span class="si">'+(d?(d>0?'▲':'▼'):'')+'</span></th>';}
+function sortTbl(tid,k){const s=SORTS[tid]||{k:'',d:1};if(s.k===k)s.d=-s.d;else{s.k=k;s.d=1;}SORTS[tid]=s;render();}
+function sortRows(tid,arr,fields){const s=SORTS[tid];if(!s||!s.k||fields.indexOf(s.k)<0)return arr;return arr.slice().sort((a,b)=>String(a[s.k]).localeCompare(String(b[s.k]))*s.d);}
+
+/* ============ 框架 ============ */
+const TABS=[['eqp','Eqp Group'],['param','Data Parameter'],['sched','Schedule Model'],['conf','Model Configuration']];
+function render(){
+  $('#content').innerHTML='<div class="card np"><div style="padding:0 24px"><div class="tabs">'
+   +TABS.map(t=>'<div class="tab '+(state.tab===t[0]?'on':'')+'" onclick="switchTab(\''+t[0]+'\')">'+t[1]+'</div>').join('')
+   +'</div></div><div style="padding:16px 24px 24px">'+V[state.tab]()+'</div></div>';
+  $('#crumbCur').textContent=TABS.find(t=>t[0]===state.tab)[1];
+}
+function switchTab(t){state.tab=t;state.editing=null;render();}
+const V={};
+
+/* ===== 1 Eqp Group ===== */
+V.eqp=function(){
+  let s='<div class="toolbar">'
+   +'<select class="inp">'+ ['全部 Eqp Type','L-IMMI-S','L-YIMMI-S','L-BARC-S','E-ETCH-S','W-BENCH-S'].map(x=>'<option>'+x+'</option>').join('') +'</select>'
+   +'<select class="inp"><option>ALL</option><option>Yes</option><option>No</option></select>'+tip('KPI View 筛选')
+   +'<select class="inp"><option>ALL</option><option>Yes</option><option>No</option></select>'+tip('Schedule Model 筛选')
+   +'<button class="btn" onclick="toast(\'查询完成（演示）\')">查询</button><span class="sp"></span>'
+   +'<button class="btn primary" onclick="openEgModal()">+ Add</button></div>'
+   +'<table class="tbl"><thead><tr>'+thSort('eg','name','Eqp Group Name')+thSort('eg','model','Model')+thSort('eg','eqpType','Eqp Type')+'<th>Running Mode</th>'+thSort('eg','area','Area')+'<th>KPI View</th><th>Schedule Model</th><th style="width:130px">操作</th></tr></thead><tbody>';
+  let egRows=D.eqpGroups.map((g,i)=>({i:i,name:g.name,model:g.model,eqpType:g.eqpType,runMode:g.runMode,area:g.area,kpi:g.kpi,sch:g.sch,occupied:g.occupied}));
+  egRows=sortRows('eg',egRows,['name','model','eqpType','area']);
+  egRows.forEach((g)=>{
+    const i=g.i;
+    s+='<tr><td><b>'+g.name+'</b>'+(g.occupied?' <span class="tag processing">已占用</span>':'')+'</td><td>'+g.model+'</td><td>'+g.eqpType+'</td>'
+      +'<td>'+g.runMode+'</td><td>'+g.area+'</td><td>'+g.kpi+'</td><td>'+g.sch+'</td>'
+      +'<td><button class="btn link" onclick="openEgModal('+i+')">Edit</button><button class="btn link danger" onclick="delEg('+i+')">删除</button></td></tr>';
+  });
+  if(!egRows.length){s+='<tr><td colspan="8"><div class="empty">暂无机台组 · 点击右上角「+ Add」新增</div></td></tr>';}
+  return s+'</tbody></table>'
+   +'<div class="note" style="margin-top:10px">唯一性：Area + Eqp Type + Running Mode 组合唯一；Litho 区 Running Mode 置灰（不可选）；EqpType 匹配逻辑：数据中 EqpType 包含配置值即命中。</div>';
+};
+function openEgModal(i){
+  const g=i!=null?D.eqpGroups[i]:{name:'',model:'Diffusion',eqpType:'',runMode:'',area:'Litho',kpi:'Yes',sch:'Yes'};
+  const locked=g.occupied;
+  const rmOpts=RUNNING_MODES[g.area]||[];
+  const body='<div class="field"><div class="lab"><i>*</i>Eqp Group Name</div><input class="inp" id="eg_name" style="width:220px" maxlength="20" value="'+esc(g.name)+'" '+(locked?'readonly':'')+' placeholder="LITHO_IMM_C">'
+   +'<span class="note">英文/数字/_/-，≤20 位，唯一</span></div>'
+   +'<div class="field"><div class="lab"><i>*</i>Model</div><select class="inp" id="eg_model" '+(locked?'disabled':'')+' onchange="egModelChange()">'+MODELS.map(m=>'<option '+(g.model===m?'selected':'')+'>'+m+'</option>').join('')+'</select></div>'
+   +'<div class="field"><div class="lab"><i>*</i>Eqp Type</div><input class="inp" id="eg_eqptype" style="width:200px" maxlength="50" value="'+esc(g.eqpType)+'" '+(locked?'readonly':'')+' placeholder="L-IMMI-S"><span class="note">英文/连接符/括号</span></div>'
+   +'<div class="field"><div class="lab"><i>*</i>Area</div><select class="inp" id="eg_area" '+(locked?'disabled':'')+' onchange="egModelChange()">'+AREAS.map(a=>'<option '+(g.area===a?'selected':'')+'>'+a+'</option>').join('')+'</select></div>'
+   +'<div class="field"><div class="lab"><i>*</i>Running Mode</div><select class="inp" id="eg_rm" '+(locked?'disabled':'')+'>'+rmOpts.map(m=>'<option '+(g.runMode===m?'selected':'')+'>'+m+'</option>').join('')+'</select>'
+   +'<span class="note">'+(rmOpts.length?'联动 Area':'Litho 区该选项置灰')+'</span></div>'
+   +'<div class="field"><div class="lab"><i>*</i>KPI View</div><select class="inp" id="eg_kpi" '+(locked?'disabled':'')+'><option>Yes</option><option>No</option></select></div>'
+   +'<div class="field"><div class="lab"><i>*</i>Schedule Model</div><select class="inp" id="eg_sch" '+(locked?'disabled':'')+'><option>Yes</option><option>No</option></select></div>'
+   +(locked?'<div class="err">This Eqp Group is occupied by '+g.model+'. Cannot be changed.</div>':'<div class="err" id="eg_err"></div>');
+  if(i!=null&&locked){/* 被占用：只读展示，无保存按钮 */}
+  showModal(i!=null?'编辑机台组':'新增机台组',body,
+   '<button class="btn" onclick="closeModal()">取消</button>'+(locked?'':'<button class="btn primary" onclick="saveEg('+(i==null?-1:i)+')">确定</button>'));
+  if(i!=null){setTimeout(()=>{const k=$('#eg_kpi'),s2=$('#eg_sch');if(k)k.value=g.kpi;if(s2)s2.value=g.sch;if(rmOpts.length&&$('#eg_rm'))$('#eg_rm').value=g.runMode;},0);}
+}
+function egModelChange(){toast('Area/Model 联动：Running Mode 列表已刷新（演示）');}
+function saveEg(i){
+  const name=$('#eg_name').value.trim(),et=$('#eg_eqptype').value.trim(),area=$('#eg_area').value,model=$('#eg_model').value,rm=$('#eg_rm').value;
+  const err=$('#eg_err');
+  if(!name||!et){err.textContent='Cannot be empty';return;}
+  if(!/^[A-Za-z0-9_\-]+$/.test(name)){err.textContent='Only support English letters, numbers, - and _';return;}
+  if(D.eqpGroups.some((g,j)=>j!==i&&g.name===name)){err.textContent='This Eqp Group Name is already exist';return;}
+  if(D.eqpGroups.some((g,j)=>j!==i&&g.area===area&&g.eqpType===et&&g.runMode===rm)){err.textContent='This Eqp Group is already exist';return;}
+  const g={name:name,model:model,eqpType:et,runMode:rm||'—',area:area,kpi:$('#eg_kpi').value,sch:$('#eg_sch').value,occupied:false};
+  if(i<0)D.eqpGroups.push(g);else Object.assign(D.eqpGroups[i],g);
+  closeModal();toast(i<0?'Added Successfully':'Saved');render();
+}
+function delEg(i){
+  const g=D.eqpGroups[i];
+  if(g.occupied){toast('Cannot delete Eqp Group. This Eqp Group is occupied by '+g.model,true);return;}
+  showModal('删除机台组','确定删除 <b>'+esc(g.name)+'</b>？',
+   '<button class="btn" onclick="closeModal()">取消</button><button class="btn primary" style="background:var(--colorError);border-color:var(--colorError)" onclick="D.eqpGroups.splice('+i+',1);closeModal();toast(\'Deleted Successfully\');render()">确认删除</button>');
+}
+
+/* ===== 2 Data Parameter ===== */
+V.param=function(){
+  let s='<div class="toolbar"><select class="inp"><option>Model Type：全部</option><option>Scheduling</option><option>Planning</option></select>'+tip('Scheduling 显示 Set/Type/Scope 列；Planning 隐藏')
+   +'<button class="btn" onclick="toast(\'查询完成（演示）\')">查询</button><span class="sp"></span><button class="btn primary" onclick="openDpModal()">+ 新增</button></div>'
+   +'<table class="tbl"><thead><tr>'+thSort('dp','mtype','Model Type')+'<th>Set</th>'+thSort('dp','item','Item')+'<th>Type</th><th>Status</th><th>Scope</th><th>M/O</th><th>Variable</th><th>Description</th>'+thSort('dp','model','Model')+'<th style="width:120px">操作</th></tr></thead><tbody>';
+  let dpRows=D.params.map((p,i)=>({i:i,mtype:p.mtype,set:p.set,item:p.item,type:p.type,status:p.status,scope:p.scope,mo:p.mo,vars:p.vars,desc:p.desc,model:p.model}));
+  dpRows=sortRows('dp',dpRows,['mtype','item','model']);
+  dpRows.forEach((p)=>{
+    const i=p.i;
+    const occ=!!p.model;
+    s+='<tr><td><span class="tag '+(p.mtype==='Scheduling'?'processing':'default')+'">'+p.mtype+'</span></td><td>'+p.set+'</td><td><b>'+p.item+'</b>'+(occ?' <span class="tag processing">占用</span>':'')+'</td><td>'+p.type+'</td>'
+      +'<td><span class="sw '+(p.status?'on':'')+'" onclick="tgDp('+i+')"><i></i></span></td><td>'+(p.scope.length?p.scope.join(', '):'—')+'</td><td>'+p.mo+'</td>'
+      +'<td class="note">'+(p.vars.length?p.vars.map(v=>v.n+' '+v.cond+' '+v.val).join(' AND '):'—')+'</td><td class="note">'+esc(p.desc)+'</td><td>'+(p.model||'—')+'</td>'
+      +'<td><button class="btn link" onclick="'+(occ?'toast(\'This Parameter is occupied by '+p.model+'. Cannot be changed.\',true)':('openDpModal('+i+')'))+'">编辑</button>'
+      +'<button class="btn link danger" onclick="delDp('+i+')">删除</button></td></tr>';
+  });
+  if(!dpRows.length){s+='<tr><td colspan="11"><div class="empty">暂无数据参数 · 点击右上角「+ 新增」添加</div></td></tr>';}
+  return s+'</tbody></table>'
+   +'<div class="note" style="margin-top:10px">Model Type=Scheduling 时显示 Set/Type/Scope；Planning 不显示。Status 开关即时生效；Variable 最多 5 个、每个 ≤20 字符（仅英文与下划线）。参数清单：max_step / max_time / time_limit / worker / BARC_SAME_STAGE_RELEASE_GAP(默认2h) / FIX_LOT_COUNT / FIX_LOT_MIN_TIME / LOT_TRANS_COST_TIME。</div>';
+};
+function tgDp(i){D.params[i].status=!D.params[i].status;render();}
+function openDpModal(i){
+  const p=i!=null?D.params[i]:{mtype:['Scheduling'],set:'Lot',item:'',type:'Filter',status:true,scope:['Single Wafer'],mo:'O',vars:[],desc:''};
+  const body='<div class="field"><div class="lab"><i>*</i>Model Type</div>'
+   +['Scheduling','Planning'].map(m=>'<label class="radio"><input type="checkbox" class="dpmt" value="'+m+'" '+(p.mtype.includes(m)?'checked':'')+' onchange="dpMtChange()">'+m+'</label>').join('')+'</div>'
+   +'<div id="dpMore">'
+   +'<div class="field"><div class="lab"><i>*</i>Set</div><select class="inp" id="dp_set">'+['Lot','Eqp','Runpath'].map(x=>'<option '+(p.set===x?'selected':'')+'>'+x+'</option>').join('')+'</select></div>'
+   +'<div class="field"><div class="lab"><i>*</i>Type</div><select class="inp" id="dp_type">'+['Filter','Supplement','Priority'].map(x=>'<option '+(p.type===x?'selected':'')+'>'+x+'</option>').join('')+'</select></div>'
+   +'<div class="field"><div class="lab"><i>*</i>Scope</div>'+['Single Wafer','MultiChamber','Batch','Reticle'].map(x=>'<label class="radio"><input type="checkbox" class="dpsc" value="'+x+'" '+(p.scope.includes(x)?'checked':'')+'>'+x+'</label>').join('')+'</div>'
+   +'</div>'
+   +'<div class="field"><div class="lab"><i>*</i>Item</div><input class="inp" id="dp_item" style="width:200px" maxlength="20" value="'+esc(p.item)+'" placeholder="coming_wip"><span class="note">英文/数字/_/-/空格，≤20 位，唯一</span></div>'
+   +'<div class="field"><div class="lab">M/O</div><select class="inp" id="dp_mo"><option '+(p.mo==='M'?'selected':'')+'>M</option><option '+(p.mo==='O'?'selected':'')+'>O</option></select></div>'
+   +'<div class="field" style="align-items:flex-start"><div class="lab" style="padding-top:6px">Variable</div><div id="dp_vars">'
+   +(p.vars.length?p.vars.map((v,j)=>varRow(v,j)).join(''):varRow({n:'',cond:'<=',val:''},0))
+   +'</div><button class="btn sm" onclick="addVar()">+ 变量</button><span class="note">≤5 个</span></div>'
+   +'<div class="field"><div class="lab">Description</div><input class="inp" id="dp_desc" style="width:300px" maxlength="100" value="'+esc(p.desc)+'"></div>'
+   +'<div class="err" id="dp_err"></div>';
+  showModal(i!=null?'编辑数据参数':'新增数据参数',body,
+   '<button class="btn" onclick="closeModal()">取消</button><button class="btn primary" onclick="saveDp('+(i==null?-1:i)+')">确定</button>');
+}
+function varRow(v,j){
+  return '<div style="display:flex;gap:6px;margin-bottom:6px"><input class="inp dv_n" style="width:120px" maxlength="20" value="'+esc(v.n)+'" placeholder="变量名">'
+   +'<select class="inp dv_c" style="width:70px">'+['<=','>=','==','!='].map(c=>'<option '+(v.cond===c?'selected':'')+'>'+c+'</option>').join('')+'</select>'
+   +'<input class="inp dv_v" style="width:110px" value="'+esc(v.val)+'" placeholder="值"></div>';
+}
+function addVar(){const h=$('#dp_vars');if(h.querySelectorAll('.dv_n').length>=5){toast('最多 5 个变量',true);return;}h.insertAdjacentHTML('beforeend',varRow({n:'',cond:'<=',val:''},0));}
+function dpMtChange(){const on=[...document.querySelectorAll('.dpmt:checked')].some(e=>e.value==='Scheduling');document.getElementById('dpMore').style.display=on?'':'none';}
+function saveDp(i){
+  const mts=[...document.querySelectorAll('.dpmt:checked')].map(e=>e.value);
+  const item=$('#dp_item').value.trim();const err=$('#dp_err');
+  if(!mts.length){err.textContent='Cannot be empty：Model Type';return;}
+  if(!item){err.textContent='Cannot be empty：Item';return;}
+  if(!/^[A-Za-z0-9_\- ]+$/.test(item)){err.textContent='Only support English letters, numbers, blank space, - and _';return;}
+  if(D.params.some((p,j)=>j!==i&&p.item===item)){err.textContent='This Item is already exist';return;}
+  const sched=mts.includes('Scheduling');
+  const vars=[...document.querySelectorAll('#dp_vars > div')].map(h=>({n:h.querySelector('.dv_n').value.trim(),cond:h.querySelector('.dv_c').value,val:h.querySelector('.dv_v').value.trim()})).filter(v=>v.n);
+  if(vars.some(v=>!/^[A-Za-z_]+$/.test(v.n))){err.textContent='Variable：Only support English letters and _';return;}
+  const p={mtype:mts,set:sched?$('#dp_set').value:'—',item:item,type:sched?$('#dp_type').value:'—',status:true,
+    scope:sched?[...document.querySelectorAll('.dpsc:checked')].map(e=>e.value):[],mo:$('#dp_mo').value,vars:vars,desc:$('#dp_desc').value,model:''};
+  if(i<0)D.params.push(p);else Object.assign(D.params[i],p,{model:D.params[i].model});
+  closeModal();toast(i<0?'新增成功（Model 列置空，待模型引用）':'已保存');render();
+}
+function delDp(i){
+  const p=D.params[i];
+  if(p.model){toast('Cannot delete Parameter. This Parameter is occupied by '+p.model,true);return;}
+  D.params.splice(i,1);toast('Deleted Successfully');render();
+}
+
+/* ===== 3 Schedule Model ===== */
+V.sched=function(){
+  let s='<div class="toolbar">'
+   +'<select class="inp" style="min-width:180px"><option>Model Name：全部</option>'+D.schedModels.map(m=>'<option>'+m.name+'</option>').join('')+'</select>'
+   +'<select class="inp"><option>Model：不限制</option>'+MODELS.map(m=>'<option>'+m+'</option>').join('')+'</select>'
+   +'<select class="inp"><option>Eqp Group：不限制</option>'+D.eqpGroups.map(g=>'<option>'+g.name+'</option>').join('')+'</select>'
+   +'<button class="btn" onclick="toast(\'查询完成（演示）\')">查询</button><span class="sp"></span>'
+   +'<button class="btn primary" onclick="toast(\'进入新增 Basic Model 子页（演示，见 Model Configuration 页签）\')">+ Add Basic Model</button></div>'
+   +'<table class="tbl"><thead><tr>'+thSort('sm','name','Model Name')+thSort('sm','model','Model')+thSort('sm','grp','Eqp Group')+'<th>Status</th><th>Auto Run</th><th>Schedule Type</th><th>Execution ${t}</th><th style="width:190px">操作</th></tr></thead><tbody>'.replace('${t}',tip('CRON 表达式或固定频率分钟数；保存后自动生成可读描述'));
+  let smRows=D.schedModels.map((m,i)=>({i:i,name:m.name,model:m.model,grp:m.grp,status:m.status,auto:m.auto,stype:m.stype,exec:m.exec,execDesc:m.execDesc,running:m.running}));
+  smRows=sortRows('sm',smRows,['name','model','grp']);
+  smRows.forEach((m)=>{
+    const i=m.i;
+    const ed=state.editing===i;
+    s+='<tr><td><b>'+m.name+'</b></td><td>'+m.model+'</td><td>'+m.grp+'</td>'
+      +'<td>'+(ed?'<select class="inp" id="sm_st_'+i+'"><option '+(m.status==='on'?'selected':'')+'>on</option><option '+(m.status==='off'?'selected':'')+'>off</option></select>'
+               :'<span class="sw '+(m.status==='on'?'on':'')+'" onclick="tgSm('+i+')"><i></i></span>')+'</td>'
+      +'<td>'+(ed?'<select class="inp" id="sm_auto_'+i+'"><option '+(m.auto?'selected':'')+'>Yes</option><option '+(!m.auto?'selected':'')+'>No</option></select>'
+               :'<span class="tag '+(m.auto?'success':'default')+'">'+(m.auto?'Auto':'Manual')+'</span>')+'</td>'
+      +'<td>'+(ed?'<select class="inp" id="sm_ty_'+i+'" onchange="smTy('+i+')"><option '+(m.stype==='CRON'?'selected':'')+'>CRON</option><option '+(m.stype==='FIX DELAY'?'selected':'')+'>FIX DELAY</option></select>':'<span class="tag default">'+m.stype+'</span>')+'</td>'
+      +'<td>'+(ed?'<input class="inp" style="width:150px" id="sm_ex_'+i+'" value="'+esc(m.exec)+'">':'<span class="note">'+esc(m.execDesc)+'（'+esc(m.exec)+'）</span>')+'</td>'
+      +'<td>'
+      +(ed?'<button class="btn link" onclick="saveSm('+i+')">保存</button><button class="btn link" onclick="state.editing=null;render()">取消</button>'
+          :'<button class="btn link" onclick="state.editing='+i+';render()">编辑</button>'
+          +'<button class="btn link" onclick="runSm('+i+')" '+(m.running?'disabled title="This Model is running"':'')+'>▶ Run</button>'
+          +'<button class="btn link" onclick="openCfg(\''+m.name+'\')">配置</button>')
+      +'</td></tr>';
+  });
+  if(!smRows.length){s+='<tr><td colspan="8"><div class="empty">暂无模型 · 点击右上角「+ Add Basic Model」新增</div></td></tr>';}
+  return s+'</tbody></table>'
+   +'<div class="note" style="margin-top:10px">限制：同一 Eqp Group 仅一个模型 Status=on（提示 This Eqp Group has already running a Model.）；Auto 勾选后 Scheduling Type 与 Execution 必填；模型 Auto Run 开启或 Running 时禁用单次 Run；模拟功能与 Model Parameter 配置禁用。</div>';
+};
+function tgSm(i){
+  const m=D.schedModels[i];
+  if(m.status==='off'&&D.schedModels.some(x=>x.grp===m.grp&&x.status==='on')){toast('This Eqp Group has already running a Model.',true);return;}
+  m.status=m.status==='on'?'off':'on';render();
+}
+function smTy(i){const ty=$('#sm_ty_'+i).value;const ex=$('#sm_ex_'+i);ex.value=ty==='FIX DELAY'?'10':ex.value;toast(ty==='FIX DELAY'?'FIX DELAY：数值输入器 1–9999 分钟，默认 10':'CRON：保留原表达式');}
+function saveSm(i){
+  const m=D.schedModels[i];
+  const st=$('#sm_st_'+i).value,auto=$('#sm_auto_'+i).value==='Yes',ty=$('#sm_ty_'+i).value,ex=$('#sm_ex_'+i).value.trim();
+  if(auto&&(!ty||!ex)){toast('Please Select / Please Input：Auto 需填 Scheduling Type 与 Execution',true);return;}
+  if(st==='on'&&m.status==='off'&&D.schedModels.some((x,j)=>j!==i&&x.grp===m.grp&&x.status==='on')){toast('This Eqp Group has already running a Model.',true);return;}
+  m.status=st;m.auto=auto;m.stype=ty;m.exec=ex;
+  m.execDesc=ty==='FIX DELAY'?'每 '+ex+' 分钟':'CRON：'+ex;
+  state.editing=null;toast('已保存，Execution Freq Meaning 已生成');render();
+}
+function runSm(i){
+  const m=D.schedModels[i];
+  showModal('Run this Model once?','确认单次执行 <b>'+esc(m.name)+'</b>？执行后生成日志与甘特图结果。',
+   '<button class="btn" onclick="closeModal()">取消</button><button class="btn primary" onclick="closeModal();toast(\'已执行一次，见调度日志\')">确认 Run</button>');
+}
+function openCfg(name){D.cfg.name=name;state.tab='conf';render();toast('已进入 Model Configuration：'+name);}
+
+/* ===== 4 Model Configuration ===== */
+V.conf=function(){
+  const c=D.cfg;
+  let s='<div class="card-h"><div class="t">模型配置：'+c.name+'</div><div class="sub">Basic Info → Model Selection → Data Selection → Config（§4.7.2 Schedule Model）</div>'
+   +'<div class="right"><button class="btn primary sm" onclick="toast(\'模型已保存（Submit 后 Schedule 列表新增一条，Status 关闭）\')">Submit</button></div></div>';
+  s+='<div class="card-h" style="margin:8px 0"><div class="t" style="font-size:14px">① Basic Info</div></div>'
+   +'<div class="field"><div class="lab"><i>*</i>Model Name</div><input class="inp" style="width:220px" maxlength="20" value="'+esc(c.name)+'"><span class="note">英文/数字/_/-；唯一；重复提示 This Model Name already exists</span></div>';
+  s+='<div class="card-h" style="margin:8px 0"><div class="t" style="font-size:14px">② Model Selection</div><div class="sub">选择排程使用的算法模型</div></div><div class="field"><div class="lab">Model</div>'
+   +MODELS.map(m=>'<label class="radio"><input type="radio" name="cfmodel" '+(c.model===m?'checked':'')+' onchange="toast(\'已选择模型：'+m+'\')">'+m+'</label>').join('')+'</div>'
+   +'<div class="note" style="margin-left:132px">选择 Model 后，目标与约束出现对应数据；无数据显示提示词。模型模拟功能禁用、Model Parameter 配置禁用。</div>';
+  s+='<div class="card-h" style="margin:14px 0 4px"><div class="t" style="font-size:14px">③ Data Selection</div></div>'
+   +'<div class="field"><div class="lab"><i>*</i>Eqp Group</div><select class="inp">'+D.eqpGroups.filter(g=>g.area===c.model).map(g=>'<option '+(c.grp===g.name?'selected':'')+'>'+g.name+'</option>').join('')+'</select><span class="note">列表为 Area 与模型匹配的机台组</span></div>'
+   +'<table class="tbl"><thead><tr><th></th><th>Item</th><th>Set</th><th>Type</th><th>Description</th><th>Variable</th><th>Variable Config</th></tr></thead><tbody>';
+  D.params.filter(p=>p.mtype.includes('Scheduling')).forEach(p=>{
+    const on=c.params.includes(p.item);
+    s+='<tr><td><input type="checkbox" '+(on?'checked':'')+' onchange="tgCfgParam(\''+p.item+'\')"></td><td><b>'+p.item+'</b></td><td>'+p.set+'</td><td>'+p.type+'</td><td class="note">'+esc(p.desc)+'</td>'
+      +'<td class="note">'+(p.vars.length?p.vars.map(v=>v.n+' '+v.cond+' '+v.val).join(' AND '):'—')+'</td>'
+      +'<td>'+(p.vars.length?'<button class="btn sm" onclick="openVarCfg(\''+p.item+'\')">⚙ 配置</button>':'<span class="note">未配置变量</span>')+'</td></tr>';
+  });
+  s+='</tbody></table>'
+   +'<div class="note" style="margin-top:8px">Variable Config 弹窗：Variable Name（来自参数定义）+ Condition（后端提供）+ Value，多条件间 AND/OR（当前仅 AND）拼接；未配置值时确认后 Variable 置空。保存模型后，被引用参数在 Data Parameter 的 Model 列展示该模型名。</div>';
+  s+='<div class="card-h" style="margin:14px 0 4px"><div class="t" style="font-size:14px">④ Config</div><div class="sub">模型专属配置（按需）</div></div>'
+   +'<div class="field"><div class="lab">time_limit</div><input class="inp" style="width:110px" value="300"><span class="note">s　模型求解时间上限</span>'
+   +'<div class="lab" style="min-width:80px">worker</div><input class="inp" style="width:80px" value="8"><span class="note">线程</span></div>';
+  return s;
+};
+function tgCfgParam(item){const i=D.cfg.params.indexOf(item);i<0?D.cfg.params.push(item):D.cfg.params.splice(i,1);render();}
+function openVarCfg(item){
+  const p=D.params.find(x=>x.item===item);
+  const body='<div class="note" style="margin-bottom:10px">Item：'+p.item+'（逻辑关系当前固定 AND）</div>'
+   +p.vars.map((v,j)=>'<div class="field"><div class="lab">'+v.n+'</div><select class="inp" style="width:80px"><option><=</option><option>>=</option><option>==</option></select><input class="inp" style="width:130px" value="'+esc(v.val)+'"></div>').join('');
+  showModal('Variable Config：'+item,body,'<button class="btn" onclick="closeModal()">取消</button><button class="btn primary" onclick="closeModal();toast(\'变量配置已保存（演示）\')">确认</button>');
+}
+
+/* ============ 事件 ============ */
+document.addEventListener('click',function(ev){
+  const q=ev.target.closest('.q');
+  if(!q) return;
+  ev.stopPropagation();
+  document.querySelectorAll('.bubble').forEach(b=>b.remove());
+  const b=document.createElement('div');b.className='bubble';
+  b.innerHTML='<div class="bt">字段说明</div><div class="bd">'+esc(q.getAttribute('data-cm'))+'</div>';
+  document.body.appendChild(b);
+  const r=q.getBoundingClientRect();
+  b.style.left=Math.max(8,Math.min(window.innerWidth-340,r.left))+'px';
+  b.style.top=(r.bottom+8)+'px';
+  setTimeout(()=>{const h=()=>{b.remove();document.removeEventListener('click',h);};document.addEventListener('click',h);},0);
+});
+$('#cmtBtn').onclick=function(){document.body.classList.toggle('cmt-on');this.classList.toggle('primary');};
+(function clock(){const d=new Date(),p=n=>String(n).padStart(2,'0');$('#clock').textContent=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());setTimeout(clock,1000);})();
+render();
+</script>
+</body>
+</html>

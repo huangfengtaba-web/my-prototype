@@ -1,0 +1,37 @@
+# GTX FSO Litho monorepo · 不入版本库的内容
+# 注意：docs/specs/ 与 docs/_DESIGN_SPEC.md 是设计基线，必须入库
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# --- 求解器输出 ---
+backend/solver/output/
+output/
+*.csv.tmp
+
+# --- Node / 前端 ---
+node_modules/
+frontend/dist/
+.vite/
+
+# --- 交付物大二进制（需要时到 D:\工作\嘉定GTX\GTX_FSO_交付物 取） ---
+01_PPT/
+*.pptx
+*.docx
+*.pdf
+
+# --- 本地环境与 IDE ---
+.env
+.idea/
+*.code-workspace
+
+# --- 其他 ---
+.DS_Store
+Thumbs.db
+
+# --- 本地 Agent 工具状态 ---
+.workbuddy/

@@ -1,0 +1,13 @@
+# 急货插单：验证 PRI1 + SHR 的 Lot 是否被排到全厂最早开工，且提高 MakeSpan 权重后仍成立
+name: 急货插单
+desc: LOT-A01 提为 PRI1 并带 SHR（Super Bullet）标签，MakeSpan 权重升至 1.5。
+config:
+  w_makespan: 1.5          # 提高 MakeSpan 权重，观察排程变化
+lots:
+  LOT-A01:
+    priority: 1
+    tags: [SHR]
+    qty: 25
+reticles:
+  RT-0101:
+    iris_at: 550           # 外部 IRIS 09:10（基线口径，显式声明便于对比）

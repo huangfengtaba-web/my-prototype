@@ -1,0 +1,473 @@
+<!doctype html>
+<!-- GTX FSO Litho 原型 · Production Config（数据配置区 · Model Control） · v1 · 2026-10-24 · 对应设计书 4.7.1 数据配置Config -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>数据配置 · Pxsemi FSO</title>
+<style>
+:root{
+  --colorPrimary:#1677FF; --colorPrimaryHover:#4096FF; --colorPrimaryActive:#0958D9;
+  --colorSuccess:#52C41A; --colorWarning:#FAAD14; --colorError:#FF4D4F;
+  --colorText:rgba(0,0,0,.88); --colorTextSecondary:rgba(0,0,0,.65); --colorTextTertiary:rgba(0,0,0,.45); --colorTextQuaternary:rgba(0,0,0,.25);
+  --bgContainer:#fff; --bgLayout:#F5F5F5;
+  --colorBorder:#D9D9D9; --colorBorderSecondary:#F0F0F0; --colorSplit:rgba(5,5,5,.06);
+  --primaryBg:#E6F4FF; --primaryBorder:#91CAFF;
+  --successBg:#F6FFED; --successBorder:#B7EB7F; --warningBg:#FFFBE6; --warningBorder:#FFE58F;
+  --errorBg:#FFF2F0; --errorBorder:#FFCCC7;
+  --radiusSM:4px; --radius:6px; --radiusLG:8px;
+  --siderW:208px; --headerH:48px;
+  --shadow3:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --shadow:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:var(--font);font-size:14px;line-height:1.5714;color:var(--colorText);background:var(--bgLayout)}
+.app{display:flex;height:100vh;overflow:hidden}
+.sider{width:var(--siderW);flex:0 0 var(--siderW);background:#fff;border-right:1px solid var(--colorBorderSecondary);display:flex;flex-direction:column;height:100vh}
+.logo{height:var(--headerH);display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--colorBorderSecondary);flex:0 0 var(--headerH)}
+.logo .mark{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#1677FF,#69B1FF);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.logo .name{font-weight:600;font-size:14px}
+.logo .sub{font-size:11px;color:var(--colorTextTertiary);margin-top:-3px}
+.menu{padding:8px 0;overflow-y:auto;flex:1}
+.menu .grp{padding:8px 16px 4px;font-size:12px;color:var(--colorTextQuaternary)}
+.menu .item{height:40px;display:flex;align-items:center;gap:10px;padding:0 16px;cursor:pointer;color:var(--colorTextSecondary);font-size:14px;transition:background .2s;text-decoration:none}
+.menu .item:hover{background:rgba(0,0,0,.04)}
+.menu .item.active{background:var(--primaryBg);color:var(--colorPrimary);font-weight:500}
+.menu .item .ic{width:16px;height:16px;flex:0 0 16px;opacity:.85}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.header{height:var(--headerH);flex:0 0 var(--headerH);background:#fff;border-bottom:1px solid var(--colorBorderSecondary);display:flex;align-items:center;padding:0 24px;gap:12px}
+.crumb{font-size:13px;color:var(--colorTextTertiary)}
+.crumb b{color:var(--colorText);font-weight:500}
+.header .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.content{flex:1;overflow:auto;padding:24px}
+.btn{height:32px;padding:0 15px;border-radius:var(--radius);border:1px solid var(--colorBorder);background:#fff;color:var(--colorText);font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap;font-family:inherit}
+.btn:hover{color:var(--colorPrimary);border-color:var(--colorPrimary)}
+.btn.primary{background:var(--colorPrimary);border-color:var(--colorPrimary);color:#fff}
+.btn.primary:hover{background:var(--colorPrimaryHover);border-color:var(--colorPrimaryHover);color:#fff}
+.btn.link{border-color:transparent;background:transparent;color:var(--colorPrimary);padding:0 4px;height:24px}
+.btn.link:hover{background:var(--primaryBg)}
+.btn.link.danger{color:var(--colorError)}
+.btn.link.danger:hover{background:var(--errorBg)}
+.btn.sm{height:28px;padding:0 10px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.card{background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow3);padding:24px;margin-bottom:16px}
+.card.np{padding:0}
+.card-h{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.card-h .t{font-size:16px;font-weight:600}
+.card-h .sub{font-size:12px;color:var(--colorTextTertiary)}
+.card-h .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:var(--radiusSM);font-size:12px;line-height:20px;border:1px solid transparent}
+.tag.success{background:var(--successBg);color:#389E0D;border-color:var(--successBorder)}
+.tag.processing{background:var(--primaryBg);color:var(--colorPrimary);border-color:var(--primaryBorder)}
+.tag.warning{background:var(--warningBg);color:#D48806;border-color:var(--warningBorder)}
+.tag.error{background:var(--errorBg);color:var(--colorError);border-color:var(--errorBorder)}
+.tag.default{background:#FAFAFA;color:var(--colorTextSecondary);border-color:var(--colorBorder)}
+table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
+table.tbl th{background:#FAFAFA;text-align:left;font-weight:600;color:var(--colorText);padding:12px 16px;border-bottom:1px solid var(--colorBorderSecondary);white-space:nowrap;font-size:13px}
+table.tbl td{padding:12px 16px;border-bottom:1px solid var(--colorBorderSecondary);color:var(--colorTextSecondary);vertical-align:middle}
+table.tbl tr:hover td{background:#FAFAFA}
+table.tbl td b{color:var(--colorText)}
+.field{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.field .lab{color:var(--colorTextSecondary);min-width:132px;text-align:right;font-size:14px}
+.field .lab i{color:var(--colorError);font-style:normal;margin-right:2px}
+.inp{height:32px;border:1px solid var(--colorBorder);border-radius:var(--radius);padding:0 11px;font-size:14px;outline:none;color:var(--colorText);background:#fff;font-family:inherit}
+.inp:focus{border-color:var(--colorPrimary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+select.inp{cursor:pointer}
+.tabs{display:flex;gap:32px;border-bottom:1px solid var(--colorBorderSecondary);margin-bottom:20px}
+.tabs .tab{padding:10px 0 12px;font-size:14px;color:var(--colorTextSecondary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs .tab.on{color:var(--colorPrimary);border-color:var(--colorPrimary);font-weight:500}
+.note{font-size:12px;color:var(--colorTextTertiary)}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.toolbar .sp{margin-left:auto}
+.err{color:var(--colorError);font-size:12px;margin-top:4px;min-height:16px}
+.hint{font-size:12px;color:var(--colorTextTertiary);margin-top:4px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:center;justify-content:center}
+.modal{background:#fff;border-radius:var(--radiusLG);width:560px;max-width:94vw;box-shadow:var(--shadow);overflow:hidden}
+.modal.wide{width:760px}
+.modal-h{padding:16px 24px;border-bottom:1px solid var(--colorBorderSecondary);display:flex;align-items:center;gap:8px}
+.modal-h .t{font-size:16px;font-weight:600}
+.modal-h .x{margin-left:auto;cursor:pointer;color:var(--colorTextTertiary);font-size:18px;line-height:1;padding:4px}
+.modal-b{padding:20px 24px 4px;max-height:62vh;overflow:auto}
+.modal-f{padding:12px 24px 18px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--colorBorderSecondary);margin-top:12px}
+.toast{position:fixed;top:64px;left:50%;transform:translateX(-50%);background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:9px 16px;font-size:13px;z-index:1200;display:flex;align-items:center;gap:8px;border-left:3px solid var(--colorSuccess);animation:tin .2s}
+.toast.err{border-left-color:var(--colorError)}
+@keyframes tin{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
+.empty{padding:40px;text-align:center;color:var(--colorTextQuaternary)}
+.ck{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border:1px solid var(--colorBorder);border-radius:var(--radius);cursor:pointer;font-size:13px;color:var(--colorTextSecondary);user-select:none;transition:all .2s}
+.ck:hover{border-color:var(--colorPrimary);color:var(--colorPrimary)}
+.ck.on{background:var(--primaryBg);border-color:var(--colorPrimary);color:var(--colorPrimary);font-weight:600}
+.q{display:none;width:15px;height:15px;border-radius:50%;background:var(--colorWarning);color:#fff;font-size:11px;line-height:15px;text-align:center;cursor:pointer;margin-left:4px;font-weight:700;vertical-align:middle;user-select:none}
+body.cmt-on .q{display:inline-block}
+.bubble{position:fixed;z-index:1000;max-width:320px;background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow);padding:12px 14px;font-size:13px;color:var(--colorText);border-top:3px solid var(--colorWarning)}
+.bubble .bt{font-weight:600;margin-bottom:4px}
+.bubble .bd{color:var(--colorTextSecondary);font-size:12.5px;line-height:1.65}
+.entrycard{display:flex;flex-direction:column;gap:8px;padding:20px;border:1px solid var(--colorBorderSecondary);border-radius:var(--radiusLG);background:#fff;cursor:pointer;transition:all .2s;text-decoration:none;color:var(--colorText)}
+.entrycard:hover{border-color:var(--colorPrimary);box-shadow:0 4px 14px rgba(22,119,255,.14);transform:translateY(-2px)}
+.entrycard .et{font-size:15px;font-weight:600}
+.entrycard .ed{font-size:12px;color:var(--colorTextTertiary);line-height:1.7}
+.entrycard .tagrow{display:flex;gap:6px;flex-wrap:wrap}
+table.tbl th.sortable{cursor:pointer;user-select:none}
+table.tbl th.sortable:hover{color:var(--colorPrimary)}
+table.tbl th .si{font-size:10px;margin-left:2px;color:var(--colorTextQuaternary)}
+.tscroll{overflow:auto;max-height:560px;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius)}
+.tscroll table.tbl{margin:0}
+.tscroll th{position:sticky;top:0;z-index:2}
+.fbar{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;padding:16px;background:#FAFAFA;border:1px solid var(--colorBorderSecondary);border-radius:var(--radiusLG);margin-bottom:12px}
+.fbar .fi{display:flex;flex-direction:column;gap:6px}
+.fbar .fi .lb{font-size:12px;color:var(--colorTextTertiary)}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sider">
+    <div class="logo"><div class="mark">FS</div><div><div class="name">Pxsemi FSO</div><div class="sub">智能生产中心 · 光刻排程</div></div></div>
+    <nav class="menu">
+      <div class="grp">总览</div>
+      <a class="item" href="../index.html">◈ 系统总览</a>
+      <div class="grp">数据接入</div>
+      <a class="item" href="data_zone.html">⇄ 数据接入</a>
+      <div class="grp">数据配置</div>
+      <a class="item active" href="config_zone.html">⚙ Production Config</a>
+      <div class="grp">模型管理</div>
+      <a class="item" href="model_zone.html">▦ Model Control</a>
+      <div class="grp">排程结果</div>
+      <a class="item" href="result_litho.html">▤ Litho 排程结果</a>
+      <a class="item" href="result_reticle.html">▣ Reticle 排程结果</a>
+      <div class="grp">日志</div>
+      <a class="item" href="log_zone.html">☰ 调度日志</a>
+      <div class="grp">扩展页面（复用）</div>
+      <a class="item" href="stacking_bond_ui_v6.html">◱ Stacking Bond</a>
+      <a class="item" href="equip_temp_layer_config.html">◌ 温层配置详细版</a>
+    </nav>
+  </aside>
+  <div class="main">
+    <header class="header">
+      <div class="crumb">Model Control / Production Config / <b id="crumbCur">Lot Control</b></div>
+      <div class="right"><span class="note" id="clock"></span><button class="btn sm" id="cmtBtn">💬 评论模式</button></div>
+    </header>
+    <main class="content" id="content"></main>
+  </div>
+</div>
+<div id="modalRoot"></div>
+<script>
+/* ================= 工具 ================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(msg,isErr){const el=document.createElement('div');el.className='toast'+(isErr?' err':'');el.innerHTML=(isErr?'⚠️ ':'✅ ')+'<span>'+esc(msg)+'</span>';document.body.appendChild(el);setTimeout(()=>el.remove(),2200);}
+function tip(t){return '<span class="q" data-cm="'+esc(t)+'">?</span>';}
+function now(){const d=new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());}
+const CUR_USER='huangjw';
+function showModal(title,body,footer,wide){$('#modalRoot').innerHTML='<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal '+(wide?'wide':'')+'"><div class="modal-h"><span class="t">'+esc(title)+'</span><span class="x" onclick="closeModal()">✕</span></div><div class="modal-b">'+body+'</div><div class="modal-f">'+(footer||'<button class="btn" onclick="closeModal()">关闭</button>')+'</div></div></div>';}
+function closeModal(){$('#modalRoot').innerHTML='';}
+
+/* ================= mock 数据 ================= */
+const D={
+  lotTypes:['PI','PB','PC','PE','PR','EF','ES','TF','BK','PA'],
+  lotCtl:{types:['PI','PB','PC','PE','PR'],priority:'3',internal:['5','6']},
+  prios:['1','2','3','4','5','6','7','8','9'],
+  priMap:[
+    {p:'1',ip:[],cls:'Super Bullet'},
+    {p:'2',ip:['1','2'],cls:'Normal Bullet'},
+    {p:'3',ip:['3','4'],cls:'Bullet'},
+    {p:'4',ip:[],cls:'Normal'},
+    {p:'5',ip:['5','6'],cls:'Normal'},
+    {p:'6',ip:[],cls:'Normal'},
+    {p:'7',ip:[],cls:'Normal'},
+    {p:'8',ip:[],cls:'Normal'},
+    {p:'9',ip:[],cls:'Normal'},
+  ],
+  trans:{from:['IMM01','IMM02','BARC01','IRIS01','STK01'],to:['STK01','STK02','IMM01','IMM02','MR01'],
+    m:[[12,15,0,10,30],[13,14,10,0,28],[18,20,22,21,26],[16,15,14,13,25],[9,11,8,8,7]], lotEqp:{IMM01:8,IMM02:8,BARC01:6,IRIS01:12}},
+  bullet:{normalMaxWait:2.5, superAdvance:4.0, normalDef:'Lot Fab Priority 2-* 且 Classify=Bullet', superDef:'Lot Fab Priority 1-* / SHR / SSHR'},
+  fixLot:{caps:['L-IMMI-S','L-YIMMI-S','L-KRF-S'],rows:[
+    {cap:'L-IMMI-S',eqps:[{eqp:'IMM01',n:3},{eqp:'IMM02',n:3},{eqp:'IMM03',n:2},{eqp:'IMM04',n:2}]},
+    {cap:'L-YIMMI-S',eqps:[{eqp:'IMM05',n:2},{eqp:'IMM06',n:2},{eqp:'IMM07',n:1},{eqp:'IMM08',n:1}]},
+    {cap:'L-KRF-S',eqps:[{eqp:'IMM01',n:1},{eqp:'IMM02',n:0},{eqp:'IMM03',n:0},{eqp:'IMM04',n:1}]}]},
+  reticle:[
+    {k:'RETICLE_TRANS_COST_TIME',grain:'单值',rows:[{v:5.0,unit:'min'}]},
+    {k:'CLEAN_COST_TIME',grain:'单值',rows:[{v:15.0,unit:'min'}]},
+    {k:'RETICLE_ADVANCE_NOTIFY_TIME',grain:'单值',rows:[{v:30.0,unit:'min'}]},
+    {k:'IRIS_COST_TIME',grain:'机组+机台+时间',rows:[{cap:'L-IMMI-S',eqp:'IMM01',v:8.0},{cap:'L-IMMI-S',eqp:'IMM02',v:8.5},{cap:'L-YIMMI-S',eqp:'IMM05',v:9.0},{cap:'L-YIMMI-S',eqp:'IMM06',v:9.0},{cap:'L-BARC-S',eqp:'BARC01',v:7.5},{cap:'*',eqp:'*',v:10.0}]},
+    {k:'OFFLINE_IRIS_COST_TIME',grain:'机台+时间',rows:[{eqp:'IRIS01',v:20.0},{eqp:'IRIS02',v:22.0}]},
+    {k:'STARLIGHT_COST_TIME',grain:'机台+时间',rows:[{eqp:'IRIS01',v:45.0},{eqp:'IRIS02',v:45.0}]},
+    {k:'RETICLE_LOAD_COST_TIME',grain:'机组+机台+时间',rows:[{cap:'L-IMMI-S',eqp:'IMM01',v:5.0},{cap:'L-IMMI-S',eqp:'IMM02',v:5.0},{cap:'L-YIMMI-S',eqp:'IMM05',v:5.5},{cap:'*',eqp:'*',v:6.0}]},
+    {k:'RETICLE_UNLOAD_COST_TIME',grain:'机组+机台+时间',rows:[{cap:'L-IMMI-S',eqp:'IMM01',v:4.0},{cap:'L-IMMI-S',eqp:'IMM02',v:4.0},{cap:'L-YIMMI-S',eqp:'IMM05',v:4.5},{cap:'*',eqp:'*',v:5.0}]},
+    {k:'RETICLE_LIBRARY_SIZE',grain:'机组+机台+水位',rows:[{cap:'L-IMMI-S',eqp:'IMM01',v:10},{cap:'L-IMMI-S',eqp:'IMM02',v:10},{cap:'L-YIMMI-S',eqp:'IMM05',v:8},{cap:'L-BARC-S',eqp:'BARC01',v:12},{cap:'*',eqp:'*',v:8}]}
+  ],
+  process:{SUM_LOT_QTY:6,SUM_WAFER_COUNT:150,MIN_LOT_QTY:2,MIN_LOT_WAFER_COUNT:50},
+  algo:{
+    cons:[
+      {k:'qtimeHard',name:'QTime 硬卡控',on:true,tip:'Max/Min QTime 作为硬约束，防止 Over QTime（RFP 2.1.4 / 2.2.4）'},
+      {k:'tempChange',name:'温层转换约束',on:true,tip:'同温层优先；转温按 capability_temperature_change 矩阵计代价（RFP 2.1.7）'},
+      {k:'reticleLib',name:'Reticle 储位水位',on:true,tip:'机内储位按 RETICLE_LIBRARY_SIZE 管理水位核对，超限先搬出闲置光罩（RFP 2.1.6+2.1.9）'},
+      {k:'stageGap',name:'同 Stage 间隔放货',on:true,tip:'BARC 同 Stage 间隔放货（BARC_SAME_STAGE_RELEASE_GAP，默认 2h，防下游抢光罩）'},
+      {k:'recipeBatch',name:'连续相同 Recipe 连批',on:true,tip:'同 Recipe Lot 连续加工，减少 recipe change（RFP 2.1.7）'},
+      {k:'reticleBatch',name:'连续相同 Reticle 连批',on:true,tip:'同 Reticle Lot 连续加工，最大化 Train Size（RFP 2.1.7）'},
+      {k:'overtime',name:'OverTime 约束',on:false,tip:'⚠ 缺口 D1：OverTime 定义（加班口径/是否硬约束/违规降级）待客户澄清，开关预留'},
+      {k:'superBulletReserve',name:'Super Bullet 预留',on:true,tip:'为紧急 Bullet 按 SUPER_BULLET_ADVANCE_RESERVE_TIME 预留机时，到站即上机'},
+    ],
+    weights:{train:30,load:30,qtime:20,hungry:20},
+    hungryWindow:12,
+    degrade:{on:true,method:'EDD',timeLimit:300,chunk:50},
+  },
+};
+
+/* ================= 框架 ================= */
+const TABS=[['lot','Lot Control'],['priority','Priority Config'],['transport','Transport Config'],['temp','Temperature Config'],['bullet','Bullet Lot'],['fix','Fix Lot'],['reticle','Reticle Config'],['process','Process Config'],['algo','算法开关']];
+const state={tab:'lot',edit:false,fixCap:D.fixLot.caps[0],priSort:{k:'p',d:1},rtKw:''};
+function render(){
+  $('#content').innerHTML='<div class="card np"><div style="padding:0 24px"><div class="tabs">'+
+    TABS.map(t=>'<div class="tab '+(state.tab===t[0]?'on':'')+'" onclick="switchTab(\''+t[0]+'\')">'+t[1]+'</div>').join('')+
+    '</div></div><div style="padding:16px 24px 24px">'+V[state.tab]()+'</div></div>';
+  $('#crumbCur').textContent=TABS.find(t=>t[0]===state.tab)[1];
+}
+function switchTab(t){state.tab=t;state.edit=false;render();}
+
+/* ===== 1 Lot Control ===== */
+const V={};
+V.lot=function(){
+  const c=D.lotCtl;
+  const body=state.edit?`
+    <div class="field"><div class="lab"><i>*</i>Lot Type ${tip('数据来源于基础数据表；多选；符合的 Lot 进入排程')}</div>
+      <div>${D.lotTypes.map(t=>'<span class="ck '+(c.types.includes(t)?'on':'')+'" onclick="tgType(\''+t+'\')">'+t+'</span>').join(' ')}</div></div>
+    <div class="field"><div class="lab"><i>*</i>Priority ${tip('单选下拉，数据来源于基础数据表（Lot Fab Priority 1~9）')}</div>
+      <select class="inp" id="lc_pri">${D.prios.map(p=>'<option '+(c.priority===p?'selected':'')+'>'+p+'</option>').join('')}</select></div>
+    <div class="field"><div class="lab"><i>*</i>Internal Priority ${tip('多选下拉，数据来源于基础数据表')}</div>
+      <div>${D.prios.map(p=>'<span class="ck '+(c.internal.includes(p)?'on':'')+'" onclick="tgInt(\''+p+'\')">'+p+'</span>').join(' ')}</div></div>
+    <div class="toolbar"><button class="btn primary" onclick="saveLot()">保存</button><button class="btn" onclick="state.edit=false;render()">取消</button></div>`
+  :`<table class="tbl"><thead><tr><th>配置项</th><th>当前值</th></tr></thead><tbody>
+      <tr><td><b>Lot Type</b> ${tip('复选框，来源于基础数据表')}</td><td>${c.types.map(t=>'<span class="tag processing" style="margin-right:4px">'+t+'</span>').join('')}</td></tr>
+      <tr><td><b>Priority</b> ${tip('单选')}</td><td><span class="tag default">${c.priority}-*</span></td></tr>
+      <tr><td><b>Internal Priority</b> ${tip('多选')}</td><td>${c.internal.map(t=>'<span class="tag default" style="margin-right:4px">'+t+'</span>').join('')}</td></tr>
+      <tr><td><b>急货示例</b> ${tip('与结果区共用故事线：急货 LOT-A01（Priority 1-*，Super Bullet）于 2026-10-24 10:00 上机 IMM01；RT-0101 走外部 IRIS 20min → 搬送 10min → 装载 5min，09:45 就绪')}</td><td><span class="tag error">急单 LOT-A01</span> <span class="tag warning">Priority 1-* · Super Bullet</span> <span class="note">10:00 上机 IMM01</span></td></tr>
+      <tr><td><b>日志</b></td><td class="note">由 History 入口进入：Lot Type 记录 Lot Type；Priority 记录 Priority、Internal Priority</td></tr>
+    </tbody></table>
+    <div class="toolbar" style="margin-top:16px"><button class="btn primary" onclick="state.edit=true;render()">✎ 编辑</button></div>`;
+  return body;
+};
+function tgType(t){const a=D.lotCtl.types,i=a.indexOf(t);i<0?a.push(t):a.splice(i,1);render();}
+function tgInt(p){const a=D.lotCtl.internal,i=a.indexOf(p);i<0?a.push(p):a.splice(i,1);render();}
+function saveLot(){D.lotCtl.priority=$('#lc_pri').value;state.edit=false;toast('Lot Control 已保存');render();}
+
+/* ===== 2 Priority Config ===== */
+function sortPri(k){const s=state.priSort;if(s.k===k)s.d=-s.d;else{s.k=k;s.d=1;}render();}
+V.priority=function(){
+  const srt=state.priSort;
+  const rows=D.priMap.slice().sort((a,b)=>srt.k==='p'?((+a.p)-(+b.p))*srt.d:a.cls.localeCompare(b.cls)*srt.d);
+  const th=(k,lab,tipTxt)=>'<th class="sortable" data-sort="'+k+'" onclick="sortPri(\''+k+'\')">'+lab+' '+tip(tipTxt)+'<span class="si">'+(srt.k===k?(srt.d>0?'▲':'▼'):'')+'</span></th>';
+  let s='<div class="card-h"><div class="t">Priority → Classify 映射</div><div class="sub">用于甘特图 UI 展示的 Lot 标签与分类（§4.7.1 Priority Config）</div>'
+    +'<div class="right"><button class="btn primary sm" onclick="addPriRow()">+ 新增映射</button></div></div>'
+    +'<div class="tscroll"><table class="tbl"><thead><tr>'+th('p','Priority','Priority 单选必选；Internal Priority 多选可空=全部')+th('cls','Classify','Classify 字典可配置：Normal Bullet / Super Bullet / Bullet / Normal')
+    +'<th>Internal Priority</th><th style="width:100px">操作</th></tr></thead><tbody>';
+  rows.forEach((r)=>{
+    s+='<tr><td><b>'+r.p+'-*</b></td><td>'+(r.ip.length?r.ip.map(x=>'<span class="tag default" style="margin-right:4px">'+x+'</span>').join(''):'<span class="note">（全部）</span>')+'</td>'
+      +'<td><span class="tag '+(r.cls==='Normal'?'default':'processing')+'">'+r.cls+'</span></td>'
+      +'<td><button class="btn link" onclick="editPriRow('+D.priMap.indexOf(r)+')">编辑</button><button class="btn link danger" onclick="delPriRow('+D.priMap.indexOf(r)+')">删除</button></td></tr>';
+  });
+  if(!D.priMap.length){s+='<tr><td colspan="4"><div class="empty">暂无映射 · 点击右上角「+ 新增映射」添加</div></td></tr>';}
+  s+='</tbody></table></div>'
+   +'<div class="note" style="margin-top:10px">故事线示例：急货 <b>LOT-A01</b>（Priority 1-* → Super Bullet）2026-10-24 10:00 上机 IMM01；RT-0101 外部 IRIS 20min → 搬送 10min → 装载 5min → 09:45 就绪（详见结果区甘特）。</div>';
+  return s;
+};
+function editPriRow(i){
+  const r=D.priMap[i];
+  const body='<div class="field"><div class="lab">Priority</div><select class="inp" id="pr_p">'+D.prios.map(p=>'<option '+(r.p===p?'selected':'')+'>'+p+'</option>').join('')+'</select></div>'
+   +'<div class="field"><div class="lab">Internal Priority</div><div>'+D.prios.map(p=>'<span class="ck '+(r.ip.includes(p)?'on':'')+'" onclick="this.classList.toggle(\'on\')">'+p+'</span>').join(' ')+'</div></div>'
+   +'<div class="field"><div class="lab">Classify</div><select class="inp" id="pr_c">'+['Super Bullet','Normal Bullet','Bullet','Normal'].map(c=>'<option '+(r.cls===c?'selected':'')+'>'+c+'</option>').join('')+'</select><span class="note">字典可配置（Normal Bullet / Super Bullet / Normal）</span></div>';
+  showModal('编辑映射',body,'<button class="btn" onclick="closeModal()">取消</button><button class="btn primary" onclick="savePriRow('+i+')">保存</button>');
+}
+function addPriRow(){D.priMap.push({p:'9',ip:[],cls:'Normal'});toast('已新增映射行，请编辑');render();}
+function savePriRow(i){
+  const r=D.priMap[i];r.p=$('#pr_p').value;r.cls=$('#pr_c').value;
+  r.ip=[...document.querySelectorAll('.modal .ck.on')].map(e=>e.textContent);
+  closeModal();toast('映射已保存');render();
+}
+function delPriRow(i){D.priMap.splice(i,1);toast('已删除');render();}
+
+/* ===== 3 Transport Config ===== */
+V.transport=function(){
+  const t=D.trans;
+  let s='<div class="card-h"><div class="t">搬送耗时矩阵</div><div class="sub">Eqp / Stocker 之间 Reticle 搬送耗时（分钟，两位小数 0.01–999）</div>'
+    +'<div class="right"><button class="btn sm" onclick="toast(\'已导出 CSV（演示）\')">⬇ 导出</button><button class="btn primary sm" onclick="toast(\'矩阵已保存（演示）\')">保存</button></div></div>'
+    +'<table class="tbl"><thead><tr><th>从 \\ 到 ${e}</th>'.replace('${e}',tip('开始位置为 Eqp、Stocker，搬至 Eqp、Stocker；矩阵形式配置'));
+  s+=t.to.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>';
+  t.from.forEach((f,i)=>{
+    s+='<tr><td><b>'+f+'</b></td>'+t.m[i].map((v,j)=>{
+      const same=f===t.to[j];
+      return '<td>'+(same?'<span class="note">—</span>':'<input class="inp" style="width:88px" value="'+v.toFixed(2)+'" onchange="trSet('+i+','+j+',this)">')+'</td>';
+    }).join('')+'</tr>';
+  });
+  s+='</tbody></table><div class="note" style="margin-top:6px">矩阵覆盖 Eqp / Stocker / Maskroom（MR01）三类位置；对角线自身搬送不适用。耗时两位小数，范围 0.01–999。</div><div style="height:16px"></div>';
+  s+='<div class="card-h"><div class="t">Lot 搬送上机耗时</div><div class="sub">Lot 从 Stocker 搬送到机台的平均耗时（min）</div></div>';
+  s+='<table class="tbl"><thead><tr><th>机台</th><th>耗时 (min)</th></tr></thead><tbody>'
+    +Object.entries(t.lotEqp).map(([k,v])=>'<tr><td><b>'+k+'</b></td><td><input class="inp" style="width:100px" value="'+v.toFixed(2)+'" onchange="trSetLot(\''+k+'\',this)"></td></tr>').join('')
+    +'</tbody></table>';
+  return s;
+};
+function trSet(i,j,el){let v=parseFloat(el.value);if(isNaN(v)){el.value='';return;}v=Math.min(999,Math.max(0.01,v));el.value=v.toFixed(2);D.trans.m[i][j]=v;}
+function trSetLot(k,el){let v=parseFloat(el.value);if(isNaN(v)){el.value='';return;}v=Math.min(999,Math.max(0.01,v));el.value=v.toFixed(2);D.trans.lotEqp[k]=v;}
+
+/* ===== 4 Temperature Config（简版入口） ===== */
+V.temp=function(){
+  return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:900px">'
+   +'<a class="entrycard" href="equip_temp_layer_config.html"><div class="et">Recipe-Eqp-Temperature ${a}</div>'.replace('${a}',tip('三栏：Recipe / Eqp / Temperature；支持 CSV 导入'))
+   +'<div class="ed">每个机台每个 Recipe 的工作温度维护；支持通配符 * 与 %；当前 7 台设备 / 18 条 Recipe 映射</div><div class="tagrow"><span class="tag processing">详细页 →</span></div></a>'
+   +'<a class="entrycard" href="equip_temp_layer_config.html"><div class="et">Capability-Temperature Change Cost Time</div>'
+   +'<div class="ed">转温耗时：Capability × 起止温度 × 每度耗时（is up 升/降区分）；支持通配与 CSV 导入</div><div class="tagrow"><span class="tag processing">详细页 →</span></div></a>'
+   +'</div><div class="note" style="margin-top:12px">说明：温层两页在「温层配置详细版」中完整维护（查看/编辑/CSV 导入/评论模式），此处为入口聚合。</div>';
+};
+
+/* ===== 5 Bullet Lot ===== */
+V.bullet=function(){
+  const b=D.bullet;
+  return '<div class="field"><div class="lab"><i>*</i>BULLET_CONFIG ${t}</div>'.replace('${t}',tip('定义 NormalBullet 与 SuperBullet 的判定条件'))
+   +'<div style="flex:1;max-width:560px"><table class="tbl"><thead><tr><th>类型</th><th>判定条件</th></tr></thead><tbody>'
+   +'<tr><td><span class="tag processing">Normal Bullet</span></td><td><input class="inp" style="width:100%" value="'+b.normalDef+'"></td></tr>'
+   +'<tr><td><span class="tag warning">Super Bullet</span></td><td><input class="inp" style="width:100%" value="'+b.superDef+'"></td></tr>'
+   +'</tbody></table></div></div>'
+   +'<div class="field"><div class="lab"><i>*</i>NORMAL_BULLET_MAX_WAIT_TIME</div><input class="inp" style="width:110px" value="'+b.normalMaxWait.toFixed(2)+'"> <span class="note">h　普通 Bullet 最大等待时间（0.01–999，两位小数）</span></div>'
+   +'<div class="field"><div class="lab"><i>*</i>SUPER_BULLET_ADVANCE_RESERVE_TIME</div><input class="inp" style="width:110px" value="'+b.superAdvance.toFixed(2)+'"> <span class="note">h　紧急 Bullet 提前预留时间（为空机 Bullet 预留 IDLE 时段）</span></div>'
+   +'<div class="toolbar"><button class="btn primary" onclick="toast(\'Bullet Lot 配置已保存（演示）\')">保存</button></div>';
+};
+
+/* ===== 6 Fix Lot ===== */
+V.fix=function(){
+  const f=D.fixLot;
+  const grp=f.rows.find(r=>r.cap===state.fixCap)||f.rows[0];
+  let s='<div class="card-h"><div class="t">机台固定 Lot 数量</div><div class="sub">为避免 Reticle 提前搬送动作改变造成多余搬送，相邻两次排程中前序 Lot 保持稳定（继承机台与作业顺序）</div>'
+   +'<div class="right"><select class="inp" onchange="state.fixCap=this.value;render()">'+f.caps.map(c=>'<option '+(state.fixCap===c?'selected':'')+'>'+c+'</option>').join('')+'</select>'
+   +'<button class="btn primary sm" onclick="toast(\'Fix Lot 已保存（演示）\')">保存</button></div></div>';
+  s+='<table class="tbl"><thead><tr><th>Capability</th><th>机台</th><th>固定数量 ${t}</th><th>说明</th></tr></thead><tbody>'.replace('${t}',tip('数值选择器：上限 99 下限 0 步长 1；默认 0，可由业务指定'));
+  grp.eqps.forEach((e,i)=>{
+    s+='<tr><td><span class="tag processing">'+grp.cap+'</span></td><td><b>'+e.eqp+'</b></td>'
+      +'<td><input class="inp" style="width:90px" type="number" min="0" max="99" step="1" value="'+e.n+'" onchange="fixSet('+i+',this.value)"></td>'
+      +'<td class="note">冻结 ≥ 系统数据延迟时间；Lot 数量向上取整</td></tr>';
+  });
+  return s+'</tbody></table>';
+};
+function fixSet(i,v){const grp=D.fixLot.rows.find(r=>r.cap===state.fixCap);grp.eqps[i].n=Math.max(0,Math.min(99,parseInt(v)||0));}
+
+/* ===== 7 Reticle Config ===== */
+V.reticle=function(){
+  const kw=state.rtKw.trim().toLowerCase();
+  const hit=t=>!kw||String(t).toLowerCase().includes(kw);
+  let s='<div class="card-h"><div class="t">Reticle 作业时间配置</div><div class="sub">单位 mins；仅数值，两位小数 0.01–999；Capability / EqpId 支持通配符 * 与 %</div>'
+   +'<div class="right"><button class="btn sm" onclick="toast(\'已导出 CSV（演示）\')">⬇ 导出</button><button class="btn primary sm" onclick="toast(\'Reticle Config 已保存（演示）\')">保存</button></div></div>'
+   +'<div class="fbar"><div class="fi"><div class="lb">关键字筛选</div>'
+   +'<input class="inp" style="width:260px" placeholder="如 IMM01 / * / IRIS_COST_TIME" value="'+esc(state.rtKw)+'" onchange="state.rtKw=this.value;render()"></div>'
+   +'<div class="fi" style="flex-direction:row;align-items:center"><button class="btn" onclick="state.rtKw=\'\';render()">清除</button></div>'
+   +'<div class="fi"><div class="lb">说明</div><span class="note">按 Capability / EqpId / 参数名模糊匹配；⊛ 为通配符行</span></div></div>';
+  D.reticle.forEach((g,gi)=>{
+    const wide=g.grain.includes('机组');
+    const hasEqp=g.grain!=='单值';
+    const rows=hasEqp?g.rows.filter(r=>hit((r.cap||'')+' '+(r.eqp||'')+' '+g.k)):[];
+    if(!hasEqp&&!hit(g.k)) return;
+    s+='<div class="card-h" style="margin:14px 0 8px"><div class="t" style="font-size:14px">'+g.k+'</div><div class="sub">'+g.grain
+      +(g.k==='RETICLE_LIBRARY_SIZE'?'（Scanner 内部 Reticle Library 存储水位）':'')+'</div>'
+      +'<div class="right"><button class="btn sm" onclick="addRtRow('+gi+')">+ 新增</button></div></div>';
+    if(g.grain==='单值'){
+      s+='<div class="field" style="margin-bottom:4px"><input class="inp" style="width:110px" value="'+g.rows[0].v.toFixed(2)+'" onchange="D.reticle['+gi+'].rows[0].v=parseFloat(this.value)||0"> <span class="note">min</span></div>';
+    }else{
+      s+='<table class="tbl"><thead><tr>'+(wide?'<th>Capability</th>':'')+'<th>EqpId</th><th>'+(g.k==='RETICLE_LIBRARY_SIZE'?'水位（块）':'时间 (min)')+'</th><th style="width:80px">操作</th></tr></thead><tbody>';
+      if(!rows.length){
+        s+='<tr><td colspan="4"><div class="empty">无匹配行 · 调整关键字或点击「清除」查看全部</div></td></tr>';
+      }else rows.forEach(r=>{
+        const ri=g.rows.indexOf(r);
+        const wild=(r.eqp||'').includes('*');
+        s+='<tr>'
+          +(wide?'<td>'+(r.cap.includes('*')?'<span class="tag warning">⊛ '+r.cap+'</span>':'<span class="tag default">'+r.cap+'</span>')+'</td>':'')
+          +'<td>'+(wild?'<span class="tag warning">⊛ '+r.eqp+'</span>':'<b>'+r.eqp+'</b>')+'</td>'
+          +'<td><input class="inp" style="width:100px" value="'+r.v+'" onchange="D.reticle['+gi+'].rows['+ri+'].v=parseFloat(this.value)||0"></td>'
+          +'<td><button class="btn link danger" onclick="delRtRow('+gi+','+ri+')">删除</button></td></tr>';
+      });
+      s+='</tbody></table>';
+    }
+  });
+  return s;
+};
+function addRtRow(gi){
+  const g=D.reticle[gi],wide=g.grain.includes('机组');
+  const body='<div class="field">'+(wide?'<div class="lab"><i>*</i>Capability</div><input class="inp" id="nr_cap" placeholder="L-IMMI-S 或 *" style="width:180px">':'')
+   +'<div class="lab"><i>*</i>EqpId</div><input class="inp" id="nr_eqp" placeholder="IMM01 或 *" style="width:160px"></div>'
+   +'<div class="field"><div class="lab"><i>*</i>'+(g.k==='RETICLE_LIBRARY_SIZE'?'水位':'耗时')+'</div><input class="inp" id="nr_v" style="width:110px"></div><div class="err" id="nr_err"></div>';
+  showModal('新增 '+g.k,body,'<button class="btn" onclick="closeModal()">取消</button><button class="btn primary" onclick="saveRtRow('+gi+')">确定</button>');
+}
+function saveRtRow(gi){
+  const g=D.reticle[gi],wide=g.grain.includes('机组');
+  const eqp=$('#nr_eqp').value.trim(),v=parseFloat($('#nr_v').value);
+  const cap=wide?$('#nr_cap').value.trim():undefined;
+  const dup=g.rows.some(r=>r.eqp===eqp&&(wide?r.cap===cap:true));
+  if(dup)  {$('#nr_err').textContent='数据已存在（FSO_dataExist）：'+(wide?cap+' + ':'')+eqp;return;}
+  if(!eqp||isNaN(v)){$('#nr_err').textContent='Cannot be empty / 仅支持数值';return;}
+  g.rows.push(wide?{cap:cap,eqp:eqp,v:v}:{eqp:eqp,v:v});
+  closeModal();toast('已新增');render();
+}
+function delRtRow(gi,ri){D.reticle[gi].rows.splice(ri,1);toast('已删除');render();}
+
+/* ===== 8 Process Config ===== */
+V.process=function(){
+  const p=D.process;
+  const f=(k,lab,tipTxt)=>'<div class="field"><div class="lab"><i>*</i>'+k+' '+tip(tipTxt)+'</div><input class="inp" style="width:110px" type="number" min="1" max="999" value="'+p[k]+'" onchange="D.process.'+k+'=parseInt(this.value)||1"> <span class="note">正整数 1–999</span></div>';
+  return '<div class="card-h"><div class="t">连续加工配置</div><div class="sub">定义滑动窗口内连续加工的 Lot / Wafer 上下限</div></div>'
+   +f('SUM_LOT_QTY','连续加工滑动窗口 Lot 数量','滑动窗口内 Lot 数量上限')
+   +f('SUM_WAFER_COUNT','连续加工滑动窗口 Wafer 数量','滑动窗口内 Wafer 片数上限')
+   +f('MIN_LOT_QTY','最小 Lot 数量阈值','低于该值不组连续加工')
+   +f('MIN_LOT_WAFER_COUNT','最小 Lot Wafer 数量阈值','低于该值不组连续加工')
+   +'<div class="toolbar"><button class="btn primary" onclick="toast(\'Process Config 已保存（演示）\')">保存</button></div>';
+};
+
+/* ===== 9 算法开关（需求38：算法功能点开关体系化） ===== */
+V.algo=function(){
+  const a=D.algo;
+  let s='<div class="card-h"><div class="t">算法功能点开关</div><div class="sub">约束/组批开关即时生效于下一次排程；权重与降级策略按 RUN 生效（版本记入 CFG_VER，可 Run Trace 回放）</div>'
+   +'<div class="right"><button class="btn primary sm" onclick="toast(\'算法开关已保存，CFG 版本 +1（演示）\')">保存</button><button class="btn sm" onclick="toast(\'已导出算法开关快照 CSV（演示）\')">⬇ 导出</button></div></div>';
+  s+='<div class="card-h" style="margin:4px 0 8px"><div class="t" style="font-size:14px">① 约束与组批开关</div>'+tip('需求38 :: 产品支持算法功能点的开关配置项；缺口对照表 B 级此前「未按算法功能点体系化」，本页签补齐。开关变更写入 CFG 版本，Run Trace 可回放任意历史开关组合。')+'</div><table class="tbl"><thead><tr><th style="width:230px">功能点</th><th style="width:90px">开关</th><th>说明 / 依据</th></tr></thead><tbody>';
+  a.cons.forEach(function(c,i){
+    s+='<tr><td><b>'+c.name+'</b></td>'
+     +'<td><span class="sw '+(c.on?'on':'')+'" onclick="D.algo.cons['+i+'].on=!D.algo.cons['+i+'].on;render()"><i></i></span></td>'
+     +'<td class="note">'+c.tip+'</td></tr>';
+  });
+  s+='</tbody></table>';
+  s+='<div class="card-h" style="margin:14px 0 8px"><div class="t" style="font-size:14px">② 目标权重（Σ=100）</div>'+tip('权重口径 :: min(α·TrainSize + β·LoadBalance + γ·QtimeViolation)，α+β+γ=1；对应细排程模型目标函数（设计书 4.3.2.1）。调整后建议 Run 单次并查看「中间结果」比对 makespan 变化。')+'</div><div class="field">';
+  s+='<div class="lab">Train Size</div><input class="inp" style="width:90px" type="number" min="0" max="100" value="'+a.weights.train+'" onchange="wset()">'
+   +'<div class="lab" style="min-width:80px">负载均衡</div><input class="inp" style="width:90px" type="number" min="0" max="100" value="'+a.weights.load+'" onchange="wset()">'
+   +'<div class="lab" style="min-width:80px">QTime 违反</div><input class="inp" style="width:90px" type="number" min="0" max="100" value="'+a.weights.qtime+'" onchange="wset()">'
+   +'<div class="lab" style="min-width:80px">下游 Hungry</div><input class="inp" style="width:90px" type="number" min="0" max="100" value="'+a.weights.hungry+'" onchange="wset()">'
+   +'<span class="note" id="wsum"></span></div>'
+   +'<div class="field"><div class="lab">Hungry 预测窗口</div><input class="inp" style="width:90px" type="number" min="1" max="48" value="'+a.hungryWindow+'" onchange="D.algo.hungryWindow=parseInt(this.value)||12"> <span class="note">h　Next Loop Hungry 预测窗口（RFP 2.1.4；打分明细进决策审计 reason_code=LOOP_HUNGRY）</span></div>';
+  s+='<div class="card-h" style="margin:14px 0 8px"><div class="t" style="font-size:14px">③ 求解与降级策略</div>'+tip('降级策略 :: 求解超时（timeLimit 秒）或不可行时，按所选启发式给出可行排程（FIFO/EDD/CR），Scheduling Log 记 Abnormal，中间结果页标记 chunk 迭代情况（参考 SemiconFab baselines 思路，仅借口径不引代码）。')+'</div><div class="field">';
+  s+='<div class="lab">超时降级</div><span class="sw '+(a.degrade.on?'on':'')+'" onclick="D.algo.degrade.on=!D.algo.degrade.on;render()"><i></i></span>'
+   +'<div class="lab" style="min-width:80px">降级算法</div><select class="inp" onchange="D.algo.degrade.method=this.value">'+['FIFO','EDD','CR'].map(function(m){return '<option '+(a.degrade.method===m?'selected':'')+'>'+m+'</option>';}).join('')+'</select>'
+   +'<div class="lab" style="min-width:80px">timeLimit</div><input class="inp" style="width:90px" type="number" value="'+a.degrade.timeLimit+'" onchange="D.algo.degrade.timeLimit=parseInt(this.value)||300"> <span class="note">s</span>'
+   +'<div class="lab" style="min-width:80px">chunk</div><input class="inp" style="width:90px" type="number" value="'+a.degrade.chunk+'" onchange="D.algo.degrade.chunk=parseInt(this.value)||50"> <span class="note">≤50（设计书 4.3.1）</span></div>';
+  return s;
+};
+function wset(){
+  const w=D.algo.weights;
+  const sum=(+w.train||0)+(+w.load||0)+(+w.qtime||0)+(+w.hungry||0);
+  const el=document.getElementById('wsum');
+  if(el)el.innerHTML=sum===100?'<span style="color:var(--colorSuccess)">Σ=100 ✓</span>':'<span style="color:var(--colorError)">Σ='+sum+' ≠ 100，请调整</span>';
+}
+
+/* ================= 事件 ================= */
+document.addEventListener('click',function(ev){
+  const q=ev.target.closest('.q');
+  if(!q) return;
+  ev.stopPropagation();
+  document.querySelectorAll('.bubble').forEach(b=>b.remove());
+  const b=document.createElement('div');b.className='bubble';
+  b.innerHTML='<div class="bt">字段说明</div><div class="bd">'+esc(q.getAttribute('data-cm'))+'</div>';
+  document.body.appendChild(b);
+  const r=q.getBoundingClientRect();
+  b.style.left=Math.max(8,Math.min(window.innerWidth-340,r.left))+'px';
+  b.style.top=(r.bottom+8)+'px';
+  setTimeout(()=>{const h=()=>{b.remove();document.removeEventListener('click',h);};document.addEventListener('click',h);},0);
+});
+$('#cmtBtn').onclick=function(){document.body.classList.toggle('cmt-on');this.classList.toggle('primary');};
+(function clock(){const d=new Date(),p=n=>String(n).padStart(2,'0');$('#clock').textContent=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());setTimeout(clock,1000);})();
+render();
+</script>
+</body>
+</html>

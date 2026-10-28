@@ -1,0 +1,416 @@
+<!doctype html>
+<!-- GTX FSO Litho 原型 · 结果-Reticle 排程 · v1 · 2026-10-24 · 对应设计书 4.7.3 Reticle Schedule / Reticle Transport -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reticle 排程结果 · Pxsemi FSO</title>
+<style>
+:root{
+  --colorPrimary:#1677FF; --colorPrimaryHover:#4096FF; --colorPrimaryActive:#0958D9;
+  --colorSuccess:#52C41A; --colorWarning:#FAAD14; --colorError:#FF4D4F;
+  --colorText:rgba(0,0,0,.88); --colorTextSecondary:rgba(0,0,0,.65); --colorTextTertiary:rgba(0,0,0,.45); --colorTextQuaternary:rgba(0,0,0,.25);
+  --bgContainer:#fff; --bgLayout:#F5F5F5;
+  --colorBorder:#D9D9D9; --colorBorderSecondary:#F0F0F0; --colorSplit:rgba(5,5,5,.06);
+  --primaryBg:#E6F4FF; --primaryBorder:#91CAFF;
+  --successBg:#F6FFED; --successBorder:#B7EB7F; --warningBg:#FFFBE6; --warningBorder:#FFE58F;
+  --errorBg:#FFF2F0; --errorBorder:#FFCCC7;
+  --radiusSM:4px; --radius:6px; --radiusLG:8px; --siderW:208px; --headerH:48px;
+  --shadow3:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --shadow:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif;
+  /* Reticle 五态 */
+  --stProcess:#2D6CDF; --stInspection:#F5921B; --stStarLight:#8B5CF6; --stStocker:#9CA3AF; --stTransport:#10B981;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:var(--font);font-size:14px;line-height:1.5714;color:var(--colorText);background:var(--bgLayout)}
+.app{display:flex;height:100vh;overflow:hidden}
+.sider{width:var(--siderW);flex:0 0 var(--siderW);background:#fff;border-right:1px solid var(--colorBorderSecondary);display:flex;flex-direction:column;height:100vh}
+.logo{height:var(--headerH);display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--colorBorderSecondary);flex:0 0 var(--headerH)}
+.logo .mark{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#1677FF,#69B1FF);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.logo .name{font-weight:600;font-size:14px}.logo .sub{font-size:11px;color:var(--colorTextTertiary);margin-top:-3px}
+.menu{padding:8px 0;overflow-y:auto;flex:1}
+.menu .grp{padding:8px 16px 4px;font-size:12px;color:var(--colorTextQuaternary)}
+.menu .item{height:40px;display:flex;align-items:center;gap:10px;padding:0 16px;cursor:pointer;color:var(--colorTextSecondary);font-size:14px;text-decoration:none}
+.menu .item:hover{background:rgba(0,0,0,.04)}
+.menu .item.active{background:var(--primaryBg);color:var(--colorPrimary);font-weight:500}
+.menu .sub-h{padding:6px 16px 2px;font-size:12.5px;color:var(--colorTextSecondary);font-weight:600}
+.menu .item.sub{height:32px;padding-left:34px;font-size:13px}
+.page-h{display:flex;align-items:baseline;gap:10px;border-bottom:1px solid var(--colorBorderSecondary);padding-bottom:10px}
+.page-h b{font-size:16px}.page-h .note{font-size:12px}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.header{height:var(--headerH);flex:0 0 var(--headerH);background:#fff;border-bottom:1px solid var(--colorBorderSecondary);display:flex;align-items:center;padding:0 24px;gap:12px}
+.crumb{font-size:13px;color:var(--colorTextTertiary)}.crumb b{color:var(--colorText);font-weight:500}
+.header .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.content{flex:1;overflow:auto;padding:24px}
+.btn{height:32px;padding:0 15px;border-radius:var(--radius);border:1px solid var(--colorBorder);background:#fff;color:var(--colorText);font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-family:inherit}
+.btn:hover{color:var(--colorPrimary);border-color:var(--colorPrimary)}
+.btn.primary{background:var(--colorPrimary);border-color:var(--colorPrimary);color:#fff}
+.btn.sm{height:28px;padding:0 10px;font-size:13px}
+.btn.link{border-color:transparent;background:transparent;color:var(--colorPrimary);padding:0 4px;height:24px}
+.card{background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow3);padding:24px;margin-bottom:16px}
+.card.np{padding:0}
+.card-h{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.card-h .t{font-size:16px;font-weight:600}.card-h .sub{font-size:12px;color:var(--colorTextTertiary)}
+.card-h .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:var(--radiusSM);font-size:12px;line-height:20px;border:1px solid transparent}
+.tag.default{background:#FAFAFA;color:var(--colorTextSecondary);border-color:var(--colorBorder)}
+table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
+table.tbl th{background:#FAFAFA;text-align:left;font-weight:600;color:var(--colorText);padding:10px 14px;border-bottom:1px solid var(--colorBorderSecondary);white-space:nowrap;font-size:13px}
+table.tbl td{padding:9px 14px;border-bottom:1px solid var(--colorBorderSecondary);color:var(--colorTextSecondary);vertical-align:middle}
+table.tbl tr:hover td{background:#FAFAFA}
+table.tbl td b{color:var(--colorText)}
+th[data-sort]{cursor:pointer}th[data-sort]:hover{color:var(--colorPrimary)}
+th[data-sort][data-dir=asc]::after{content:' ▲';color:var(--colorPrimary)}
+th[data-sort][data-dir=desc]::after{content:' ▼';color:var(--colorPrimary)}
+.tabs{display:flex;gap:32px;border-bottom:1px solid var(--colorBorderSecondary);margin-bottom:20px}
+.tabs .tab{padding:10px 0 12px;font-size:14px;color:var(--colorTextSecondary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs .tab.on{color:var(--colorPrimary);border-color:var(--colorPrimary);font-weight:500}
+.note{font-size:12px;color:var(--colorTextTertiary)}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.toolbar .sp{margin-left:auto}
+.inp{height:32px;border:1px solid var(--colorBorder);border-radius:var(--radius);padding:0 11px;font-size:14px;outline:none;color:var(--colorText);background:#fff;font-family:inherit}
+.toast{position:fixed;top:64px;left:50%;transform:translateX(-50%);background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:9px 16px;font-size:13px;z-index:1200;border-left:3px solid var(--colorSuccess)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--colorTextSecondary);margin:8px 0}
+.legend .li{display:inline-flex;align-items:center;gap:5px}
+.legend .li i{width:14px;height:11px;border-radius:3px;display:inline-block}
+/* 甘特 */
+.scrollx{overflow-x:auto;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius);background:#fff;position:relative}
+.ruler{display:flex;position:sticky;top:0;z-index:5;background:#FAFAFA;border-bottom:1px solid var(--colorBorderSecondary)}
+.ruler .rh{position:sticky;left:0;z-index:6;background:#FAFAFA;border-right:1px solid var(--colorBorderSecondary);flex:none;display:flex;align-items:center;padding:0 10px;font-size:11.4px;font-weight:700;color:#5A6B85}
+.ruler .rc{flex:none;display:flex;align-items:center;justify-content:center;font-size:10.4px;color:var(--colorTextTertiary);border-right:1px solid var(--colorSplit)}
+.ruler .rc.hr{font-weight:700;color:var(--colorPrimary)}
+.grow{display:flex;border-bottom:1px solid var(--colorSplit);min-height:36px}
+.grow .gh{position:sticky;left:0;z-index:3;background:#fff;border-right:1px solid var(--colorBorderSecondary);flex:none;display:flex;flex-direction:column;justify-content:center;padding:4px 10px}
+.grow .gh b{font-size:12.5px}.grow .gh small{font-size:10.5px;color:var(--colorTextTertiary)}
+.grow .gt{position:relative;flex:none;height:36px}
+.seg{position:absolute;top:5px;height:26px;border-radius:var(--radiusSM);display:flex;align-items:center;padding:0 6px;font-size:10.5px;font-weight:600;color:#fff;overflow:hidden;white-space:nowrap;cursor:default;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.seg.Process{background:var(--stProcess)}.seg.Inspection{background:var(--stInspection)}
+.seg.StarLight{background:var(--stStarLight)}.seg.Stocker{background:var(--stStocker);color:#fff}
+.seg.Transport{background:var(--stTransport)}
+#tt{position:fixed;z-index:9999;display:none;max-width:340px;background:#1E2A3D;color:#fff;border-radius:var(--radiusLG);padding:10px 12px;font-size:12.4px;line-height:1.7;box-shadow:var(--shadow);pointer-events:none}
+#tt b{color:#FFD97A}#tt .k{color:#9FB2CF}#tt .row{display:flex;justify-content:space-between;gap:14px}
+#tt hr{border:none;border-top:1px solid rgba(255,255,255,.16);margin:6px 0}
+.q{display:none;width:15px;height:15px;border-radius:50%;background:var(--colorWarning);color:#fff;font-size:11px;line-height:15px;text-align:center;cursor:pointer;margin-left:4px;font-weight:700;vertical-align:middle;user-select:none}
+body.cmt-on .q{display:inline-block}
+.bubble{position:fixed;z-index:1000;max-width:320px;background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow);padding:12px 14px;font-size:13px;border-top:3px solid var(--colorWarning)}
+.bubble .bt{font-weight:600;margin-bottom:4px}.bubble .bd{color:var(--colorTextSecondary);font-size:12.5px;line-height:1.65}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sider">
+    <div class="logo"><div class="mark">FS</div><div><div class="name">Pxsemi FSO</div><div class="sub">智能生产中心 · 光刻排程</div></div></div>
+    <nav class="menu">
+      <div class="grp">总览</div><a class="item" href="../index.html">◈ 系统总览</a>
+      <div class="grp">数据接入</div>
+      <a class="item" href="data_zone.html">⇄ 数据接入</a>
+      <div class="grp">数据配置</div><a class="item" href="config_zone.html">⚙ Production Config</a>
+      <div class="grp">模型管理</div><a class="item" href="model_zone.html">▦ Model Control</a>
+      <div class="grp">排程结果</div>
+      <div class="sub-h">▤ Litho 排程结果</div>
+      <a class="item sub" href="result_litho.html?page=barc">Barc Schedule</a>
+      <a class="item sub" href="result_litho.html?page=scan">Scanner Schedule</a>
+      <a class="item sub" href="result_litho.html?page=overlap">Litho OverLap</a>
+      <a class="item sub" href="result_litho.html?page=flow">Lot 加工流</a>
+      <a class="item sub" href="result_litho.html?page=wafer">Wafer 加工时间</a>
+      <a class="item sub" href="result_litho.html?page=mid">中间结果</a>
+      <div class="sub-h">▣ Reticle 排程结果</div>
+      <a class="item sub" data-pg="rsch" href="result_reticle.html?page=rsch">Reticle Schedule</a>
+      <a class="item sub" data-pg="trans" href="result_reticle.html?page=trans">Reticle Transport</a>
+      <div class="grp">日志</div><a class="item" href="log_zone.html">☰ 调度日志</a>
+      <div class="grp">扩展页面（复用）</div>
+      <a class="item" href="stacking_bond_ui_v6.html">◱ Stacking Bond</a>
+      <a class="item" href="equip_temp_layer_config.html">◌ 温层配置详细版</a>
+    </nav>
+  </aside>
+  <div class="main">
+    <header class="header">
+      <div class="crumb">Scheduling Result / <b id="crumbCur">Reticle Schedule</b></div>
+      <div class="right"><span class="note" id="clock"></span><button class="btn sm" id="cmtBtn">💬 评论模式</button></div>
+    </header>
+    <main class="content" id="content"></main>
+  </div>
+</div>
+<div id="tt"></div>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(m){const el=document.createElement('div');el.className='toast';el.textContent='✅ '+m;document.body.appendChild(el);setTimeout(()=>el.remove(),2000);}
+function ths(arr){return arr.map(t=>'<th data-sort onclick="sortTbl(this)">'+t+'</th>').join('');}
+function sortTbl(th){const tbl=th.closest('table'),tb=tbl.querySelector('tbody');const idx=[].indexOf.call(th.parentNode.children,th);
+  const dir=th.dataset.dir==='asc'?'desc':'asc';[].forEach.call(th.parentNode.children,h=>h.removeAttribute('data-dir'));th.dataset.dir=dir;
+  const rows=[].slice.call(tb.rows);
+  rows.sort((a,b)=>{const x=a.cells[idx].innerText.trim(),y=b.cells[idx].innerText.trim();
+    const nx=parseFloat(x.replace(/[^\d.\-]/g,'')),ny=parseFloat(y.replace(/[^\d.\-]/g,''));
+    const c=(!isNaN(nx)&&!isNaN(ny)&&/\d/.test(x))?nx-ny:x.localeCompare(y,'zh');return dir==='asc'?c:-c;});
+  rows.forEach(r=>tb.appendChild(r));}
+function tip(t){return '<span class="q" data-cm="'+esc(t)+'">?</span>';}
+const PXM=5.2;                 /* 每分钟像素 */
+const T0=9*60, T1=13*60;       /* 09:00 → 13:00（240min） */
+const CW=()=> (T1-T0)*PXM;
+const HW=150;
+const mm2h=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const px=m=>(m-T0)*PXM;
+
+/* ============ mock：Reticle 五态故事线（2026-10-24） ============ */
+const RET=[
+ {id:'RT-0101',pod:'POD-A1',note:'急货案例（与 Litho 排程/PPT 同源）',segs:[
+   {st:'Stocker',a:9*60,b:9*60+10,loc:'STK01',lot:''},
+   {st:'Inspection',a:9*60+10,b:9*60+30,loc:'IRIS01',lot:''},
+   {st:'Transport',a:9*60+30,b:9*60+40,loc:'STK01→IMM01',lot:''},
+   {st:'Stocker',a:9*60+40,b:9*60+45,loc:'IMM01 Library',lot:''},
+   {st:'Process',a:10*60,b:10*60+25,loc:'IMM01',lot:'LOT-A01'},
+   {st:'Transport',a:10*60+25,b:10*60+40,loc:'IMM01→STK01',lot:'LOT-A01'},
+   {st:'Stocker',a:10*60+40,b:12*60+30,loc:'STK01',lot:''},
+   {st:'StarLight',a:12*60+30,b:12*60+75,loc:'STL01',lot:''},
+   {st:'Stocker',a:12*60+75,b:13*60,loc:'STK01',lot:''}]},
+ {id:'RT-0102',pod:'POD-A2',note:'内部 IRIS（IMM02 支持 Scan）',segs:[
+   {st:'Stocker',a:9*60,b:9*60+30,loc:'STK01',lot:''},
+   {st:'Transport',a:9*60+30,b:9*60+40,loc:'STK01→IMM02',lot:''},
+   {st:'Inspection',a:9*60+40,b:9*60+55,loc:'IMM02（内部）',lot:''},
+   {st:'Process',a:10*60,b:10*60+50,loc:'IMM02',lot:'LOT-B02'},
+   {st:'Process',a:10*60+55,b:11*60+45,loc:'IMM02',lot:'LOT-B05'},
+   {st:'Transport',a:11*60+45,b:11*60+55,loc:'IMM02→STK02',lot:''},
+   {st:'Stocker',a:11*60+55,b:13*60,loc:'STK02',lot:''}]},
+ {id:'RT-0203',pod:'POD-B1',note:'双机台接力（Train Size=2）',segs:[
+   {st:'Process',a:9*60,b:9*60+45,loc:'IMM03',lot:'LOT-C01'},
+   {st:'Transport',a:9*60+45,b:9*60+55,loc:'IMM03→IMM04',lot:'LOT-C01'},
+   {st:'Process',a:10*60,b:10*60+45,loc:'IMM04',lot:'LOT-C04'},
+   {st:'Transport',a:10*60+45,b:10*60+55,loc:'IMM04→IMM03',lot:''},
+   {st:'Process',a:11*60,b:11*60+40,loc:'IMM03',lot:'LOT-C07'},
+   {st:'Transport',a:11*60+40,b:11*60+50,loc:'IMM03→STK01',lot:''},
+   {st:'Stocker',a:11*60+50,b:13*60,loc:'STK01',lot:''}]},
+ {id:'RT-0204',pod:'POD-B2',note:'N2 Purge 后回 Stocker',segs:[
+   {st:'Stocker',a:9*60,b:10*60+20,loc:'STK02',lot:''},
+   {st:'Transport',a:10*60+20,b:10*60+32,loc:'STK02→IMM05',lot:''},
+   {st:'Process',a:10*60+35,b:11*60+15,loc:'IMM05',lot:'LOT-D02'},
+   {st:'Transport',a:11*60+15,b:11*60+25,loc:'IMM05→STK02',lot:''},
+   {st:'Stocker',a:11*60+25,b:12*60,loc:'STK02（Purge 充氮）',lot:''},
+   {st:'Process',a:12*60+10,b:12*60+55,loc:'IMM05',lot:'LOT-D08'},
+   {st:'Stocker',a:12*60+58,b:13*60,loc:'STK02',lot:''}]},
+ {id:'RT-0305',pod:'POD-C1',note:'等待 StarLight 计时到期',segs:[
+   {st:'Process',a:9*60+15,b:10*60,loc:'IMM06',lot:'LOT-E03'},
+   {st:'Transport',a:10*60,b:10*60+10,loc:'IMM06→STL01',lot:''},
+   {st:'StarLight',a:10*60+20,b:11*60+5,loc:'STL01',lot:''},
+   {st:'Transport',a:11*60+5,b:11*60+18,loc:'STL01→IMM06',lot:''},
+   {st:'Process',a:11*60+30,b:12*60+15,loc:'IMM06',lot:'LOT-E09'},
+   {st:'Stocker',a:12*60+25,b:13*60,loc:'STK03',lot:''}]},
+ {id:'RT-0306',pod:'POD-C2',note:'闲置光罩',segs:[
+   {st:'Stocker',a:9*60,b:13*60,loc:'STK03',lot:''}]}
+];
+const TRANSPORT=[
+ {rt:'RT-0101',from:'STK01',to:'IRIS01',job:'IRIS',reason:'WAFER_COUNT_TO_IRIS=0（计片到期）',pri:'High',pod:'POD-A1',use:'10:00',lot:'LOT-A01',eqp:'IMM01'},
+ {rt:'RT-0101',from:'IRIS01',to:'IMM01',job:'Load',reason:'急货 LOT-A01 上机前装载（Key Lot 预留）',pri:'Super',pod:'POD-A1',use:'10:00',lot:'LOT-A01',eqp:'IMM01'},
+ {rt:'RT-0101',from:'IMM01',to:'STK01',job:'Unload',reason:'加工完成搬出（无后续当站需求）',pri:'Normal',pod:'POD-A1',use:'10:40',lot:'LOT-A01',eqp:'IMM01'},
+ {rt:'RT-0102',from:'STK01',to:'IMM02',job:'Load',reason:'内部 IRIS 免外部搬运（IS_SUPPORT_IRIS=Y）',pri:'Normal',pod:'POD-A2',use:'10:00',lot:'LOT-B02',eqp:'IMM02'},
+ {rt:'RT-0203',from:'IMM03',to:'IMM04',job:'Move',reason:'同 Stage 分机台接力（Train Size 优化）',pri:'Normal',pod:'POD-B1',use:'10:00',lot:'LOT-C04',eqp:'IMM04'},
+ {rt:'RT-0204',from:'STK02',to:'IMM05',job:'Load',reason:'水位 10/10 已满，先搬出 R0 腾位',pri:'Normal',pod:'POD-B2',use:'10:35',lot:'LOT-D02',eqp:'IMM05'},
+ {rt:'RT-0305',from:'IMM06',to:'STL01',job:'StarLight',reason:'LAST_STARLIGHT_TIME 超 LifeTime（计时到期）',pri:'High',pod:'POD-C1',use:'10:20',lot:'LOT-E09',eqp:'IMM06'},
+ {rt:'RT-0101',from:'STK01',to:'STL01',job:'StarLight',reason:'推演预排：12:30 StarLight 到期',pri:'Low',pod:'POD-A1',use:'12:30',lot:'',eqp:''}
+];
+const STCN={Process:'Process',Inspection:'Inspection',StarLight:'StarLight',Stocker:'Stocker',Transport:'Transport'};
+/* Lot 溯源信息（Chart hover 4.7.3 字段集：LotId/EqpId/ProductId/StepSeq/Recipe/ReticleId/Start/End/CostTime/Status/Location） */
+const LOTMETA={
+ 'LOT-A01':{prod:'5001A',step:'002000',rcp:'RCP_A@M302'},
+ 'LOT-B02':{prod:'5001A',step:'002400',rcp:'RCP_C'},
+ 'LOT-B05':{prod:'3006A',step:'002400',rcp:'RCP_C'},
+ 'LOT-C01':{prod:'5002A',step:'001600',rcp:'RCP_D'},
+ 'LOT-C04':{prod:'3006A',step:'001600',rcp:'RCP_D'},
+ 'LOT-C07':{prod:'5002A',step:'001600',rcp:'RCP_D'},
+ 'LOT-D02':{prod:'5001A',step:'002800',rcp:'RCP_E'},
+ 'LOT-D08':{prod:'5001A',step:'002800',rcp:'RCP_E'},
+ 'LOT-E03':{prod:'5002A',step:'003200',rcp:'RCP_A'},
+ 'LOT-E09':{prod:'3006A',step:'003200',rcp:'RCP_B'}};
+
+const PAGES=[['rsch','Reticle Schedule'],['trans','Reticle Transport']];
+const QP=new URLSearchParams(location.search);
+const state={tab:PAGES.some(p=>p[0]===QP.get('page'))?QP.get('page'):'rsch',view:{}};
+function hm2m(s){const p=String(s).split(':');return (+p[0])*60+(+p[1]);}
+function viewTgl(pg){const cur=state.view[pg]||'gantt';
+  return '<div class="toolbar" style="margin-bottom:12px"><span class="note">视图切换</span>'
+   +['gantt','list'].map(v=>'<button class="btn sm'+(cur===v?' primary':'')+'" onclick="state.view.'+pg+'=\''+v+'\';render()">'+(v==='gantt'?'▦ 甘特图':'☰ 列表')+'</button>').join('')+'</div>';}
+function ganttShell(title0,HW,t0,t1,pxm,rows){
+  let s='<div class="scrollx"><div class="ruler"><div class="rh" style="width:'+HW+'px;min-width:'+HW+'px;height:30px">'+title0+'</div><div style="display:flex;flex:none">';
+  for(let m=t0;m<=t1;m+=30)s+='<div class="rc'+(m%60===0?' hr':'')+'" style="width:'+(30*pxm)+'px;height:30px">'+mm2h(m)+'</div>';
+  s+='</div></div>';
+  rows.forEach(rw=>{
+    s+='<div class="grow"><div class="gh" style="width:'+HW+'px;min-width:'+HW+'px"><b style="font-size:12px">'+rw.label+'</b></div><div class="gt" style="width:'+((t1-t0)*pxm)+'px">';
+    (rw.segs||[]).forEach(g=>{s+='<div class="seg" style="left:'+Math.max((g.a-t0)*pxm,0)+'px;width:'+Math.max((g.b-g.a)*pxm-2,3)+'px;background:'+(g.color||'#2D6CDF')+';top:4px;height:22px"'+(g.tip?' data-tip="'+esc(g.tip)+'"':'')+'>'+esc(g.text||'')+'</div>';});
+    s+='</div></div>';});
+  return s+'</div>';
+}
+function render(){
+  const pg=PAGES.find(t=>t[0]===state.tab)||PAGES[0];
+  $('#content').innerHTML='<div class="card np"><div style="padding:16px 24px 0"><div class="page-h"><b>'+pg[1]+'</b><span class="note">Scheduling Result / Reticle · 甘特图 + 列表双视图</span></div>'+verBadge()+'</div><div style="padding:8px 24px 24px">'+V[state.tab]()+'</div></div>';
+  $('#crumbCur').textContent=pg[1];
+  document.querySelectorAll('.menu .item.sub[data-pg]').forEach(a=>a.classList.toggle('active',a.dataset.pg===state.tab));
+}
+/* 版本徽章条：与 result_litho 同一结果版本的追溯入口 */
+function verBadge(){
+  return '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0 12px;font-size:12px;color:var(--colorTextTertiary)">'
+   +'<span class="tag processing">排程版本 <b class="mono" style="margin-left:4px">RESULT-V20261024-1755</b></span>'
+   +'<span class="tag default">RUN_ID <b class="mono" style="margin-left:4px">RUN-20261024-1755</b></span>'
+   +'<span class="tag default">输入快照 <b class="mono" style="margin-left:4px">SNAP-20261024-1750</b>（对账 RC-1755）</span>'
+   +'<a href="log_zone.html">Run Trace →</a>'
+   +tip('版本徽章条 :: 本页五态甘特/搬送指令均来自 RESULT-V20261024-1755（光罩状态推演后处理产物）；反查链路：色块/指令 → Run Trace 四级版本链 → 中间结果「光罩状态推演」步骤逐行溯源 → 输入快照。')
+   +'</div>';
+}
+const V={};
+V.rsch=function(){const v=state.view.rsch||'gantt';return viewTgl('rsch')+(v==='list'?V.list():V.chart());};
+
+/* ===== Chart 五态甘特 ===== */
+V.chart=function(){
+  let s='<div class="toolbar"><input class="inp" placeholder="Please Input ReticleId" style="width:220px" id="qRt"><button class="btn" onclick="toast(\'精确查询（演示）\')">查询</button>'
+   +'<span class="note">Key Lot Info：'+tip('可选 Bullet / LotId / Lot Type / Reticle Name / Recipe，选中后作为标签显示在色块上')+'</span><span class="sp"></span>'
+   +'<button class="btn sm" onclick="toast(\'行高/时间粒度调整（演示）\')">行高/粒度</button></div>'
+   +'<div class="legend"><span class="li"><i style="background:var(--stProcess)"></i>Process</span><span class="li"><i style="background:var(--stInspection)"></i>Inspection</span>'
+   +'<span class="li"><i style="background:var(--stStarLight)"></i>StarLight</span><span class="li"><i style="background:var(--stStocker)"></i>Stocker</span>'
+   +'<span class="li"><i style="background:var(--stTransport)"></i>Transport</span><span class="note">Lot 处于 Running / Jobprepare / Scheduling 均计入 Process（§4.7.3）</span></div>';
+  s+='<div class="scrollx" id="gantt">'+ruler();
+  RET.forEach(r=>{
+    s+='<div class="grow"><div class="gh" style="width:'+HW+'px;min-width:'+HW+'px"><b>'+r.id+'</b><small>'+r.pod+' · '+r.note+'</small></div>'
+     +'<div class="gt" style="width:'+CW()+'px">';
+    r.segs.forEach(g=>{
+      const x=px(g.a),w=Math.max((g.b-g.a)*PXM-2,14);
+      const meta=g.lot?LOTMETA[g.lot]:null;
+      const ttip='<b>'+r.id+' · '+STCN[g.st]+'</b><br>'
+        +'<span class="row"><span class="k">ReticleId</span><span>'+r.id+'</span></span>'
+        +'<span class="row"><span class="k">LotId</span><span>'+(g.lot||'—')+'</span></span>'
+        +'<span class="row"><span class="k">EqpId</span><span>'+(g.loc||'—')+'</span></span>'
+        +'<span class="row"><span class="k">ProductId</span><span>'+(meta?meta.prod:'—')+'</span></span>'
+        +'<span class="row"><span class="k">Step Seq</span><span>'+(meta?meta.step:'—')+'</span></span>'
+        +'<span class="row"><span class="k">Recipe</span><span>'+(meta?esc(meta.rcp):'—')+'</span></span>'
+        +'<span class="row"><span class="k">Status</span><span>'+STCN[g.st]+'</span></span>'
+        +'<span class="row"><span class="k">Location</span><span>'+esc(g.loc||'—')+'</span></span>'
+        +'<span class="row"><span class="k">Start / End</span><span>'+mm2h(g.a)+' – '+mm2h(g.b)+'</span></span>'
+        +'<span class="row"><span class="k">Cost Time</span><span>'+(g.b-g.a)+'min</span></span>';
+      const lab=w>70?(STCN[g.st]+(g.b-g.a>=25?' '+g.lot:g.lot?' · '+g.lot:'')):'';
+      s+='<div class="seg '+g.st+'" style="left:'+x+'px;width:'+w+'px" data-tip="'+esc(ttip)+'">'+esc(lab)+'</div>';
+    });
+    s+='</div></div>';
+  });
+  s+='</div>';
+  s+='<div class="note" style="margin-top:10px">说明：色块按 09:10 IRIS(20min) → 09:30 搬送(10min) → 09:40 装载(5min) → 09:45 就绪 → 10:00 曝光 25 片 的急货案例铺排；连续同色块为同状态跨段。后续优化：前后同 EqpId 的色块连续不分割。</div>';
+  return s;
+};
+function ruler(){
+  let s='<div class="ruler"><div class="rh" style="width:'+HW+'px;min-width:'+HW+'px;height:36px">Reticle / Pod</div><div style="display:flex;flex:none">';
+  for(let m=T0;m<=T1;m+=30){
+    s+='<div class="rc'+(m%60===0?' hr':'')+'" style="width:'+(30*PXM)+'px;height:36px;border-right:1px solid var(--colorSplit)">'+mm2h(m)+'</div>';
+  }
+  return s+'</div></div>';
+}
+
+/* ===== List ===== */
+V.list=function(){
+  const rows=[];
+  RET.forEach(r=>r.segs.forEach(g=>{ if(g.st!=='Stocker'||g.b-g.a>=60) rows.push({rt:r.id,st:STCN[g.st],lot:g.lot||'—',prod:g.lot?'5001A':'—',step:g.lot?'002000':'—',recipe:g.lot?'RCP_A@M302':'—',eqp:g.loc.split('→').pop().split('（')[0],grp:g.loc.includes('IMM')?'L-IMMI-S':(g.loc.includes('IRIS')?'L-IRIS-S':(g.loc.includes('STL')?'L-STL-S':'—')),a:mm2h(g.a),b:mm2h(g.b),c:(g.b-g.a)+'min'});}));
+  let s='<div class="toolbar"><input class="inp" placeholder="ReticleId / LotId 筛选" style="width:220px"><select class="inp"><option>Status：全部</option>'+Object.values(STCN).map(x=>'<option>'+x+'</option>').join('')+'</select>'
+   +'<button class="btn" onclick="toast(\'筛选完成（演示）\')">查询</button><span class="sp"></span><button class="btn sm" onclick="dlList()">⬇ CSV</button></div>';
+  s+='<table class="tbl"><thead><tr>'+ths(['ReticleId','Status','LotId','ProductId','Step Seq','Recipe','EqpId','Eqp Group','Start Time','End Time','Cost Time'])+'</tr></thead><tbody>';
+  rows.forEach(r=>{s+='<tr><td><b>'+r.rt+'</b></td><td><span class="tag default">'+r.st+'</span></td><td>'+r.lot+'</td><td>'+r.prod+'</td><td>'+r.step+'</td><td class="note">'+r.recipe+'</td><td>'+r.eqp+'</td><td class="note">'+r.grp+'</td><td>'+r.a+'</td><td>'+r.b+'</td><td>'+r.c+'</td></tr>';});
+  return s+'</tbody></table><div class="note" style="margin-top:8px">共 '+rows.length+' 条（Stocker 短停留段已折叠）</div>';
+};
+function dlList(){
+  let csv='\ufeffReticleId,Status,LotId,ProductId,StepSeq,Recipe,EqpId,EqpGroup,StartTime,EndTime,CostTime\n';
+  RET.forEach(r=>r.segs.forEach(g=>{
+    const meta=g.lot?LOTMETA[g.lot]:null;
+    csv+=[r.id,STCN[g.st],g.lot||'',meta?meta.prod:'',meta?meta.step:'',meta?meta.rcp:'',
+      g.loc||'',(g.loc||'').includes('IMM')?'L-IMMI-S':((g.loc||'').includes('IRIS')?'L-IRIS-S':((g.loc||'').includes('STL')?'L-STL-S':'')),
+      mm2h(g.a),mm2h(g.b),(g.b-g.a)+'min'].join(',')+'\n';}));
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='reticle_schedule_list.csv';a.click();toast('CSV 已下载');
+}
+
+/* ===== Transport ===== */
+/* Opt3：搬送耗时动态校准（07_优化建议#3）——SDR 回执 actualTime 分位统计 → 建议值，审批后写回 Transport Config */
+const CALIB=[
+  {route:'STK01 → IRIS01',plan:10,obs:12,p50:11.2,p95:13.8,dev:'+20%',sug:12,act:'PENDING'},
+  {route:'IRIS01 → IMM01',plan:10,obs:10,p50:9.6,p95:12.1,dev:'-4%',sug:10,act:'APPLIED'},
+  {route:'IMM01 → STK01',plan:8,obs:9,p50:8.8,p95:11.5,dev:'+12.5%',sug:9,act:'PENDING'}
+];
+function calibCard(){
+  let h='<div class="card-h"><div class="t">搬送耗时动态校准</div><div class="sub">计划 vs 实绩回流（近 7 日 SDR 回执）→ 分位建议值；采纳后写入 Transport Config，下轮排程生效</div>'
+   +'<div class="right"><button class="btn sm" onclick="toast(\'已采纳全部建议值并写入 Transport Config（演示）\')">全部采纳</button></div></div>'
+   +'<table class="tbl"><thead><tr><th>搬送路径</th><th>当前配置(min)</th><th>观测均值(min)</th><th>P50</th><th>P95</th><th>偏差</th><th>建议值</th><th>状态</th><th style="width:80px">操作</th></tr></thead><tbody>';
+  CALIB.forEach(function(c,i){
+    h+='<tr><td><b>'+c.route+'</b></td><td class="mono">'+c.plan+'</td><td class="mono">'+c.obs+'</td><td class="mono">'+c.p50+'</td><td class="mono">'+c.p95+'</td>'
+     +'<td><span style="color:'+(c.dev.charAt(0)==='+'?'#D48806':'var(--colorSuccess)')+'">'+c.dev+'</span></td><td class="mono"><b>'+c.sug+'</b></td>'
+     +'<td>'+(c.act==='APPLIED'?'<span class="tag success">已生效</span>':'<span class="tag warning">待采纳</span>')+'</td>'
+     +'<td>'+(c.act==='APPLIED'?'<span class="note">—</span>':'<button class="btn link" onclick="CALIB['+i+'].act=\'APPLIED\';render();toast(\'已采纳：'+c.route+' → '+c.sug+'min（演示）\')">采纳</button>')+'</td></tr>';
+  });
+  return h+'</tbody></table><div class="note" style="margin:8px 0 14px">口径：偏差 = (观测均值−当前配置)/当前配置；P95 超配置 30% 的路径自动置为「待采纳」高优先。与「计划 vs 实际」页共用实绩回流数据。</div>';
+}
+V.trans=function(){
+  let s=calibCard();
+  s+='<div class="card-h"><div class="t">当日搬送指令（SDR 联动）</div><div class="sub">EqpId / LotId 为引发搬送的排程信息；Job Type = 搬送作业类型</div>'
+   +'<div class="right"><select class="inp"><option>Job Type：全部</option>'+['IRIS','StarLight','Load','Unload','Move','Clean','N2 Purge'].map(x=>'<option>'+x+'</option>').join('')+'</select>'
+   +'<button class="btn primary sm" onclick="toast(\'已下发 SDR（方案二：定时即搬）\')">下发 SDR</button></div></div>';
+  s+='<div class="scrollx" style="margin-bottom:16px;padding:14px">'+svgPath()+'</div>';
+  s+='<table class="tbl"><thead><tr><th>ReticleId</th><th>当前位置</th><th>目的地</th><th>Job Type</th><th>原因</th><th>优先级</th><th>Pod</th><th>预计使用时间</th><th>关联 Lot</th><th>排程机台</th></tr></thead><tbody>';
+  TRANSPORT.forEach(t=>{
+    s+='<tr><td><b>'+t.rt+'</b></td><td>'+t.from+'</td><td>'+t.to+'</td><td><span class="tag default">'+t.job+'</span></td><td class="note">'+esc(t.reason)+'</td>'
+      +'<td><span class="tag '+(t.pri==='Super'?'error':(t.pri==='High'?'warning':'default'))+'">'+t.pri+'</span></td><td>'+t.pod+'</td><td>'+t.use+'</td><td>'+t.lot+'</td><td>'+t.eqp+'</td></tr>';
+  });
+  return s+'</tbody></table>'
+   +'<div class="note" style="margin-top:8px">优先级为 Reticle 搬送优先级（与 Lot 优先级分别解释）；方案一仅下发 [T1,T2] 时间窗 + Reticle List，SDR 自行定时刻；方案二由后处理定时刻提前 1~3h 下发即搬。</div>';
+};
+function svgPath(){
+  const N=[['STK01\\nStocker',60],['IRIS01\\n检测',300],['IMM01\\n曝光',540],['STL01\\nStarLight',780]];
+  let g='<svg width="960" height="190" viewBox="0 0 960 190" style="display:block">';
+  N.forEach((n,i)=>{
+    const x=n[1];
+    g+='<rect x="'+x+'" y="60" width="120" height="52" rx="8" fill="'+(i===2?'#E6F4FF':'#FAFAFA')+'" stroke="'+(i===2?'#1677FF':'#D9D9D9')+'" stroke-width="1.4"/>';
+    n[0].split('\\n').forEach((ln,j)=>{g+='<text x="'+(x+60)+'" y="'+(82+j*16)+'" text-anchor="middle" font-size="12" fill="'+(i===2?'#1677FF':'rgba(0,0,0,.65)')+'" font-weight="600">'+ln+'</text>';});
+    if(i<3){g+='<line x1="'+(x+120)+'" y1="86" x2="'+(N[i+1][1]-8)+'" y2="86" stroke="#8CA6C4" stroke-width="2" marker-end="url(#ar)"/>';}
+  });
+  g+='<defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#8CA6C4"/></marker></defs>';
+  g+='<text x="60" y="40" font-size="11" fill="#8A94A6">外部 IRIS 路径：STK01 → IRIS01 → IMM01（急货 RT-0101，09:10–09:45 就绪链）</text>';
+  g+='<text x="60" y="150" font-size="11" fill="#8A94A6">内部 IRIS：IMM 内完成（RT-0102 @IMM02）｜机台间：IMM03→IMM04（RT-0203）｜StarLight：→STL01（RT-0305）｜N2 Purge：定期回 Stocker 充氮</text>';
+  g+='<text x="60" y="172" font-size="11" fill="#10B981">▼ 绿色时间窗为方案一 [T1,T2]；「下发 SDR」为方案二定时即搬</text>';
+  return g+'</svg>';
+}
+
+function transGantt(){
+  const rows=[
+   {label:'RT-0101 <small>急货</small>',segs:[
+    {a:hm2m('09:10'),b:hm2m('09:30'),color:'#F5921B',text:'IRIS',tip:'IRIS 09:10–09:30（计片到期，WAFER_COUNT_TO_IRIS=0）'},
+    {a:hm2m('09:40'),b:hm2m('09:45'),color:'#10B981',text:'Load',tip:'Load 09:40–09:45（急货上机前装载，Super 优先级）'},
+    {a:hm2m('10:25'),b:hm2m('10:40'),color:'#10B981',text:'Unload',tip:'Unload 10:25–10:40（加工完成搬出）'}]},
+   {label:'RT-0102',segs:[{a:hm2m('09:30'),b:hm2m('09:40'),color:'#10B981',text:'Load',tip:'Load 09:30–09:40（内部 IRIS 免外部搬运）'}]},
+   {label:'RT-0203',segs:[{a:hm2m('09:45'),b:hm2m('09:55'),color:'#10B981',text:'Move',tip:'Move 09:45–09:55（IMM03→IMM04 接力，Train Size 优化）'}]},
+   {label:'RT-0305',segs:[{a:hm2m('10:20'),b:hm2m('11:05'),color:'#8B5CF6',text:'StarLight',tip:'StarLight 10:20–11:05（LAST_STARLIGHT_TIME 超 LifeTime）'}]}];
+  return ganttShell('Reticle / 搬送作业',150,9*60,11*60,4,rows)
+   +'<div class="legend" style="margin-top:8px"><span class="li"><i style="background:#F5921B"></i>IRIS</span><span class="li"><i style="background:#8B5CF6"></i>StarLight</span><span class="li"><i style="background:#10B981"></i>Load/Unload/Move（Transport）</span><span class="note">与下方搬送记录表逐条对应（Job Type 五色沿用五态色板），时间与 Chart 甘特一致</span></div>';
+}
+const _transPage=V.trans;
+V.trans=function(){return _transPage()+transGantt();};
+
+/* ============ tooltip / 评论 / 时钟 ============ */
+document.addEventListener('mouseover',function(ev){
+  const el=ev.target.closest('[data-tip]');const tt=$('#tt');
+  if(!el){tt.style.display='none';return;}
+  tt.innerHTML=el.getAttribute('data-tip');tt.style.display='block';
+  const r=el.getBoundingClientRect();
+  let x=r.left,y=r.bottom+8;
+  if(x+340>window.innerWidth)x=Math.max(8,window.innerWidth-348);
+  if(y+200>window.innerHeight)y=Math.max(8,r.top-200);
+  tt.style.left=x+'px';tt.style.top=y+'px';
+});
+document.addEventListener('mouseout',function(){const tt=$('#tt');if(tt)tt.style.display='none';});
+document.addEventListener('click',function(ev){
+  const q=ev.target.closest('.q');if(!q)return;
+  ev.stopPropagation();document.querySelectorAll('.bubble').forEach(b=>b.remove());
+  const b=document.createElement('div');b.className='bubble';
+  b.innerHTML='<div class="bt">字段说明</div><div class="bd">'+esc(q.getAttribute('data-cm'))+'</div>';
+  document.body.appendChild(b);const r=q.getBoundingClientRect();
+  b.style.left=Math.max(8,Math.min(window.innerWidth-340,r.left))+'px';b.style.top=(r.bottom+8)+'px';
+  setTimeout(()=>{const h=()=>{b.remove();document.removeEventListener('click',h);};document.addEventListener('click',h);},0);
+});
+$('#cmtBtn').onclick=function(){document.body.classList.toggle('cmt-on');this.classList.toggle('primary');};
+(function clock(){const d=new Date(),p=n=>String(n).padStart(2,'0');$('#clock').textContent=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());setTimeout(clock,1000);})();
+render();
+</script>
+</body>
+</html>

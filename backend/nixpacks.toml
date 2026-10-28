@@ -1,0 +1,10 @@
+# Railway Nixpacks 构建（Root Directory = 仓库根，见 docs/04_DEPLOYMENT.md §3.1）
+# PuLP 自带 CBC 二进制，通常无需 apt 装 coinor-cbc；报 PulpSolverError 时再放开 aptPkgs
+[phases.setup]
+nixPkgs = ["python311"]
+
+[phases.install]
+cmds = ["pip install -r backend/requirements.txt"]
+
+[start]
+cmd = "uvicorn backend.app.api:app --host 0.0.0.0 --port $PORT"

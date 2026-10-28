@@ -1,0 +1,9 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/prototypes/:path", "destination": "/prototypes/:path" },
+    { "source": "/scheduling-test", "destination": "/src/pages/scheduling-test/index.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  // GTX FSO Litho · 一键任务（Ctrl+Shift+P → Tasks: Run Task）
+  // 全部走 .venv 解释器；venv 未建时先跑 venv:create
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "venv:create",
+      "type": "shell",
+      "command": "python",
+      "args": ["-m", "venv", ".venv"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "detail": "创建虚拟环境（需先在系统装好 Python 3.11）"
+    },
+    {
+      "label": "install:pip",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["-m", "pip", "install", "-r", "backend/requirements.txt"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "detail": "安装后端依赖（pulp/fastapi/uvicorn/pytest/PyYAML/matplotlib）"
+    },
+    {
+      "label": "run:solver",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["-m", "backend.solver", "run"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "detail": "命令行跑六步 MILP，输出到 backend/solver/output/"
+    },
+    {
+      "label": "run:api",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["-m", "uvicorn", "backend.app.api:app", "--reload", "--port", "8000"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "detail": "起 FastAPI 后端 http://127.0.0.1:8000（前端另开 npm run dev）"
+    }
+  ]
+}

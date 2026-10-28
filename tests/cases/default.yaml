@@ -1,0 +1,3 @@
+# 基线：与 backend/solver/mock_data.py 完全一致，作为回归基准（不覆盖任何字段）
+name: 基线
+desc: mock_data 原始口径。急货故事线 LOT-A01（PRI1+SHR）10:00 上机，RT-0101 就绪 09:45。

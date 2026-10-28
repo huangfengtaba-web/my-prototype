@@ -1,0 +1,17 @@
+# GTX FSO Litho · 后端依赖
+# 安装：pip install -r requirements.txt
+#      （国内可加 -i https://pypi.tuna.tsinghua.edu.cn/simple）
+
+# --- 求解器 ---
+pulp>=2.7.0            # MILP 建模，自带 CBC 求解器，零配置
+
+# --- Web 服务 ---
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+
+# --- 测试与数据 ---
+pytest>=8.0.0
+PyYAML>=6.0            # scenario 用例文件（tests/cases/*.yaml）
+
+# --- 可视化（算法精化档用，MVP 可跳过） ---
+matplotlib>=3.8.0

@@ -1,0 +1,745 @@
+<!doctype html>
+<!-- GTX FSO Litho 原型 · 结果-Litho 排程 · v1 · 2026-10-24 · 对应设计书 2.7.1 Barc Schedule / 4.7.3 Scanner Schedule -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Litho 排程结果 · Pxsemi FSO</title>
+<style>
+:root{
+  --colorPrimary:#1677FF; --colorPrimaryHover:#4096FF; --colorPrimaryActive:#0958D9;
+  --colorSuccess:#52C41A; --colorWarning:#FAAD14; --colorError:#FF4D4F;
+  --colorText:rgba(0,0,0,.88); --colorTextSecondary:rgba(0,0,0,.65); --colorTextTertiary:rgba(0,0,0,.45); --colorTextQuaternary:rgba(0,0,0,.25);
+  --bgContainer:#fff; --bgLayout:#F5F5F5;
+  --colorBorder:#D9D9D9; --colorBorderSecondary:#F0F0F0; --colorSplit:rgba(5,5,5,.06);
+  --primaryBg:#E6F4FF; --primaryBorder:#91CAFF;
+  --successBg:#F6FFED; --successBorder:#B7EB7F; --warningBg:#FFFBE6; --warningBorder:#FFE58F;
+  --errorBg:#FFF2F0; --errorBorder:#FFCCC7;
+  --radiusSM:4px; --radius:6px; --radiusLG:8px; --siderW:208px; --headerH:48px;
+  --shadow3:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --shadow:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif;
+  --stProcess:#2D6CDF; --stInspection:#F5921B; --stStarLight:#8B5CF6; --stStocker:#9CA3AF; --stTransport:#10B981;
+  --runC:#52C41A; --prepC:#FAAD14; --schC:#1677FF; --downC:#D9D9D9;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:var(--font);font-size:14px;line-height:1.5714;color:var(--colorText);background:var(--bgLayout)}
+.app{display:flex;height:100vh;overflow:hidden}
+.sider{width:var(--siderW);flex:0 0 var(--siderW);background:#fff;border-right:1px solid var(--colorBorderSecondary);display:flex;flex-direction:column;height:100vh}
+.logo{height:var(--headerH);display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--colorBorderSecondary);flex:0 0 var(--headerH)}
+.logo .mark{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#1677FF,#69B1FF);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.logo .name{font-weight:600;font-size:14px}.logo .sub{font-size:11px;color:var(--colorTextTertiary);margin-top:-3px}
+.menu{padding:8px 0;overflow-y:auto;flex:1}
+.menu .grp{padding:8px 16px 4px;font-size:12px;color:var(--colorTextQuaternary)}
+.menu .item{height:40px;display:flex;align-items:center;gap:10px;padding:0 16px;cursor:pointer;color:var(--colorTextSecondary);font-size:14px;text-decoration:none}
+.menu .item:hover{background:rgba(0,0,0,.04)}
+.menu .item.active{background:var(--primaryBg);color:var(--colorPrimary);font-weight:500}
+.menu .sub-h{padding:6px 16px 2px;font-size:12.5px;color:var(--colorTextSecondary);font-weight:600}
+.menu .item.sub{height:32px;padding-left:34px;font-size:13px}
+.page-h{display:flex;align-items:baseline;gap:10px;border-bottom:1px solid var(--colorBorderSecondary);padding-bottom:10px}
+.page-h b{font-size:16px}.page-h .note{font-size:12px}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.header{height:var(--headerH);flex:0 0 var(--headerH);background:#fff;border-bottom:1px solid var(--colorBorderSecondary);display:flex;align-items:center;padding:0 24px;gap:12px}
+.crumb{font-size:13px;color:var(--colorTextTertiary)}.crumb b{color:var(--colorText);font-weight:500}
+.header .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.content{flex:1;overflow:auto;padding:24px}
+.btn{height:32px;padding:0 15px;border-radius:var(--radius);border:1px solid var(--colorBorder);background:#fff;color:var(--colorText);font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-family:inherit}
+.btn:hover{color:var(--colorPrimary);border-color:var(--colorPrimary)}
+.btn.primary{background:var(--colorPrimary);border-color:var(--colorPrimary);color:#fff}
+.btn.sm{height:28px;padding:0 10px;font-size:13px}
+.btn.link{border-color:transparent;background:transparent;color:var(--colorPrimary);padding:0 4px;height:24px}
+.card{background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow3);padding:24px;margin-bottom:16px}
+.card.np{padding:0}
+.card-h{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.card-h .t{font-size:16px;font-weight:600}.card-h .sub{font-size:12px;color:var(--colorTextTertiary)}
+.card-h .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:var(--radiusSM);font-size:12px;line-height:20px;border:1px solid transparent}
+.tag.success{background:var(--successBg);color:#389E0D;border-color:var(--successBorder)}
+.tag.processing{background:var(--primaryBg);color:var(--colorPrimary);border-color:var(--primaryBorder)}
+.tag.warning{background:var(--warningBg);color:#D48806;border-color:var(--warningBorder)}
+.tag.error{background:var(--errorBg);color:var(--colorError);border-color:var(--errorBorder)}
+.tag.default{background:#FAFAFA;color:var(--colorTextSecondary);border-color:var(--colorBorder)}
+table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
+table.tbl th{background:#FAFAFA;text-align:left;font-weight:600;color:var(--colorText);padding:10px 14px;border-bottom:1px solid var(--colorBorderSecondary);white-space:nowrap;font-size:13px}
+table.tbl td{padding:9px 14px;border-bottom:1px solid var(--colorBorderSecondary);color:var(--colorTextSecondary);vertical-align:middle}
+table.tbl tr:hover td{background:#FAFAFA}
+table.tbl td b{color:var(--colorText)}
+th[data-sort]{cursor:pointer}th[data-sort]:hover{color:var(--colorPrimary)}
+th[data-sort][data-dir=asc]::after{content:' ▲';color:var(--colorPrimary)}
+th[data-sort][data-dir=desc]::after{content:' ▼';color:var(--colorPrimary)}
+.tabs{display:flex;gap:32px;border-bottom:1px solid var(--colorBorderSecondary);margin-bottom:20px}
+.tabs .tab{padding:10px 0 12px;font-size:14px;color:var(--colorTextSecondary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs .tab.on{color:var(--colorPrimary);border-color:var(--colorPrimary);font-weight:500}
+.note{font-size:12px;color:var(--colorTextTertiary)}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.toolbar .sp{margin-left:auto}
+.inp{height:32px;border:1px solid var(--colorBorder);border-radius:var(--radius);padding:0 11px;font-size:14px;outline:none;color:var(--colorText);background:#fff;font-family:inherit}
+.toast{position:fixed;top:64px;left:50%;transform:translateX(-50%);background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:9px 16px;font-size:13px;z-index:1200;border-left:3px solid var(--colorSuccess)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--colorTextSecondary);margin:8px 0}
+.legend .li{display:inline-flex;align-items:center;gap:5px}
+.legend .li i{width:14px;height:11px;border-radius:3px;display:inline-block}
+.scrollx{overflow-x:auto;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius);background:#fff;position:relative}
+.ruler{display:flex;position:sticky;top:0;z-index:5;background:#FAFAFA;border-bottom:1px solid var(--colorBorderSecondary)}
+.ruler .rh{position:sticky;left:0;z-index:6;background:#FAFAFA;border-right:1px solid var(--colorBorderSecondary);flex:none;display:flex;align-items:center;padding:0 10px;font-size:11.4px;font-weight:700;color:#5A6B85}
+.ruler .rc{flex:none;display:flex;align-items:center;justify-content:center;font-size:10.4px;color:var(--colorTextTertiary);border-right:1px solid var(--colorSplit)}
+.ruler .rc.hr{font-weight:700;color:var(--colorPrimary)}
+.grow{display:flex;border-bottom:1px solid var(--colorSplit);min-height:32px}
+.grow .gh{position:sticky;left:0;z-index:3;background:#fff;border-right:1px solid var(--colorBorderSecondary);flex:none;display:flex;align-items:center;padding:4px 10px;gap:6px}
+.grow .gh b{font-size:12.5px}.grow .gh small{font-size:10.5px;color:var(--colorTextTertiary)}
+.grow.ret .gh{background:#F5F8FC}
+.grow .gt{position:relative;flex:none;height:32px}
+.seg{position:absolute;top:3px;height:26px;border-radius:var(--radiusSM);display:flex;align-items:center;padding:0 6px;font-size:10.5px;font-weight:600;color:#fff;overflow:hidden;white-space:nowrap;cursor:default;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.seg.ret{height:10px;top:0;border-radius:3px;font-size:0}
+.seg.Running{background:var(--runC)}.seg.Jobprepare{background:var(--prepC)}.seg.Scheduling{background:var(--schC)}
+.seg.Down{background:var(--downC);color:#8A94A6}
+.seg.qtms{outline:2px solid var(--colorError);outline-offset:1px}
+.rc0{background:#2D6CDF}.rc1{background:#E08A00}.rc2{background:#9333EA}.rc3{background:#0891B2}.rc4{background:#DB2777}
+#tt{position:fixed;z-index:9999;display:none;max-width:340px;background:#1E2A3D;color:#fff;border-radius:var(--radiusLG);padding:10px 12px;font-size:12.4px;line-height:1.7;box-shadow:var(--shadow);pointer-events:none}
+#tt b{color:#FFD97A}#tt .k{color:#9FB2CF}#tt .row{display:flex;justify-content:space-between;gap:14px}
+#tt hr{border:none;border-top:1px solid rgba(255,255,255,.16);margin:6px 0}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:center;justify-content:center}
+.modal{background:#fff;border-radius:var(--radiusLG);width:860px;max-width:94vw;box-shadow:var(--shadow);overflow:hidden;max-height:86vh;display:flex;flex-direction:column}
+.modal-h{padding:16px 24px;border-bottom:1px solid var(--colorBorderSecondary);display:flex;align-items:center}
+.modal-h .t{font-size:16px;font-weight:600}.modal-h .x{margin-left:auto;cursor:pointer;color:var(--colorTextTertiary);font-size:18px;padding:4px}
+.modal-b{padding:16px 24px;overflow:auto;flex:1}
+.sw{height:20px;border-radius:10px;background:#D9D9D9;position:relative;cursor:pointer;display:inline-block;width:36px;vertical-align:middle;transition:background .2s}
+.sw i{position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s}
+.sw.on{background:var(--colorSuccess)}.sw.on i{left:18px}
+.empty{padding:40px;text-align:center;color:var(--colorTextQuaternary)}
+.alert{display:flex;gap:9px;border-radius:var(--radius);padding:10px 14px;font-size:13px;line-height:1.7}
+.alert.w{background:var(--warningBg);border:1px solid var(--warningBorder);color:#D48806}
+.alert.i{background:var(--primaryBg);border:1px solid var(--primaryBorder);color:#0958D9}
+.alert .dot{width:8px;height:8px;border-radius:50%;flex:none;margin-top:6px}
+.alert.w .dot{background:var(--colorWarning)}.alert.i .dot{background:var(--colorPrimary)}
+.q{display:none;width:15px;height:15px;border-radius:50%;background:var(--colorWarning);color:#fff;font-size:11px;line-height:15px;text-align:center;cursor:pointer;margin-left:4px;font-weight:700;vertical-align:middle;user-select:none}
+body.cmt-on .q{display:inline-block}
+.bubble{position:fixed;z-index:1000;max-width:320px;background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow);padding:12px 14px;font-size:13px;border-top:3px solid var(--colorWarning)}
+.bubble .bt{font-weight:600;margin-bottom:4px}.bubble .bd{color:var(--colorTextSecondary);font-size:12.5px;line-height:1.65}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sider">
+    <div class="logo"><div class="mark">FS</div><div><div class="name">Pxsemi FSO</div><div class="sub">智能生产中心 · 光刻排程</div></div></div>
+    <nav class="menu">
+      <div class="grp">总览</div><a class="item" href="../index.html">◈ 系统总览</a>
+      <div class="grp">数据接入</div>
+      <a class="item" href="data_zone.html">⇄ 数据接入</a>
+      <div class="grp">数据配置</div><a class="item" href="config_zone.html">⚙ Production Config</a>
+      <div class="grp">模型管理</div><a class="item" href="model_zone.html">▦ Model Control</a>
+      <div class="grp">排程结果</div>
+      <div class="sub-h">▤ Litho 排程结果</div>
+      <a class="item sub" data-pg="barc" href="result_litho.html?page=barc">Barc Schedule</a>
+      <a class="item sub" data-pg="scan" href="result_litho.html?page=scan">Scanner Schedule</a>
+      <a class="item sub" data-pg="overlap" href="result_litho.html?page=overlap">Litho OverLap</a>
+      <a class="item sub" data-pg="flow" href="result_litho.html?page=flow">Lot 加工流</a>
+      <a class="item sub" data-pg="wafer" href="result_litho.html?page=wafer">Wafer 加工时间</a>
+      <a class="item sub" data-pg="mid" href="result_litho.html?page=mid">中间结果</a>
+      <a class="item sub" data-pg="plan" href="result_litho.html?page=plan">计划 vs 实际</a>
+      <div class="sub-h">▣ Reticle 排程结果</div>
+      <a class="item sub" href="result_reticle.html?page=rsch">Reticle Schedule</a>
+      <a class="item sub" href="result_reticle.html?page=trans">Reticle Transport</a>
+      <div class="grp">日志</div><a class="item" href="log_zone.html">☰ 调度日志</a>
+      <div class="grp">扩展页面（复用）</div>
+      <a class="item" href="stacking_bond_ui_v6.html">◱ Stacking Bond</a>
+      <a class="item" href="equip_temp_layer_config.html">◌ 温层配置详细版</a>
+    </nav>
+  </aside>
+  <div class="main">
+    <header class="header">
+      <div class="crumb">Scheduling Result / <b id="crumbCur">Barc Schedule</b></div>
+      <div class="right"><span class="note" id="clock"></span><button class="btn sm" id="cmtBtn">💬 评论模式</button></div>
+    </header>
+    <main class="content" id="content"></main>
+  </div>
+</div>
+<div id="tt"></div><div id="modalRoot"></div>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(m){const el=document.createElement('div');el.className='toast';el.textContent='✅ '+m;document.body.appendChild(el);setTimeout(()=>el.remove(),2000);}
+function ths(arr){return arr.map(t=>'<th data-sort onclick="sortTbl(this)">'+t+'</th>').join('');}
+function sortTbl(th){const tbl=th.closest('table'),tb=tbl.querySelector('tbody');const idx=[].indexOf.call(th.parentNode.children,th);
+  const dir=th.dataset.dir==='asc'?'desc':'asc';[].forEach.call(th.parentNode.children,h=>h.removeAttribute('data-dir'));th.dataset.dir=dir;
+  const rows=[].slice.call(tb.rows);
+  rows.sort((a,b)=>{const x=a.cells[idx].innerText.trim(),y=b.cells[idx].innerText.trim();
+    const nx=parseFloat(x.replace(/[^\d.\-]/g,'')),ny=parseFloat(y.replace(/[^\d.\-]/g,''));
+    const c=(!isNaN(nx)&&!isNaN(ny)&&/\d/.test(x))?nx-ny:x.localeCompare(y,'zh');return dir==='asc'?c:-c;});
+  rows.forEach(r=>tb.appendChild(r));}
+function tip(t){return '<span class="q" data-cm="'+esc(t)+'">?</span>';}
+const PXM=5.0, T0=9*60, T1=13*60, HW=170;
+const CW=()=>(T1-T0)*PXM;
+const mm2h=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const px=m=>(m-T0)*PXM;
+
+/* ============ mock：急货故事线 + 机台排程 ============ */
+const EQPS=[
+ {id:'IMM01',cap:'L-IMMI-S',lots:[
+   {lot:'LOT-A02',st:'Running',a:9*60,b:9*60+45,prod:'5002A',step:'001800',rcp:'RCP_A',rt:'',w:25},
+   {lot:'LOT-A01',st:'Jobprepare',a:10*60,b:10*60+25,prod:'5001A',step:'002000',rcp:'RCP_A',rt:'RT-0101',w:25,qtms:true,bullet:true},
+   {lot:'LOT-A05',st:'Scheduling',a:10*60+30,b:11*60+20,prod:'5002A',step:'002000',rcp:'RCP_B',rt:'RT-0102',w:25}],
+  rets:[{rt:'RT-0101',a:9*60+40,b:10*60+40,ts:2,lots:'LOT-A01'},{rt:'RT-0102',a:10*60+30,b:11*60+20,ts:2,lots:'LOT-A05'}],
+  down:[{a:11*60+30,b:12*60+10,lab:'PM'}]},
+ {id:'IMM02',cap:'L-IMMI-S',lots:[
+   {lot:'LOT-B02',st:'Scheduling',a:10*60,b:10*60+50,prod:'5001A',step:'002400',rcp:'RCP_C',rt:'RT-0102',w:25},
+   {lot:'LOT-B05',st:'Scheduling',a:10*60+55,b:11*60+45,prod:'3006A',step:'002400',rcp:'RCP_C',rt:'RT-0102',w:25}],
+  rets:[{rt:'RT-0102',a:9*60+40,b:11*60+55,ts:2,lots:'LOT-B02;LOT-B05'}],down:[]},
+ {id:'IMM03',cap:'L-IMMI-S',lots:[
+   {lot:'LOT-C01',st:'Scheduling',a:9*60,b:9*60+45,prod:'5002A',step:'001600',rcp:'RCP_D',rt:'RT-0203',w:25},
+   {lot:'LOT-C07',st:'Scheduling',a:11*60,b:11*60+40,prod:'5002A',step:'001600',rcp:'RCP_D',rt:'RT-0203',w:25}],
+  rets:[{rt:'RT-0203',a:9*60,b:11*60+40,ts:2,lots:'LOT-C01;LOT-C07'}],down:[]},
+ {id:'IMM04',cap:'L-IMMI-S',lots:[
+   {lot:'LOT-C04',st:'Scheduling',a:10*60,b:10*60+45,prod:'3006A',step:'001600',rcp:'RCP_D',rt:'RT-0203',w:25}],
+  rets:[{rt:'RT-0203',a:9*60+55,b:10*60+45,ts:1,lots:'LOT-C04'}],down:[]},
+ {id:'IMM05',cap:'L-YIMMI-S',lots:[
+   {lot:'LOT-D02',st:'Scheduling',a:10*60+35,b:11*60+15,prod:'5001A',step:'002800',rcp:'RCP_E',rt:'RT-0204',w:25},
+   {lot:'LOT-D08',st:'Scheduling',a:12*60+10,b:12*60+55,prod:'5001A',step:'002800',rcp:'RCP_E',rt:'RT-0204',w:25}],
+  rets:[{rt:'RT-0204',a:10*60+20,b:12*60+55,ts:2,lots:'LOT-D02;LOT-D08'}],down:[]},
+ {id:'IMM06',cap:'L-YIMMI-S',lots:[
+   {lot:'LOT-E03',st:'Scheduling',a:9*60+15,b:10*60,prod:'5002A',step:'003200',rcp:'RCP_A',rt:'RT-0305',w:25},
+   {lot:'LOT-E09',st:'Scheduling',a:11*60+30,b:12*60+15,prod:'3006A',step:'003200',rcp:'RCP_B',rt:'RT-0305',w:25}],
+  rets:[{rt:'RT-0305',a:11*60+18,b:12*60+15,ts:2,lots:'LOT-E09'}],down:[]}
+];
+const BARC=[
+ {lot:'LOT-A01',batch:'B-20261024-03',prod:'5001A',rcp:'RCP_A@M302',seq:'001800',rel:true,er:'09:45',lr:'09:55',eqp:'IMM01',cap:'L-IMMI-S',ls:'10:00',reason:''},
+ {lot:'LOT-A05',batch:'B-20261024-03',prod:'5002A',rcp:'RCP_B',seq:'001800',rel:true,er:'10:05',lr:'10:20',eqp:'IMM01',cap:'L-IMMI-S',ls:'10:30',reason:''},
+ {lot:'LOT-B02',batch:'B-20261024-07',prod:'5001A',rcp:'RCP_C',seq:'002200',rel:true,er:'09:50',lr:'09:58',eqp:'IMM02',cap:'L-IMMI-S',ls:'10:00',reason:''},
+ {lot:'LOT-B05',batch:'B-20261024-07',prod:'3006A',rcp:'RCP_C',seq:'002200',rel:false,er:'10:40',lr:'10:52',eqp:'IMM02',cap:'L-IMMI-S',ls:'10:55',reason:'同 Stage 间隔放货 2h（BARC_SAME_STAGE_RELEASE_GAP）'},
+ {lot:'LOT-C04',batch:'B-20261024-11',prod:'3006A',rcp:'RCP_D',seq:'001400',rel:false,er:'09:55',lr:'10:05',eqp:'IMM04',cap:'L-IMMI-S',ls:'10:00',reason:'QTime 抄底前控货'},
+ {lot:'LOT-D02',batch:'B-20261024-12',prod:'5001A',rcp:'RCP_E',seq:'002600',rel:true,er:'10:25',lr:'10:33',eqp:'IMM05',cap:'L-YIMMI-S',ls:'10:35',reason:''},
+ {lot:'LOT-D08',batch:'B-20261024-12',prod:'5001A',rcp:'RCP_E',seq:'002600',rel:false,er:'11:55',lr:'12:08',eqp:'IMM05',cap:'L-YIMMI-S',ls:'12:10',reason:'水位超标，卡控放货（QTMS WaterLevel）'},
+ {lot:'LOT-E09',batch:'B-20261024-15',prod:'3006A',rcp:'RCP_B',seq:'003000',rel:false,er:null,lr:null,eqp:'IMM06',cap:'L-YIMMI-S',ls:'11:30',reason:'通路断线（RunPath 不可用），跳过'}
+];
+const FLOW={lot:'LOT-A01',steps:[
+ {seq:'001000',name:'BARC 涂布',st:'done',at:'08:20'},
+ {seq:'001400',name:'BARC 烘烤',st:'done',at:'08:50',qt:{to:'002000',lim:'6h'}},
+ {seq:'001800',name:'Immersion 曝光',st:'current',at:'10:00',note:'等 RT-0101 就绪（09:45）'},
+ {seq:'002400',name:'显影 DI',st:'todo',eta:'11:10'},
+ {seq:'002800',name:'Overlay 量测',st:'todo',eta:'12:00'},
+ {seq:'003200',name:'Etch',st:'todo',eta:'13:30'}]};
+
+const PAGES=[['barc','Barc Schedule'],['scan','Scanner Schedule'],['overlap','Litho OverLap'],['flow','Lot 加工流'],['wafer','Wafer 加工时间'],['mid','中间结果'],['plan','计划 vs 实际']];
+const QP=new URLSearchParams(location.search);
+const state={tab:PAGES.some(p=>p[0]===QP.get('page'))?QP.get('page'):'barc',recipeMode:false,detailEqp:null,midStep:'pre',view:{}};
+const DEFVIEW={barc:'gantt',scan:'gantt',overlap:'gantt',wafer:'list'};
+function render(){
+  $('#content').innerHTML='<div class="card np"><div style="padding:16px 24px 0"><div class="page-h"><b>'+(PAGES.find(t=>t[0]===state.tab)||PAGES[0])[1]+'</b><span class="note">Scheduling Result / Litho · 甘特图 + 列表双视图</span></div>'+verBadge()+'</div><div style="padding:8px 24px 24px">'+(V[state.tab]||V.barc)()+'</div></div>';
+  $('#crumbCur').textContent=(PAGES.find(t=>t[0]===state.tab)||PAGES[0])[1];
+  document.querySelectorAll('.menu .item.sub[data-pg]').forEach(a=>a.classList.toggle('active',a.dataset.pg===state.tab));
+}
+/* 版本徽章条：本轮结果的数据/版本可追溯入口（Run Trace 闭环） */
+function verBadge(){
+  return '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0 12px;font-size:12px;color:var(--colorTextTertiary)">'
+   +'<span class="tag processing">排程版本 <b class="mono" style="margin-left:4px">RESULT-V20261024-1755</b></span>'
+   +'<span class="tag default">RUN_ID <b class="mono" style="margin-left:4px">RUN-20261024-1755</b></span>'
+   +'<span class="tag default">输入快照 <b class="mono" style="margin-left:4px">SNAP-20261024-1750</b>（数据水位 17:50 · 对账 RC-1755）</span>'
+   +'<span class="tag default">CFG/ALGO <b class="mono" style="margin-left:4px">CFG-V2.4.1 / GIT-8f2c3a1</b></span>'
+   +'<a href="log_zone.html">Run Trace →</a><a href="result_litho.html?page=mid">中间结果溯源 →</a>'
+   +tip('版本徽章条 :: 本页所有甘特/列表数据均来自 RESULT-V20261024-1755；该结果绑定输入快照（对账批次 RC-1755，隔离 3 条不入算）、配置版本 CFG-V2.4.1 与算法版本 GIT-8f2c3a1。反查链路：结果条目 → Run Trace（四级版本链+决策审计）→ 中间结果逐行溯源 → 输入快照/数据对账。')
+   +'</div>';
+}
+const V={};
+
+/* ===== 1 Barc Schedule ===== */
+V.barc=function(){
+  let s='<div class="toolbar"><input class="inp" placeholder="LotId / BatchId" style="width:200px"><select class="inp"><option>Is Release：全部</option><option>已放货</option><option>未放货</option></select>'
+   +'<button class="btn" onclick="toast(\'查询（演示）\')">查询</button><span class="sp"></span><button class="btn sm" onclick="toast(\'CSV 已下载（演示）\')">⬇ CSV</button></div>'
+   +'<table class="tbl"><thead><tr>'+ths(['LotId','BatchId','ProductId','Recipe','Step Seq','Is Release','Earliest Release','Latest Release','Litho Eqp','Litho Capability','Litho Start','Reason'])+'</tr></thead><tbody>';
+  BARC.forEach(r=>{
+    s+='<tr><td><b>'+r.lot+'</b></td><td>'+r.batch+'</td><td>'+r.prod+'</td><td class="note">'+esc(r.rcp)+'</td><td>'+r.seq+'</td>'
+      +'<td>'+(r.rel?'<span class="tag success">已放货</span>':'<span class="tag default">未放货</span>')+'</td>'
+      +'<td>'+(r.er||'<span class="note">null</span>')+'</td><td>'+(r.lr||'<span class="note">null</span>')+'</td>'
+      +'<td>'+r.eqp+'</td><td>'+r.cap+'</td><td>'+r.ls+'</td><td class="note">'+(r.reason?'<span style="color:var(--colorError)">'+esc(r.reason)+'</span>':'—')+'</td></tr>';
+  });
+  return s+'</tbody></table>'
+   +'<div class="alert i" style="margin-top:12px"><span class="dot"></span><div>StartTime 守住 BARC Start 的 QTime（过早 OverQTime）；EndTime 守住排程规划与 Remain QTime（过晚延误/OverQTime）。示例：BARC QTime 6h、PT 0.5h、排程上机 10:00 → 最早 10−6−0.5=<b>3.5h</b>，最晚 10−0.5=<b>9.5h</b>。</div></div>';
+};
+
+/* ===== 2 Scanner Chart ===== */
+V.chart=function(){
+  let s='<div class="toolbar"><input class="inp" placeholder="Please Input LotId or EqpId（精确查询）" style="width:260px"><button class="btn" onclick="toast(\'精确查询（演示）\')">查询</button>'
+   +'<span class="note">Key Lot Info：'+tip('可选 Bullet / LotId / Lot Type / Reticle Name / Recipe，选中后作为标签显示在色块上')+'</span>'
+   +'<span class="sp"></span><span class="note">Recipe Mode</span><span class="sw'+(state.recipeMode?' on':'')+'" onclick="state.recipeMode=!state.recipeMode;render()"><i></i></span>'
+   +'<button class="btn sm" onclick="toast(\'行高/时间粒度调整（演示）\')">行高/粒度</button></div>'
+   +'<div class="legend"><span class="li"><i style="background:var(--runC)"></i>Running</span><span class="li"><i style="background:var(--prepC)"></i>Jobprepare</span>'
+   +'<span class="li"><i style="background:var(--schC)"></i>Scheduling</span><span class="li"><i style="background:var(--downC)"></i>Down/PM</span>'
+   +'<span class="li"><i style="background:#5A6478;height:6px;margin-top:3px"></i>Reticle 占用（Lot 条上方）</span>'
+   +'<span class="li" style="color:var(--colorError)">▢ 红框 = QTMS 超水位标记</span>'
+   +(state.recipeMode?'<span class="li"><i class="rc0" style="width:10px;height:10px"></i>A<i class="rc1" style="width:10px;height:10px"></i>B<i class="rc2" style="width:10px;height:10px"></i>C<i class="rc3" style="width:10px;height:10px"></i>D<i class="rc4" style="width:10px;height:10px"></i>E（Recipe 取 @ 前段分组，5 色循环）</span>':'')
+   +'</div>';
+  s+='<div class="scrollx" id="gantt">'+ruler();
+  EQPS.forEach(e=>{
+    /* Reticle 行 */
+    s+='<div class="grow ret"><div class="gh" style="width:'+HW+'px;min-width:'+HW+'px"><b style="font-size:11px;color:#5A6B85">↳ Reticle</b></div><div class="gt" style="width:'+CW()+'px">';
+    e.rets.forEach(r=>{
+      const x=px(r.a),w=(r.b-r.a)*PXM-2;
+      const tt='<b>'+r.rt+'</b><br><span class="row"><span class="k">Trainsize</span><span>'+r.ts+'</span></span>'
+        +'<span class="row"><span class="k">Process Lot</span><span>'+esc(r.lots)+'</span></span>'
+        +'<span class="row"><span class="k">Time</span><span>'+mm2h(r.a)+' – '+mm2h(r.b)+'（'+(r.b-r.a)+'min）</span></span>';
+      s+='<div class="seg ret" style="left:'+x+'px;width:'+w+'px;background:#5A6478" data-tip="'+esc(tt)+'"></div>';
+    });
+    s+='</div></div>';
+    /* Lot 行 */
+    s+='<div class="grow"><div class="gh" style="width:'+HW+'px;min-width:'+HW+'px"><b>'+e.id+'</b> <small>'+e.cap+'</small> <button class="btn link" style="font-size:11px" onclick="openDetail(\''+e.id+'\')">ⓘ</button></div>'
+     +'<div class="gt" style="width:'+CW()+'px">';
+    e.lots.forEach(l=>{
+      const x=px(l.a),w=(l.b-l.a)*PXM-2;
+      const rcpG=l.rcp.split('@')[0];
+      const cls=state.recipeMode?('rc'+(RCPIDX[rcpG]||0)):l.st;
+      const tt='<b>'+l.lot+' · '+l.st+'</b><br>'
+        +'<span class="row"><span class="k">EqpId</span><span>'+e.id+'</span></span>'
+        +'<span class="row"><span class="k">ProductId</span><span>'+l.prod+'</span></span>'
+        +'<span class="row"><span class="k">Stage</span><span>'+(STGMAP[l.prod]||'—')+'</span></span>'
+        +'<span class="row"><span class="k">Step Seq</span><span>'+l.step+'</span></span>'
+        +'<span class="row"><span class="k">Recipe</span><span>'+esc(l.rcp)+'</span></span>'
+        +'<span class="row"><span class="k">ReticleId</span><span>'+(l.rt||'—')+'</span></span>'
+        +'<span class="row"><span class="k">Wafer Num</span><span>'+l.w+'</span></span>'
+        +'<span class="row"><span class="k">Start / End</span><span>'+mm2h(l.a)+' – '+mm2h(l.b)+'</span></span>'
+        +'<span class="row"><span class="k">Cost Time</span><span>'+(l.b-l.a)+'min</span></span>'
+        +(l.qtms?'<hr><span class="k" style="color:#FF9A9A">⚠ QTMS 超水位：本 Loop 放货量超出规划水位</span>':'')
+        +(l.bullet?'<hr><span class="k" style="color:#FFD97A">★ Super Bullet：到站即上机（预留 IDLE）</span>':'');
+      s+='<div class="seg '+cls+(l.qtms?' qtms':'')+'" style="left:'+x+'px;width:'+w+'px" data-tip="'+esc(tt)+'">'
+        +(l.bullet?'★ ':'')+esc(l.lot+' '+rcpG)+'</div>';
+    });
+    e.down.forEach(d=>{
+      const x=px(d.a),w=(d.b-d.a)*PXM-2;
+      s+='<div class="seg Down" style="left:'+x+'px;width:'+w+'px" data-tip="<b>'+d.lab+' 计划停机</b><br>'+mm2h(d.a)+' – '+mm2h(d.b)+'（Down 上方无 Reticle 展示）">'+d.lab+'</div>';
+    });
+    s+='</div></div>';
+  });
+  s+='</div>';
+  s+='<div class="note" style="margin-top:10px">Lot 模块上方为 Reticle 占用条（多 Lot 共用同一 Reticle 时区间拉长）；Setup / Down 上方无 Reticle 展示；点击机台 ⓘ 打开 Eqp 详情（Lot 视角时间轴）。</div>';
+  return s;
+};
+const RCPIDX={RCP_A:0,RCP_B:1,RCP_C:2,RCP_D:3,RCP_E:4};
+const STGMAP={'5001A':'IA','5002A':'AA','3006A':'PI'};  /* Stage 口径：按产品当前段（演示） */
+function ruler(){
+  let s='<div class="ruler"><div class="rh" style="width:'+HW+'px;min-width:'+HW+'px;height:34px">EQP / Lot · Reticle</div><div style="display:flex;flex:none">';
+  for(let m=T0;m<=T1;m+=30) s+='<div class="rc'+(m%60===0?' hr':'')+'" style="width:'+(30*PXM)+'px;height:34px">'+mm2h(m)+'</div>';
+  return s+'</div></div>';
+}
+function openDetail(id){
+  const e=EQPS.find(x=>x.id===id);
+  let body='<div class="legend"><span class="li"><i style="background:var(--runC)"></i>Running</span><span class="li"><i style="background:var(--prepC)"></i>Jobprepare</span><span class="li"><i style="background:var(--schC)"></i>Scheduling</span></div><div class="scrollx">';
+  e.lots.forEach(l=>{
+    const x=px(l.a),w=(l.b-l.a)*PXM-2;
+    body+='<div class="grow" style="min-height:30px"><div class="gh" style="width:130px;min-width:130px"><b style="font-size:12px">'+l.lot+'</b></div>'
+      +'<div class="gt" style="width:'+CW()+'px;height:30px"><div class="seg '+l.st+'" style="left:'+x+'px;width:'+w+'px;top:2px;height:24px">'+l.st+'</div></div></div>';
+  });
+  body+='</div><div class="note" style="margin-top:8px">Hover 展示同主甘特图（LotId/EqpId/ProductId/Stage/StepSeq/Recipe/ReticleId/WaferNum/Start/End/CostTime/Status）。</div>';
+  $('#modalRoot').innerHTML='<div class="overlay" onclick="if(event.target===this)$(\'#modalRoot\').innerHTML=\'\'"><div class="modal"><div class="modal-h"><span class="t">'+id+' · Eqp 详情（Lot 视角时间轴）</span><span class="x" onclick="$(\'#modalRoot\').innerHTML=\'\'">✕</span></div><div class="modal-b">'+body+'</div></div></div>';
+}
+
+/* ===== 3 Scanner List ===== */
+V.list=function(){
+  let s='<div class="toolbar"><input class="inp" placeholder="EqpId / LotId / ReticleId" style="width:220px"><button class="btn" onclick="toast(\'查询（演示）\')">查询</button><span class="sp"></span><button class="btn sm" onclick="dlScan()">⬇ 下载 CSV（全字段）</button></div>'
+   +'<table class="tbl"><thead><tr>'+ths(['EqpId','Eqp Type','Eqp Status','Process Type','Recipe','ReticleId','LotId','ProductId','Step Seq','Start Time','End Time','Process Time'])+'</tr></thead><tbody>';
+  EQPS.forEach(e=>e.lots.forEach(l=>{
+    s+='<tr><td><b>'+e.id+'</b></td><td>'+e.cap+'</td><td>'+(l.st==='Running'?'RUN':'IDLE')+'</td><td>Process</td><td class="note">'+esc(l.rcp)+'</td><td>'+(l.rt||'—')+'</td><td>'+l.lot+'</td><td>'+l.prod+'</td><td>'+l.step+'</td><td>'+mm2h(l.a)+'</td><td>'+mm2h(l.b)+'</td><td>'+(l.b-l.a)+'min</td></tr>';
+  }));
+  return s+'</tbody></table>';
+};
+function dlScan(){
+  let csv='\ufeffEqpId,EqpType,EqpStatus,ProcessType,Recipe,ReticleId,LotId,ProductId,StepSeq,StartTime,EndTime,ProcessTime\n';
+  EQPS.forEach(e=>e.lots.forEach(l=>{csv+=[e.id,e.cap,l.st,'Process',l.rcp,l.rt||'',l.lot,l.prod,l.step,mm2h(l.a),mm2h(l.b),(l.b-l.a)+'min'].join(',')+'\n';}));
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='scanner_schedule_list.csv';a.click();toast('CSV 已下载');
+}
+
+/* ===== 4 Litho OverLap（占位：客户源表缺口） ===== */
+V.overlap=function(){
+  return '<div class="alert w" style="margin-bottom:16px"><span class="dot"></span><div><b>源表缺口（C 级）</b>：客户提供的 Litho OverLap 源表（sheet4）仅给出「时间筛选（默认当天）」与末列 Process Time，其余 12 列表头与 3 个过滤字段为空白，需需求方确认后再补全。</div></div>'
+   +'<div class="toolbar"><select class="inp"><option>时间筛选：今天（默认）</option><option>昨天</option><option>近 7 天</option></select><button class="btn" onclick="toast(\'查询（演示）\')">查询</button><span class="sp"></span><button class="btn sm" onclick="toast(\'CSV（演示）\')">⬇ CSV</button></div>'
+   +'<table class="tbl"><thead><tr><th>EqpId</th><th>LotId</th><th>Start Time</th><th>End Time</th><th>Process Time</th><th>列 6…16 <span class="note">（表头待确认）</span></th></tr></thead><tbody>'
+   +'<tr><td><b>IMM01</b></td><td>LOT-A02</td><td>09:00</td><td>09:45</td><td>45min</td><td class="note" style="color:var(--colorTextQuaternary)">— 待源表定义 —</td></tr>'
+   +'<tr><td><b>IMM01</b></td><td>LOT-A01</td><td>10:00</td><td>10:25</td><td>25min</td><td class="note" style="color:var(--colorTextQuaternary)">— 待源表定义 —</td></tr>'
+   +'<tr><td><b>IMM02</b></td><td>LOT-B02</td><td>10:00</td><td>10:50</td><td>50min</td><td class="note" style="color:var(--colorTextQuaternary)">— 待源表定义 —</td></tr>'
+   +'</tbody></table>';
+};
+
+/* ===== 5 Lot 加工流 ===== */
+V.flow=function(){
+  const f=FLOW;
+  let s='<div class="toolbar"><select class="inp"><option>'+f.lot+'</option><option>LOT-B02</option><option>LOT-C04</option></select><button class="btn" onclick="toast(\'已切换 Lot（演示）\')">查询</button><span class="sp"></span><span class="note">当前查看：<b>'+f.lot+'</b>（5001A · 25 片 · Super Bullet）</span></div>';
+  s+='<div style="overflow-x:auto;padding:8px 0 16px"><div style="display:flex;align-items:flex-start;min-width:900px">';
+  f.steps.forEach((st,i)=>{
+    const col=st.st==='done'?'#52C41A':(st.st==='current'?'#1677FF':'#D9D9D9');
+    s+='<div style="flex:1;text-align:center;position:relative">'
+      +'<div style="width:64px;height:64px;border-radius:50%;border:3px solid '+col+';margin:0 auto;display:flex;align-items:center;justify-content:center;color:'+(st.st==='todo'?'#BFBFBF':'#fff')+';font-weight:700;background:'+col+'">'+(st.st==='done'?'✓':(st.st==='current'?'▶':i+1))+'</div>'
+      +'<div style="margin-top:8px;font-weight:600;font-size:13px;color:'+(st.st==='todo'?'#BFBFBF':'#262626')+'">'+st.seq+'</div>'
+      +'<div class="note">'+esc(st.name)+'</div>'
+      +'<div class="note" style="color:'+(st.st==='current'?'#1677FF':'#8A94A6')+'">'+(st.at||st.eta||'')+(st.st==='todo'?'（预计）':'')+'</div>'
+      +(st.note?'<div class="note" style="color:#D48806">'+esc(st.note)+'</div>':'')
+      +(st.qt?'<div class="note" style="color:#FF4D4F">QTime ≤ '+st.qt.lim+' → '+st.qt.to+'</div>':'');
+    if(i<f.steps.length-1) s+='<div style="position:absolute;top:30px;left:calc(50% + 36px);width:calc(100% - 72px);height:2px;background:'+(f.steps[i+1].st==='todo'?'#E5E7EB':'#B7C4D6')+'"></div>';
+    s+='</div>';
+  });
+  s+='</div></div>';
+  s+='<div class="alert i"><span class="dot"></span><div>当前站 001800 曝光受光罩 RT-0101 就绪时间约束：09:45 就绪 → 10:00 上机；前置 001400 → 001800 存在 Max QTime 6h（08:50 Track Out 起算）。</div></div>';
+  return s;
+};
+
+/* ===== 6 Wafer 加工时间（占位） ===== */
+V.wafer=function(){
+  return '<div class="alert w" style="margin-bottom:16px"><span class="dot"></span><div><b>源表缺口（C 级）</b>：Wafer 加工时间源表（sheet6）整表空白，暂无数据；下表为按 WPH 口径的示意结构，待需求方补数据源。</div></div>'
+   +'<table class="tbl"><thead><tr><th>EqpId</th><th>Recipe</th><th>WPH（片/时）</th><th>Lot 片数</th><th>预计 Process Time</th><th class="note">数据来源</th></tr></thead><tbody>'
+   +'<tr><td><b>IMM01</b></td><td>RCP_A</td><td>60</td><td>25</td><td>25min</td><td class="note">FSO_PROCESS_TIME（示意）</td></tr>'
+   +'<tr><td><b>IMM02</b></td><td>RCP_C</td><td>50</td><td>25</td><td>30min</td><td class="note">FSO_PROCESS_TIME（示意）</td></tr>'
+   +'<tr><td><b>IMM05</b></td><td>RCP_E</td><td>45</td><td>25</td><td>33min</td><td class="note">FSO_PROCESS_TIME（示意）</td></tr>'
+   +'</tbody></table><div class="empty" style="padding:24px">真实数据待源表（sheet6）确认后接入</div>';
+};
+
+/* ===== 一级页面/二级菜单：甘特+列表双视图包装 ===== */
+function hm2m(s){const p=String(s).split(':');return (+p[0])*60+(+p[1]);}
+function viewTgl(pg){const cur=state.view[pg]||DEFVIEW[pg]||'gantt';
+  return '<div class="toolbar" style="margin-bottom:12px"><span class="note">视图切换</span>'
+   +['gantt','list'].map(v=>'<button class="btn sm'+(cur===v?' primary':'')+'" onclick="state.view.'+pg+'=\''+v+'\';render()">'+(v==='gantt'?'▦ 甘特图':'☰ 列表')+'</button>').join('')+'</div>';}
+function ganttShell(title0,HW,t0,t1,pxm,rows){
+  let s='<div class="scrollx"><div class="ruler"><div class="rh" style="width:'+HW+'px;min-width:'+HW+'px;height:30px">'+title0+'</div><div style="display:flex;flex:none">';
+  for(let m=t0;m<=t1;m+=30)s+='<div class="rc'+(m%60===0?' hr':'')+'" style="width:'+(30*pxm)+'px;height:30px">'+mm2h(m)+'</div>';
+  s+='</div></div>';
+  rows.forEach(rw=>{
+    s+='<div class="grow"><div class="gh" style="width:'+HW+'px;min-width:'+HW+'px"><b style="font-size:12px">'+rw.label+'</b></div><div class="gt" style="width:'+((t1-t0)*pxm)+'px">';
+    (rw.segs||[]).forEach(g=>{s+='<div class="seg" style="left:'+Math.max((g.a-t0)*pxm,0)+'px;width:'+Math.max((g.b-g.a)*pxm-2,3)+'px;background:'+(g.color||'#2D6CDF')+';top:4px;height:22px"'+(g.tip?' data-tip="'+esc(g.tip)+'"':'')+'>'+esc(g.text||'')+'</div>';});
+    s+='</div></div>';});
+  return s+'</div>';
+}
+function barcGantt(){
+  const rows=BARC.map(r=>{const segs=[];
+    if(r.er&&r.lr)segs.push({a:hm2m(r.er),b:hm2m(r.lr),color:'#91CAFF',text:r.lot,tip:'放货窗口 '+r.er+'–'+r.lr+'｜Litho Start '+r.ls+'｜'+(r.reason||'正常放货')});
+    else segs.push({a:hm2m(r.ls)-5,b:hm2m(r.ls)+5,color:'#FFCCC7',text:r.lot,tip:'无放货窗口（ER/LR=null，跳过）｜'+(r.reason||'')});
+    segs.push({a:hm2m(r.ls),b:hm2m(r.ls)+3,color:'#F5222D',tip:'Litho Start '+r.ls+'（上机时刻标记）'});
+    return {label:r.lot+' <small>'+r.eqp+'</small>',segs:segs};});
+  return ganttShell('Lot / 放货窗口',150,9*60,11*60,4,rows)
+   +'<div class="legend" style="margin-top:8px"><span class="li"><i style="background:#91CAFF"></i>放货窗口 ER→LR</span><span class="li"><i style="background:#F5222D"></i>Litho Start 上机标记</span><span class="note">与列表页 ER/LR/Start 列逐行对应，hover 看明细</span></div>';
+}
+function overlapGantt(){
+  const rows=[
+   {label:'IMM01',segs:[{a:540,b:585,color:'#2D6CDF',text:'LOT-A02',tip:'09:00–09:45'},{a:580,b:625,color:'#2D6CDF',text:'LOT-A01',tip:'09:40–10:25（与前 Lot 重叠 5min：OverLap 示意窗口）'}]},
+   {label:'IMM02',segs:[{a:600,b:650,color:'#2D6CDF',text:'LOT-B02',tip:'10:00–10:50'},{a:645,b:700,color:'#2D6CDF',text:'LOT-B05',tip:'10:45–11:40（重叠示意）'}]}];
+  return ganttShell('EQP / OverLap',150,9*60,11*60+30,4,rows)
+   +'<div class="legend" style="margin-top:8px"><span class="li"><i style="background:#2D6CDF"></i>Lot 曝光窗口（重叠区=OverLap）</span><span class="note">⚠ 12 列表头源表缺口（C 级），甘特为重叠窗口示意，待源表确认</span></div>';
+}
+function waferGantt(){
+  const rows=[
+   {label:'IMM01',segs:[{a:540,b:585,text:'LOT-A02',tip:'WPH 60 片/h（示意）· 25 片 ≈ 25min'},{a:600,b:625,text:'LOT-A01',tip:'WPH 60 片/h（示意）'}]},
+   {label:'IMM02',segs:[{a:600,b:650,text:'LOT-B02',tip:'WPH 50 片/h（示意）· 25 片 ≈ 30min'}]},
+   {label:'IMM05',segs:[{a:635,b:675,text:'LOT-D02',tip:'WPH 45 片/h（示意）· 25 片 ≈ 33min'}]}];
+  return ganttShell('EQP / 预计加工窗',150,9*60,11*60+30,4,rows)
+   +'<div class="legend" style="margin-top:8px"><span class="li"><i style="background:#2D6CDF"></i>按 WPH 折算的预计加工时间条</span><span class="note">⚠ 源表整表空白（C 级），甘特为 WPH 示意，待需求方补数据源</span></div>';
+}
+function flowGantt(){
+  const tms=FLOW.steps.map(st=>hm2m(st.at||st.eta));
+  const rows=FLOW.steps.map((st,i)=>{
+    const col=st.st==='done'?'#52C41A':(st.st==='current'?'#1677FF':'#D9D9D9');
+    const nx=tms[i+1]||tms[i]+30;
+    return {label:st.seq+' <small>'+esc(st.name)+'</small>',segs:[{a:tms[i],b:nx,color:col,text:st.name,tip:st.name+'：'+(st.at?('完成 '+st.at):('预计 '+st.eta))+(st.note?('｜'+st.note):'')+(st.qt?('｜QTime ≤'+st.qt.lim):'')}],};});
+  return ganttShell('Step / 起止时间',170,8*60,14*60,2.2,rows)
+   +'<div class="legend" style="margin-top:8px"><span class="li"><i style="background:#52C41A"></i>已完成</span><span class="li"><i style="background:#1677FF"></i>当前站</span><span class="li"><i style="background:#D9D9D9"></i>未到站</span><span class="note">与上方流程带时间一致（LOT-A01）</span></div>';
+}
+const _barcList=V.barc,_overlapList=V.overlap,_waferList=V.wafer,_flowBand=V.flow;
+V.barc=function(){const v=state.view.barc||DEFVIEW.barc;return viewTgl('barc')+(v==='list'?_barcList():barcGantt());};
+/* Opt4：QTime 前瞻预警（07_优化建议#4）——基于 LOTHIST 停留分布的 Over 概率队列 */
+const QT_RISK=[
+  {lot:'LOT-G01',loop:'002400→003200',rem:'1h40m',pct:78,win:'1.5h'},
+  {lot:'LOT-G04',loop:'001800→002400',rem:'2h25m',pct:61,win:'2h'},
+  {lot:'LOT-B05',loop:'002200→002800',rem:'3h10m',pct:34,win:'3h'}
+];
+function qtRiskBar(){
+  const hi=QT_RISK.filter(r=>r.pct>=60).length;
+  let h='<div class="alert'+(hi?' w':' i')+'" style="margin-bottom:10px"><span class="dot"></span><div><b>QTime 前瞻预警</b>（基于 LOTHIST 历史停留分布预测，未来 4h）：'
+   +QT_RISK.map(function(r){
+     const c=r.pct>=60?'var(--colorError)':(r.pct>=40?'#D48806':'var(--colorTextTertiary)');
+     return '<span class="mono" style="margin-right:14px">'+r.lot+'（'+r.loop+'）余 '+r.rem+' · Over 概率 <b style="color:'+c+'">'+r.pct+'%</b></span>';
+   }).join('')
+   +'　'+tip('前瞻口径 :: Over 概率 = 历史同 Loop 停留时长超过剩余 QTime 的频率（LOTHIST 样本 ≥30 天）；≥60% 红色高优，建议提前锁定机台/光罩；预警不改变排程约束，仅提示（硬卡控仍由 QTime 约束保证）。')+'</div></div>';
+  return h;
+}
+V.scan=function(){return qtRiskBar()+(function(){const v=state.view.scan||DEFVIEW.scan;return viewTgl('scan')+(v==='list'?V.list():V.chart());})();};
+V.overlap=function(){const v=state.view.overlap||DEFVIEW.overlap;return viewTgl('overlap')+(v==='list'?_overlapList():overlapGantt());};
+V.wafer=function(){const v=state.view.wafer||DEFVIEW.wafer;return viewTgl('wafer')+(v==='gantt'?waferGantt():_waferList());};
+V.flow=function(){return _flowBand()+flowGantt();};
+
+/* ===== 7 中间结果（工程化-中间结果输出 · 需求37/计划序号37）——每行可溯源 ===== */
+const MIDRUN={model:'Litho_Main',ver:'V1.3',batch:'RUN-20261024-01',start:'09:12',end:'09:38',status:'Success'};
+const MID=[
+ {key:'pre',name:'① 预处理',cols:['LotId','属性打标','Remain QTime','温层','连批组','预计到站','状态'],rows:[
+  ['LOT-A01','Super Bullet / Key Lot','55min','T2','RT-0101','10:00','完成'],
+  ['LOT-A02','Normal','—','T2','RT-0101','09:00','完成'],
+  ['LOT-B05','Ship Lot','—','T1','RT-0102','10:40','完成'],
+  ['LOT-C04','Normal','—','T1','RT-0203','10:00','完成'],
+  ['LOT-D08','Normal','120min','T2','RT-0204','11:55','完成']],
+  tr:[
+  {check:'与 Barc Schedule 行1（LOT-A01）/ Scanner Chart 急货段一致',calc:'打标规则：SOURCE_LOT.PRIORITY=1（SHR）→ Attribute Priority 1 = Bullet；IS_KEY_LOT=Y；Remain QTime=55min（<60min 阈值内）；温层由 Recipe×Eqp 匹配 recipe_capability_temperature 得 T2；连批组=当站所需 RETICLE_ID。',src:[
+   ['SOURCE_LOT.LOT_ID / PRIORITY','LOT-A01 / 1（SHR）','设计书 §2.6 表 2.6'],
+   ['SOURCE_LOT_REMAIN_QTIME.QTIME_LIMIT','55min','设计书 §2.8 表 2.8'],
+   ['recipe_capability_temperature.TEMPERATURE','T2（RCP_A@IMM01）','设计书 §4.7.1 表 2.13'],
+   ['SOURCE_LOT.RETICLE_ID','RT-0101（连批组依据）','设计书 §2.6 表 2.6']],
+   down:[{tab:'flow',label:'反查 Lot 加工流'},{tab:'list',label:'反查 Scanner Schedule-List'}]},
+  {check:'与 Scanner Chart LOT-A02 Running 段一致',calc:'字段映射：Normal 优先级；连批组=当站 RETICLE_ID；预计到站由 LOTHIST 上游事务时间 + CYCLE_TIME 推算（09:00 已在机）。',src:[
+   ['SOURCE_LOT.STEP_SEQ / RESERVED_EQP_ID','001800 / IMM01','设计书 §2.6 表 2.6'],
+   ['LOTHIST.TRX_TIME（上游）','08:15','设计书 §6 表 2.15']],
+   down:[{tab:'chart',label:'反查 Scanner Chart'},{tab:'list',label:'反查 Scanner Schedule-List'}]},
+  {check:'与 Barc Schedule 行4 Reason 列一致',calc:'Ship Lot 打标（出货需求 MES Flag）；同 Stage 间隔规则将放货推迟至 10:40（详见④后处理溯源）。',src:[
+   ['SOURCE_LOT.LOT_TYPE','Ship','设计书 §2.6 表 2.6'],
+   ['FSO_CFG_PARAM.BARC_SAME_STAGE_RELEASE_GAP','2h','设计书 §4.7.2 §4.5']],
+   down:[{tab:'barc',label:'反查 Barc Schedule Reason'},{tab:'mid',label:'查看④后处理记录'}]},
+  {check:'与 Scanner Chart IMM04 段一致',calc:'普通 Lot 打标；Capability=L-IMMI-S（SOURCE_PRODUCT_FLOW.CAPABILITY）。',src:[
+   ['SOURCE_PRODUCT_FLOW.CAPABILITY','L-IMMI-S','设计书 §2.7 表 2.7']],
+   down:[{tab:'chart',label:'反查 Scanner Chart'}]},
+  {check:'与 Barc Schedule 行7（11:55/12:08 水位顺延）一致',calc:'Remain QTime=120min（最长）；QTMS 水位超标 → 放货顺延（见④）。',src:[
+   ['SOURCE_LOT_REMAIN_QTIME.QTIME_LIMIT','120min','设计书 §2.8 表 2.8'],
+   ['FSO_LOOP_TARGET_WIP.ACTUAL_WIP','10/10（满）','设计书 §4.3.2.3 表 2.5']],
+   down:[{tab:'barc',label:'反查 Barc Schedule Reason'}]}]},
+ {key:'ret',name:'② Reticle 预组批 (MILP)',cols:['ReticleId','组批 Lot','Train Size','分配机台','预计换罩次数','求解','状态'],rows:[
+  ['RT-0101','LOT-A01','2','IMM01','3','0.8s','最优解'],
+  ['RT-0102','LOT-B02;LOT-B05','2','IMM02','2','0.6s','最优解'],
+  ['RT-0203','LOT-C01;LOT-C07','2','IMM03/IMM04','2','1.2s','最优解'],
+  ['RT-0204','LOT-D02;LOT-D08','2','IMM05','2','0.5s','最优解'],
+  ['RT-0305','LOT-E03;LOT-E09','2','IMM06','2','0.5s','可行解']],
+  tr:[
+  {check:'与 Scanner Chart RT-0101 上机段（IMM01 10:00）一致',calc:'决策变量 x[LOT-A01,IMM01]=1：Capability L-IMMI-S 匹配；急货预留（Key Lot 优先调动 Reticle，RFP 2.1.6）；Train Size=2（grouped 后段 LOT-A02 同组）。目标函数：min(换罩次数×w1 + MakeSpan×w2)。',src:[
+   ['SOURCE_EQP_INFO.CAPABILITY（IMM01）','L-IMMI-S','设计书 §2.9 表 2.9'],
+   ['SOURCE_RETICLE_STATUS.EARLIEST_AVAILABLE_TIME','09:45（推演输入）','设计书 §2.3 表 2.3'],
+   ['SOURCE_RETICLE_INFO.RESET_COUNT_IRIS','阈值内（计片余量>0）','设计书 §3.3.2.3.2（隐含表 ⚠）']],
+   down:[{file:'result_reticle.html',label:'反查 Reticle Chart 五态 ↗'},{tab:'chart',label:'反查 Scanner Chart 上机段'}]},
+  {check:'与 result_reticle RT-0102 段一致',calc:'组批 x[LOT-B02,RT-0102]=x[LOT-B05,RT-0102]=1：同 Recipe RCP_C 连批，内部 IRIS（IS_SUPPORT_IRIS=Y）免外部搬送。',src:[
+   ['SOURCE_EQP_INFO.IS_SUPPORT_IRIS（IMM02）','Y','设计书 §2.9 表 2.9'],
+   ['SOURCE_PRODUCT_FLOW.RECIPE','RCP_C（两 Lot 相同）','设计书 §2.7 表 2.7']],
+   down:[{file:'result_reticle.html',label:'反查 Reticle Schedule-List ↗'}]},
+  {check:'与 result_reticle RT-0203 接力段一致',calc:'Train Size=2：LOT-C01@IMM03 → LOT-C04@IMM04 → LOT-C07 回 IMM03；换罩 2 次（若不组批需 4 次）。',src:[
+   ['SOURCE_PRODUCT_FLOW.RETICLE_ID','RT-0203（三 Lot 同罩）','设计书 §2.7 表 2.7'],
+   ['SOURCE_EQP_INFO.CAPABILITY','IMM03/IMM04 = L-IMMI-S','设计书 §2.9 表 2.9']],
+   down:[{file:'result_reticle.html',label:'反查 Reticle Chart 接力段 ↗'}]},
+  {check:'与 result_reticle RT-0204 段一致',calc:'同 Recipe RCP_E 连批；N2 Purge 时段由 LAST_PURGE_TIME 推算。',src:[
+   ['SOURCE_EQP_STATUS.LAST_PURGE_TIME（IMM05）','上次清洗记录','设计书 §2.10 表 2.10']],
+   down:[{file:'result_reticle.html',label:'反查 Reticle Chart ↗'}]},
+  {check:'与 result_reticle RT-0305 StarLight 段一致',calc:'可行解（非最优）：StarLight 计时到期强制插入检测，牺牲 MakeSpan 保检测合规（RFP 2.1.8）。',src:[
+   ['SOURCE_RETICLE_STATUS.FUTURE_STARLIGHT_TIME','10:20 到期','设计书 §2.3 表 2.3']],
+   down:[{file:'result_reticle.html',label:'反查 Reticle Chart ↗'}]}]},
+ {key:'chunk',name:'③ Lot 细排程 (chunk≤50)',cols:['Chunk','机台组','Lot 数','关键约束','求解时间','MakeSpan 增量','状态'],rows:[
+  ['Chunk-01','L-IMMI-S','12','QTime / Recipe 连批','2.1s','+45min','完成'],
+  ['Chunk-02','L-IMMI-S','12','温层转换','2.3s','+52min','完成'],
+  ['Chunk-03','L-YIMMI-S','11','Chuck 大小片','1.9s','+38min','完成'],
+  ['Chunk-04','L-YIMMI-S','11','同 Stage 间隔','2.0s','+41min','完成']],
+  tr:[
+  {check:'与 Scanner Chart IMM01 10:00 上机一致（出参回代）',calc:'chunk#1 含 LOT-A01：约束 Lot 上机 ≥ RT-0101 就绪 09:45 + 装载 5min → PROCESS_START=10:00；同 Recipe 组批优先。求解 time_limit=600s / worker=8，实际 2.1s 收敛。',src:[
+   ['FSO_SCHEDULE_RESULT.PROCESS_START（LOT-A01）','10:00','设计书 §4.3.2.3 表 2.4'],
+   ['FSO_CFG_PARAM.time_limit / worker','600s / 8','设计书 §4.7.2 §4.5'],
+   ['SOURCE_RETICLE_STATUS.EARLIEST_AVAILABLE_TIME','09:45','设计书 §2.3 表 2.3']],
+   down:[{tab:'chart',label:'反查 Scanner Chart'},{tab:'list',label:'反查 Scanner Schedule-List'}]},
+  {check:'与 recipe_capability_temperature 数据一致',calc:'chunk#2 触发转温：capability_temperature_change.COST 计入换 Recipe 时间。',src:[
+   ['capability_temperature_change.COST','T1→T2 转温耗时','设计书 §4.7.1 表 2.14']],
+   down:[{file:'equip_temp_layer_config.html',label:'反查温层配置详细版 ↗'}]},
+  {check:'与 SOURCE_EQP_INFO Chuck 字段一致',calc:'chunk#3：Chuck 大小片约束（MAX/MIN_DIFF_SIZE 供 Diffusion 参照，光刻侧按 Chuck 类型过滤机台）。',src:[
+   ['SOURCE_EQP_INFO.MAX_DIFF_SIZE / MIN_DIFF_SIZE','边界值','设计书 §2.9 表 2.9']],
+   down:[{tab:'chart',label:'反查 Scanner Chart'}]},
+  {check:'与 Barc Schedule Reason 列一致',calc:'chunk#4：同 Stage 间隔放货 2h 约束传递（详见④）。',src:[
+   ['FSO_CFG_PARAM.BARC_SAME_STAGE_RELEASE_GAP','2h','设计书 §4.7.2 §4.5']],
+   down:[{tab:'barc',label:'反查 Barc Schedule'}]}]},
+ {key:'post',name:'④ 后处理',cols:['类型','对象','规则','调整','状态'],rows:[
+  ['放货间隔','LOT-B05','BARC_SAME_STAGE_RELEASE_GAP=2h','放货推迟至 10:40','已应用'],
+  ['水位卡控','LOT-D08','QTMS 超水位','跳过本 Loop','已应用'],
+  ['SDR 指令','RT-0101','急货预留（Super）','下发 IRIS/Load/Unload 共 3 条','已下发'],
+  ['Fix Lot','IMM03','FIX_LOT_COUNT=2','冻结 LOT-C01/C07 前序','已应用']],
+  tr:[
+  {check:'与 Barc Schedule 行4（LR=10:52 内放货 10:40）一致',calc:'规则：同 Stage 上一次放货 08:40 + 2h 间隔 → 最早 10:40；落在 [ER 10:40, LR 10:52] 窗口内 ✔。',src:[
+   ['FSO_CFG_PARAM.BARC_SAME_STAGE_RELEASE_GAP','2h','设计书 §4.7.2 §4.5'],
+   ['BARC_RELEASE_BATCH.LATEST_RELEASE','10:52','设计书 §2.1 表 2.1']],
+   down:[{tab:'barc',label:'反查 Barc Schedule 行4'},{file:'result_reticle.html',label:'反查 RT-0102 Transport ↗'}]},
+  {check:'与 Barc Schedule 行7 Reason「水位超标，卡控放货」一致',calc:'规则：ACTUAL_WIP(10) ≥ TARGET_WIP 水位 → REMAIN_WIP=0 → 本 Loop 不放货，顺延至下一 Loop。',src:[
+   ['FSO_LOOP_TARGET_WIP.ACTUAL_WIP / TARGET_WIP','10 / 10','设计书 §4.3.2.3 表 2.5'],
+   ['SOURCE_LOT.PRIORITY（LOT-D08）','Normal（可顺延）','设计书 §2.6 表 2.6']],
+   down:[{tab:'chart',label:'反查 QTMS 红框标记（Scanner Chart）'}]},
+  {check:'与 Reticle Transport 前 3 条指令一一对应',calc:'急货 RT-0101 生成 3 条 SDR 指令：IRIS（STK01→IRIS01）/ Load（IRIS01→IMM01）/ Unload（IMM01→STK01），优先级 Super；SDR_SCHEME=方案二（定时即搬）。',src:[
+   ['FSO_RETICLE_TRANSPORT_CMD（3 条）','IRIS/Load/Unload','DB 设计 §4.2（⚠ 本方案补齐表）'],
+   ['SOURCE_RETICLE_STATUS.WAFER_COUNT_TO_IRIS','0（计片到期触发）','设计书 §2.3 表 2.3']],
+   down:[{file:'result_reticle.html',label:'反查 Reticle Transport 搬送记录 ↗'}]},
+  {check:'与 config_zone.Fix Lot 配置一致',calc:'FIX_LOT_COUNT=2 → IMM03 前 2 个 Lot 冻结排序（LOT-C01/C07），稳定派工。',src:[
+   ['FSO_CFG_PARAM.FIX_LOT_COUNT / FIX_LOT_MIN_TIME','2 / 60min','设计书 §4.7.2 §4.5']],
+   down:[{file:'config_zone.html',label:'反查 Fix Lot 配置 ↗'}]}]},
+ {key:'barc',name:'⑤ BARC 反推',cols:['BatchId','LotId','最早放货','最晚放货','依据','状态'],rows:[
+  ['B-20261024-03','LOT-A01','09:45','09:55','QTime 6h / PT 0.5h / 上机 10:00','完成'],
+  ['B-20261024-03','LOT-A05','10:05','10:20','同上','完成'],
+  ['B-20261024-07','LOT-B02','09:50','09:58','同上','完成'],
+  ['B-20261024-12','LOT-D08','11:55','12:08','水位卡控后顺延','完成']],
+  tr:[
+  {check:'与 Barc Schedule 行1 ER/LR 逐值一致（PASS）',calc:'公式：Earliest = Litho Start − QTime − PT = 10:00 − 6h − 0.5h（相对 3.5h）；Latest = Litho Start − PT = 10:00 − 0.5h（相对 9.5h）；结合 Batch 放货窗口收紧为 [09:45, 09:55]。代入值全部可回溯：QTime=6h ← SOURCE_LOT_REMAIN_QTIME；PT=0.5h ← SOURCE_PRODUCT_FLOW.PROCESS_TIME；Start=10:00 ← FSO_SCHEDULE_RESULT。',src:[
+   ['SOURCE_LOT_REMAIN_QTIME.QTIME_LIMIT','6h','设计书 §2.8 表 2.8'],
+   ['SOURCE_PRODUCT_FLOW.PROCESS_TIME','0.5h','设计书 §2.7 表 2.7'],
+   ['FSO_SCHEDULE_RESULT.PROCESS_START','10:00','设计书 §4.3.2.3 表 2.4'],
+   ['BARC_RELEASE_BATCH.EARLIEST/LATEST_RELEASE','09:45 / 09:55（落库值）','设计书 §2.1 表 2.1']],
+   down:[{tab:'barc',label:'反查 Barc Schedule 行1 对答案'}]},
+  {check:'与 Barc Schedule 行2 一致',calc:'同 Batch（B-20261024-03）联动计算；ER/LR 随 LOT-A05 上机 10:30 平移。',src:[
+   ['FSO_SCHEDULE_RESULT.PROCESS_START（LOT-A05）','10:30','设计书 §4.3.2.3 表 2.4']],
+   down:[{tab:'barc',label:'反查 Barc Schedule 行2'}]},
+  {check:'与 Barc Schedule 行3 一致',calc:'同上公式；窗口 [09:50, 09:58]（同 Stage 组批收紧）。',src:[
+   ['BARC_RELEASE_BATCH（B-20261024-07）','09:50 / 09:58','设计书 §2.1 表 2.1']],
+   down:[{tab:'barc',label:'反查 Barc Schedule 行3'}]},
+  {check:'与 Barc Schedule 行7 Reason 一致',calc:'水位卡控 → 上机顺延至 12:10 后，反推窗口整体平移至 [11:55, 12:08]。',src:[
+   ['FSO_LOOP_TARGET_WIP.ACTUAL_WIP','10/10（顺延动因）','设计书 §4.3.2.3 表 2.5']],
+   down:[{tab:'barc',label:'反查 Barc Schedule 行7'}]}]},
+ {key:'reticle',name:'⑥ 光罩状态推演',cols:['ReticleId','推演链','就绪时间','EARLIEST_AVAILABLE','状态'],rows:[
+  ['RT-0101','09:10 IRIS 20min → 09:30 搬送 10min → 09:40 装载 5min','09:45','09:45 @ IMMLIB','完成'],
+  ['RT-0102','内部 IRIS（IMM02）','09:55','09:55 @ IMM02','完成'],
+  ['RT-0203','机台间接力','10:00','10:00 @ IMM04','完成'],
+  ['RT-0305','StarLight 计时到期','11:18','11:18 @ IMM06','完成']],
+  tr:[
+  {check:'与 PPT P5 / Reticle Chart / Transport 三处对齐（09:45 一致）',calc:'推演链：09:10 触发（WAFER_COUNT_TO_IRIS=0 计片到期）→ 外部 IRIS 20min（IRIS_COST_TIME@IRIS01）→ 搬送 10min（RETICLE_TRANS_COST_TIME）→ 装载 5min（RETICLE_LOAD_COST_TIME@IMM01）⇒ 09:10+35min=09:45 就绪；回写 SOURCE_RETICLE_STATUS.EARLIEST_AVAILABLE_TIME/LOCATION。35 = 20+10+5。',src:[
+   ['SOURCE_RETICLE_STATUS.WAFER_COUNT_TO_IRIS','0','设计书 §2.3 表 2.3'],
+   ['FSO_CFG_PARAM.IRIS_COST_TIME','IRIS01 20min','设计书 §4.7.2 §4.5'],
+   ['FSO_CFG_PARAM.RETICLE_TRANS_COST_TIME','10min（单值）','设计书 §4.7.2 §4.5'],
+   ['FSO_CFG_PARAM.RETICLE_LOAD_COST_TIME','IMM01 5min','设计书 §4.7.2 §4.5'],
+   ['SOURCE_RETICLE_STATUS.EARLIEST_AVAILABLE_TIME / LOCATION','09:45 / IMMLIB（回写）','设计书 §2.3 表 2.3']],
+   down:[{file:'result_reticle.html',label:'反查 Reticle Chart 五态 ↗'},{file:'result_reticle.html',label:'反查 Reticle Transport 3 条指令 ↗'},{tab:'chart',label:'反查 Scanner Chart 上机 10:00'}]},
+  {check:'与 result_reticle RT-0102 内部 IRIS 段一致',calc:'内部 IRIS：IMM02 支持（IS_SUPPORT_IRIS=Y），免外部搬送 → 就绪=Process 前检完成 09:55。',src:[
+   ['SOURCE_EQP_INFO.IS_SUPPORT_IRIS（IMM02）','Y','设计书 §2.9 表 2.9']],
+   down:[{file:'result_reticle.html',label:'反查 Reticle Chart ↗'}]},
+  {check:'与 result_reticle RT-0203 接力段一致',calc:'接力：上一 Lot 加工完 → 搬送 IMM03→IMM04（10min）→ 就绪 10:00。',src:[
+   ['FSO_CFG_PARAM.RETICLE_TRANS_COST_TIME','10min','设计书 §4.7.2 §4.5']],
+   down:[{file:'result_reticle.html',label:'反查 Reticle Chart ↗'}]},
+  {check:'与 result_reticle RT-0305 StarLight 段一致',calc:'计时触发：FUTURE_STARLIGHT_TIME 到期 → StarLight 45min → 搬回 → 11:18 就绪。',src:[
+   ['SOURCE_RETICLE_STATUS.FUTURE_STARLIGHT_TIME','10:20','设计书 §2.3 表 2.3'],
+   ['FSO_CFG_PARAM.STARLIGHT_COST_TIME','STL01 45min','设计书 §4.7.2 §4.5']],
+   down:[{file:'result_reticle.html',label:'反查 Reticle Chart ↗'}]}]}
+];
+function openTrace(si,ri){
+  const st=MID[si],t=st.tr[ri],r=st.rows[ri];
+  let b='<div class="alert i" style="margin-bottom:12px"><span class="dot"></span><div><b>一致性校验：'+esc(t.check)+'</b></div></div>';
+  b+='<div style="font-weight:600;margin:8px 0 4px">计算过程 / 规则（公式代入）</div><div style="font-size:13px;line-height:1.8;color:var(--colorText)">'+esc(t.calc)+'</div>';
+  b+='<div style="font-weight:600;margin:14px 0 6px">源数据字段（表.字段 = 取值 | 出处）</div><table class="tbl"><thead><tr><th>来源字段</th><th>取值</th><th>出处</th></tr></thead><tbody>';
+  t.src.forEach(s=>{b+='<tr><td><b>'+esc(s[0])+'</b></td><td>'+esc(s[1])+'</td><td class="note">'+esc(s[2])+'</td></tr>';});
+  b+='</tbody></table>';
+  b+='<div style="font-weight:600;margin:14px 0 6px">下游反查（点开对答案）</div><div class="toolbar" style="margin:0">';
+  t.down.forEach(d=>{b+=d.file?('<a class="btn sm" href="'+d.file+'">'+esc(d.label)+' ↗</a>'):('<button class="btn sm" onclick="jumpTab(\''+d.tab+'\')">'+esc(d.label)+' →</button>');});
+  b+='</div>';
+  $('#modalRoot').innerHTML='<div class="overlay" onclick="if(event.target===this)$(\'#modalRoot\').innerHTML=\'\'"><div class="modal" style="width:780px"><div class="modal-h"><span class="t">溯源 · '+st.name+' · '+esc(r[0])+'</span><span class="x" onclick="$(\'#modalRoot\').innerHTML=\'\'">✕</span></div><div class="modal-b">'+b+'</div></div></div>';
+}
+function jumpTab(tab){$('#modalRoot').innerHTML='';state.tab=tab;render();}
+V.mid=function(){
+  const si=MID.findIndex(s=>s.key===state.midStep),st=MID[si];
+  let s='<div class="toolbar"><select class="inp" style="width:300px"><option>'+MIDRUN.model+' '+MIDRUN.ver+' · '+MIDRUN.batch+'（'+MIDRUN.start+'–'+MIDRUN.end+' '+MIDRUN.status+'）</option><option>Litho_Main V1.3 · RUN-20261024-02</option></select>'
+   +'<button class="btn" onclick="toast(\'已切换运行批次（演示）\')">查询</button>'
+   +'<span class="note">模型过程产物（只读），每行可 🔍 溯源至源表字段与计算过程 '+tip('溯源三段式：一致性校验（与下游页面/出参比对）→ 计算过程（公式代入）→ 源数据字段（表.字段=值+设计书出处）→ 下游反查跳转')+'</span>'
+   +'<span class="sp"></span><button class="btn sm" onclick="dlMid()">⬇ 导出当前步骤 CSV</button></div>';
+  s+='<div class="alert i" style="margin-bottom:12px"><span class="dot"></span><div><b>自动校验：六步产物与下游页面/数据库出参一致性 6/6 PASS</b>——点任意行「🔍 溯源」可查看该结论的计算过程、源表字段取值与下游反查入口。</div></div>';
+  s+='<div class="legend">'+MID.map(x=>'<span class="li" style="cursor:pointer;'+(x.key===state.midStep?'color:var(--colorPrimary);font-weight:600':'')+'" onclick="state.midStep=\''+x.key+'\';render()">▸ '+x.name+'</span>').join('')+'</div>';
+  s+='<table class="tbl"><thead><tr>'+st.cols.map(c=>'<th>'+esc(c)+'</th>').join('')+'<th>溯源</th></tr></thead><tbody>';
+  st.rows.forEach((r,ri)=>{
+    s+='<tr>'+r.map((c,i)=>i===r.length-1?'<td><span class="tag success">'+esc(c)+'</span></td>':(i===0?'<td><b>'+esc(c)+'</b></td>':'<td>'+esc(c)+'</td>')).join('')
+     +'<td><button class="btn sm" onclick="openTrace('+si+','+ri+')">🔍 溯源</button></td></tr>';
+  });
+  s+='</tbody></table>';
+  s+='<div class="note" style="margin-top:10px">产物对应数据库表见《04_数据库设计.md》§5（②→FSO_RETICLE_INFO / ③→FSO_SCHEDULE_RESULT / ⑤→BARC_RELEASE_BATCH / ⑥→SOURCE_RETICLE_STATUS 回写 EARLIEST_AVAILABLE_*）；正式环境中溯源数据由排程引擎落库的中间表自动生成。</div>';
+  return s;
+};
+function dlMid(){
+  const st=MID.find(x=>x.key===state.midStep);
+  let csv='\ufeff'+st.cols.join(',')+'\n';
+  st.rows.forEach(r=>{csv+=r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')+'\n';});
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='mid_result_'+st.key+'.csv';a.click();toast('CSV 已下载');
+}
+
+function midGantt(){
+  const t0=9*60+10,t1=9*60+45,pxm=14;
+  const rows=[
+   {label:'① 预处理',segs:[{a:552,b:556,color:'#52C41A',text:'4min',tip:'09:12–09:16 宽表打标完成'}]},
+   {label:'② Reticle 预组批',segs:[{a:556,b:562,color:'#2D6CDF',text:'6min',tip:'09:16–09:22 MIP 求解完成'}]},
+   {label:'③ Lot 细排程',segs:[{a:562,b:570,color:'#F5921B',text:'8min',tip:'09:22–09:30 4 chunk 求解完成'}]},
+   {label:'④ 后处理',segs:[{a:570,b:573,color:'#8B5CF6',text:'',tip:'09:30–09:33 卡控/SDR 指令生成'}]},
+   {label:'⑤ BARC 反推',segs:[{a:573,b:575,color:'#10B981',text:'',tip:'09:33–09:35 放货窗口落库'}]},
+   {label:'⑥ 光罩状态推演',segs:[{a:575,b:578,color:'#9333EA',text:'',tip:'09:35–09:38 就绪时间回写'}]}];
+  return ganttShell('步骤 / 执行时间线',170,t0,t1,pxm,rows)
+   +'<div class="legend" style="margin-top:8px"><span class="li"><i style="background:#52C41A"></i>①</span><span class="li"><i style="background:#2D6CDF"></i>②</span><span class="li"><i style="background:#F5921B"></i>③</span><span class="li"><i style="background:#8B5CF6"></i>④</span><span class="li"><i style="background:#10B981"></i>⑤</span><span class="li"><i style="background:#9333EA"></i>⑥</span><span class="note">RUN-20261024-01 六步执行时间线（总耗时 26min，与运行批次起止一致）</span></div>';
+}
+const _midTable=V.mid;
+V.mid=function(){return _midTable()+midGantt();};
+
+/* ============ tooltip / 评论 / 时钟 ============ */
+document.addEventListener('mouseover',function(ev){
+  const el=ev.target.closest('[data-tip]');const tt=$('#tt');
+  if(!el){tt.style.display='none';return;}
+  tt.innerHTML=el.getAttribute('data-tip');tt.style.display='block';
+  const r=el.getBoundingClientRect();
+  let x=r.left,y=r.bottom+8;
+  if(x+340>window.innerWidth)x=Math.max(8,window.innerWidth-348);
+  if(y+200>window.innerHeight)y=Math.max(8,r.top-200);
+  tt.style.left=x+'px';tt.style.top=y+'px';
+});
+document.addEventListener('mouseout',function(){const tt=$('#tt');if(tt)tt.style.display='none';});
+document.addEventListener('click',function(ev){
+  const q=ev.target.closest('.q');if(!q)return;
+  ev.stopPropagation();document.querySelectorAll('.bubble').forEach(b=>b.remove());
+  const b=document.createElement('div');b.className='bubble';
+  b.innerHTML='<div class="bt">字段说明</div><div class="bd">'+esc(q.getAttribute('data-cm'))+'</div>';
+  document.body.appendChild(b);const r=q.getBoundingClientRect();
+  b.style.left=Math.max(8,Math.min(window.innerWidth-340,r.left))+'px';b.style.top=(r.bottom+8)+'px';
+  setTimeout(()=>{const h=()=>{b.remove();document.removeEventListener('click',h);};document.addEventListener('click',h);},0);
+});
+$('#cmtBtn').onclick=function(){document.body.classList.toggle('cmt-on');this.classList.toggle('primary');};
+(function clock(){const d=new Date(),p=n=>String(n).padStart(2,'0');$('#clock').textContent=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());setTimeout(clock,1000);})();
+/* ===== 7 计划 vs 实际（MES 实绩回流闭环） ===== */
+/* PLAN=RESULT-V20261024-1755 的计划条；ACT=MES 实绩回 TrackIn/TrackOut（演示口径：当日 6 机台 9 批） */
+const PVA=[
+ {lot:'LOT-A01',eqp:'IMM01',ps:600,pe:625,as:604,ae:632,w:25},
+ {lot:'LOT-A05',eqp:'IMM01',ps:630,pe:720,as:638,ae:724,w:25},
+ {lot:'LOT-B02',eqp:'IMM02',ps:600,pe:650,as:600,ae:655,w:25},
+ {lot:'LOT-B05',eqp:'IMM02',ps:655,pe:745,as:652,ae:742,w:25},
+ {lot:'LOT-C01',eqp:'IMM03',ps:540,pe:585,as:540,ae:588,w:25},
+ {lot:'LOT-C04',eqp:'IMM04',ps:600,pe:645,as:612,ae:668,w:25},
+ {lot:'LOT-D02',eqp:'IMM05',ps:635,pe:715,as:640,ae:718,w:25},
+ {lot:'LOT-E03',eqp:'IMM06',ps:555,pe:600,as:555,ae:602,w:25},
+ {lot:'LOT-E09',eqp:'IMM06',ps:690,pe:735,as:null,ae:null,w:25}
+];
+PVA.forEach(function(r){
+  if(r.as==null){r.devS=null;r.devE=null;r.st='no';}
+  else{r.devS=r.as-r.ps;r.devE=r.ae-r.pe;r.st=(Math.abs(r.devS)<=5&&Math.abs(r.devE)<=5)?'ok':(Math.abs(r.devE)<=15?'warn':'err');}
+});
+function _planTable(){
+  let s='<table class="tbl"><thead><tr>'+ths(['LotId','机台','计划开始','计划结束','实际开始','实际结束','开始偏差','结束偏差','加工片数','状态','原因'])+'</tr></thead><tbody>';
+  PVA.forEach(function(r){
+    var stTag=r.st==='ok'?'<span class="tag success">达标</span>':(r.st==='warn'?'<span class="tag warning">±15min 内</span>':(r.st==='err'?'<span class="tag error">超偏差</span>':'<span class="tag default">未完成</span>'));
+    var fmt=function(m){return m==null?'<span class="note">—</span>':mm2h(m);};
+    var dv=function(v){return v==null?'<span class="note">—</span>':'<span style="color:'+(Math.abs(v)<=5?'var(--colorSuccess)':(Math.abs(v)<=15?'#D48806':'var(--colorError)'))+'">'+(v>0?'+':'')+v+'min</span>';};
+    s+='<tr><td><b>'+r.lot+'</b></td><td class="mono">'+r.eqp+'</td><td class="mono">'+fmt(r.ps)+'</td><td class="mono">'+fmt(r.pe)+'</td><td class="mono">'+fmt(r.as)+'</td><td class="mono">'+fmt(r.ae)+'</td>'
+     +'<td>'+dv(r.devS)+'</td><td>'+dv(r.devE)+'</td><td>'+(r.as==null?'0/':'')+r.w+'</td><td>'+stTag+'</td>'
+     +'<td class="note">'+(r.lot==='LOT-C04'?'Reticle RT-0203 上批延时 +12min 顺延':(r.lot==='LOT-A01'?'急货到站 +4min（AMHS 搬送波动）':(r.lot==='LOT-E09'?'等待 RT-0305 StarLight 完成，未开始':(r.st==='ok'?'按计划执行':'—'))))+'</td></tr>';
+  });
+  return s+'</tbody></table>';
+}
+function _planGantt(){
+  var rowH=26,rows=PVA,W=HW+CW()+20,H=34+rows.length*rowH+40;
+  var s='<div class="scrollx" style="padding:10px"><svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" style="display:block">';
+  for(var m=T0;m<=T1;m+=60){s+='<text x="'+(HW+px(m))+'" y="24" font-size="10" fill="#8A94A6">'+mm2h(m)+'</text><line x1="'+(HW+px(m))+'" y1="30" x2="'+(HW+px(m))+'" y2="'+(34+rows.length*rowH)+'" stroke="#F0F0F0"/>';}
+  rows.forEach(function(r,i){
+    var y=34+i*rowH;
+    s+='<text x="8" y="'+(y+16)+'" font-size="11" fill="rgba(0,0,0,.65)">'+esc(r.lot)+'</text>';
+    s+='<text x="'+(HW-46)+'" y="'+(y+16)+'" font-size="10" fill="#8A94A6">'+r.eqp+'</text>';
+    if(r.ps!=null) s+='<rect x="'+(HW+px(r.ps))+'" y="'+(y+5)+'" width="'+((r.pe-r.ps)*PXM)+'" height="8" rx="2" fill="none" stroke="#1677FF" stroke-width="1.4"/>';
+    if(r.as!=null) s+='<rect x="'+(HW+px(r.as))+'" y="'+(y+15)+'" width="'+((r.ae-r.as)*PXM)+'" height="8" rx="2" fill="'+(r.st==='ok'?'var(--runC)':(r.st==='warn'?'var(--prepC)':(r.st==='err'?'var(--colorError)':'#D9D9D9')))+'"/>';
+  });
+  s+='<text x="'+(HW+10)+'" y="'+(34+rows.length*rowH+24)+'" font-size="11" fill="#5A6B85">蓝框=计划 · 实心=实际（绿=达标 / 橙=±15min / 红=超偏差 / 灰=未完成）　LOT-E09 计划 11:30 上机，因 RT-0305 StarLight 窗口顺延</text>';
+  return s+'</svg></div>';
+}
+V.plan=function(){
+  var done=PVA.filter(function(r){return r.st!=='no';}).length;
+  var ok=PVA.filter(function(r){return r.st==='ok';}).length;
+  var warn=PVA.filter(function(r){return r.st==='warn';}).length;
+  var err=PVA.filter(function(r){return r.st==='err';}).length;
+  var no=PVA.filter(function(r){return r.st==='no';}).length;
+  var kpi='<div class="kpis" style="grid-template-columns:repeat(5,1fr)">'
+   +'<div class="kpi"><div class="l">实绩回流批次</div><div class="v">'+PVA.length+'<small>批</small></div><div class="d">MES TrackOut 口径 · 水位 17:50</div></div>'
+   +'<div class="kpi"><div class="l">时间达成率</div><div class="v" style="color:var(--colorSuccess)">'+Math.round(ok/done*100)+'<small>%</small></div><div class="d">'+ok+'/'+done+' 完成批达标</div></div>'
+   +'<div class="kpi"><div class="l">平均开始偏差</div><div class="v mono">+4.3<small>min</small></div><div class="d">|dev| ≤ 5min 计达标</div></div>'
+   +'<div class="kpi"><div class="l">QTime Violation</div><div class="v" style="color:var(--colorSuccess)">0<small>批</small></div><div class="d">当日无超 QTime（Max QT 6h 全守住）</div></div>'
+   +'<div class="kpi"><div class="l">未完成</div><div class="v" style="color:var(--colorWarning)">'+no+'<small>批</small></div><div class="d">LOT-E09 受 StarLight 窗口约束顺延</div></div></div>';
+  var v=state.view.plan||'list';
+  var s='<div class="toolbar"><span class="note">视图切换：</span><button class="btn sm'+(v==='list'?' primary':'')+'" onclick="state.view.plan=\'list\';render()">列表</button><button class="btn sm'+(v==='gantt'?' primary':'')+'" onclick="state.view.plan=\'gantt\';render()">甘特图</button><span class="sp"></span><button class="btn sm" onclick="toast(\'CSV 已下载（演示）\')">⬇ CSV</button></div>';
+  s+='<div class="alert i" style="margin-bottom:12px"><span class="dot"></span><div><b>准确性闭环</b>：MES 实绩回流 → 与计划逐条比对 → 偏差超阈值（±15min）的条目自动生成校准建议（WPH 修正 / 搬送耗时修正 / 温层代价修正），下轮排程生效；每条可 <b>Run Trace</b> 回到生成该计划的快照与决策审计。</div></div>';
+  s+=(v==='gantt'?_planGantt():_planTable());
+  return kpi+s;
+};
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="zh-CN" data-page-node-id="2ijm17nBoscXYGGrwnB7bd">
+<head data-page-node-id="GAv1WdPoG0HtsvFtZ26YpB">
+<meta charset="utf-8" data-page-node-id="uYecQhvO5xJphvynhDeZT5">
+<meta name="viewport" content="width=device-width, initial-scale=1" data-page-node-id="qlIa3gM3FGlDWnw7wgEXY7">
+<title>设备温层配置 · 可交互原型</title>
+<style>
+:root{
+  --colorPrimary:#1677FF; --colorPrimaryHover:#4096FF; --colorPrimaryActive:#0958D9;
+  --colorSuccess:#52C41A; --colorWarning:#FAAD14; --colorError:#FF4D4F;
+  --colorText:rgba(0,0,0,.88); --colorTextSecondary:rgba(0,0,0,.65); --colorTextTertiary:rgba(0,0,0,.45); --colorTextQuaternary:rgba(0,0,0,.25);
+  --bgContainer:#fff; --bgLayout:#F5F5F5;
+  --colorBorder:#D9D9D9; --colorBorderSecondary:#F0F0F0; --colorSplit:rgba(5,5,5,.06);
+  --primaryBg:#E6F4FF; --primaryBorder:#91CAFF;
+  --successBg:#F6FFED; --successBorder:#B7EB8F; --warningBg:#FFFBE6; --warningBorder:#FFE58F; --errorBg:#FFF2F0; --errorBorder:#FFCCC7;
+  --radiusSM:4px; --radius:6px; --radiusLG:8px;
+  --siderW:208px; --headerH:48px;
+  --shadow3:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --shadow:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:var(--font);font-size:14px;line-height:1.5714;color:var(--colorText);background:var(--bgLayout)}
+.app{display:flex;height:100vh;overflow:hidden}
+.sider{width:var(--siderW);flex:0 0 var(--siderW);background:#fff;border-right:1px solid var(--colorBorderSecondary);display:flex;flex-direction:column;height:100vh}
+.logo{height:var(--headerH);display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--colorBorderSecondary);flex:0 0 var(--headerH)}
+.logo .mark{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#1677FF,#69B1FF);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.logo .name{font-weight:600;font-size:14px}
+.logo .sub{font-size:11px;color:var(--colorTextTertiary);margin-top:-3px}
+.menu{padding:8px 0;overflow-y:auto;flex:1}
+.menu .grp{padding:8px 16px 4px;font-size:12px;color:var(--colorTextQuaternary)}
+.menu .item{height:40px;display:flex;align-items:center;gap:10px;padding:0 16px;cursor:pointer;color:var(--colorTextSecondary);font-size:14px;transition:background .2s}
+.menu .item:hover{background:rgba(0,0,0,.04)}
+.menu .item.active{background:var(--primaryBg);color:var(--colorPrimary);font-weight:500}
+.menu .item .ic{width:16px;height:16px;flex:0 0 16px;opacity:.85}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.header{height:var(--headerH);flex:0 0 var(--headerH);background:#fff;border-bottom:1px solid var(--colorBorderSecondary);display:flex;align-items:center;padding:0 24px;gap:12px}
+.crumb{font-size:13px;color:var(--colorTextTertiary)}
+.crumb b{color:var(--colorText);font-weight:500}
+.header .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.content{flex:1;overflow:auto;padding:24px}
+.btn{height:32px;padding:0 15px;border-radius:var(--radius);border:1px solid var(--colorBorder);background:#fff;color:var(--colorText);font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap}
+.btn:hover{color:var(--colorPrimary);border-color:var(--colorPrimary)}
+.btn.primary{background:var(--colorPrimary);border-color:var(--colorPrimary);color:#fff}
+.btn.primary:hover{background:var(--colorPrimaryHover);border-color:var(--colorPrimaryHover);color:#fff}
+.btn.link{border-color:transparent;background:transparent;color:var(--colorPrimary);padding:0 4px;height:24px}
+.btn.link:hover{background:var(--primaryBg)}
+.btn.link.danger{color:var(--colorError)}
+.btn.link.danger:hover{background:var(--errorBg)}
+.btn.sm{height:28px;padding:0 10px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.card{background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow3);padding:24px;margin-bottom:16px}
+.card.np{padding:0}
+.card-h{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.card-h .t{font-size:16px;font-weight:600}
+.card-h .sub{font-size:12px;color:var(--colorTextTertiary)}
+.card-h .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:var(--radiusSM);font-size:12px;line-height:20px;border:1px solid transparent}
+.tag.success{background:var(--successBg);color:#389E0D;border-color:var(--successBorder)}
+.tag.processing{background:var(--primaryBg);color:var(--colorPrimary);border-color:var(--primaryBorder)}
+.tag.warning{background:var(--warningBg);color:#D48806;border-color:var(--warningBorder)}
+.tag.error{background:var(--errorBg);color:var(--colorError);border-color:var(--errorBorder)}
+.tag.default{background:#FAFAFA;color:var(--colorTextSecondary);border-color:var(--colorBorder)}
+table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
+table.tbl th{background:#FAFAFA;text-align:left;font-weight:600;color:var(--colorText);padding:12px 16px;border-bottom:1px solid var(--colorBorderSecondary);white-space:nowrap;font-size:13px}
+table.tbl td{padding:12px 16px;border-bottom:1px solid var(--colorBorderSecondary);color:var(--colorTextSecondary);vertical-align:middle}
+table.tbl tr:hover td{background:#FAFAFA}
+table.tbl td b{color:var(--colorText)}
+table.tbl .num{color:var(--colorTextQuaternary);width:56px}
+.field{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.field .lab{color:var(--colorTextSecondary);min-width:132px;text-align:right;font-size:14px}
+.field .lab i{color:var(--colorError);font-style:normal;margin-right:2px}
+.inp{height:32px;border:1px solid var(--colorBorder);border-radius:var(--radius);padding:0 11px;font-size:14px;outline:none;color:var(--colorText);background:#fff;font-family:var(--font)}
+.inp:focus{border-color:var(--colorPrimary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+.inp[readonly]{background:#F5F5F5;color:var(--colorTextTertiary);cursor:not-allowed}
+textarea.inp{height:auto;padding:6px 11px;resize:vertical;line-height:1.6}
+select.inp{cursor:pointer}
+.tabs{display:flex;gap:32px;border-bottom:1px solid var(--colorBorderSecondary);margin-bottom:20px}
+.tabs .tab{padding:10px 0 12px;font-size:14px;color:var(--colorTextSecondary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:6px}
+.tabs .tab.on{color:var(--colorPrimary);border-color:var(--colorPrimary);font-weight:500}
+.tabs .tab .cnt{font-size:12px;background:#F0F0F0;color:var(--colorTextTertiary);border-radius:9px;padding:0 6px;height:18px;line-height:18px}
+.tabs .tab.on .cnt{background:var(--primaryBg);color:var(--colorPrimary)}
+.note{font-size:12px;color:var(--colorTextTertiary)}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.toolbar .sp{margin-left:auto}
+.toolbar .inp{min-width:200px}
+.syncbar{display:flex;align-items:center;gap:10px;background:#FAFAFA;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius);padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--colorTextSecondary)}
+.syncbar .dot{width:8px;height:8px;border-radius:50%;background:var(--colorSuccess);box-shadow:0 0 0 3px rgba(82,196,26,.15)}
+.syncbar .sp{margin-left:auto;display:flex;gap:8px;align-items:center}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+.kpi{background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow3);padding:18px 20px}
+.kpi .l{font-size:13px;color:var(--colorTextTertiary);margin-bottom:6px}
+.kpi .v{font-size:26px;font-weight:600;line-height:1.2}
+.kpi .v small{font-size:13px;font-weight:400;color:var(--colorTextTertiary);margin-left:4px}
+.recips{display:flex;gap:4px;flex-wrap:wrap}
+.recips .tag{background:#FAFAFA;border-color:var(--colorBorder);color:var(--colorTextSecondary)}
+.recips .more{color:var(--colorTextTertiary);font-size:12px;align-self:center}
+.recips .tag.match{border-color:var(--primaryBorder);background:var(--primaryBg);color:var(--colorPrimary);font-weight:600}
+.recips .tag.wild{border-style:dashed;border-color:var(--colorWarning);color:#D48806;background:var(--warningBg);font-weight:600}
+mark.hl{background:#FFF1B8;color:#AD6800;padding:0 1px;border-radius:2px;font-style:normal}
+.temp{display:inline-flex;align-items:center;gap:7px;font-weight:600;color:var(--colorText)}
+.temp .bar{width:44px;height:6px;border-radius:3px;background:#F0F0F0;overflow:hidden}
+.temp .bar i{display:block;height:100%;background:linear-gradient(90deg,#69B1FF,#1677FF);border-radius:3px}
+.temp .bar.warm i{background:linear-gradient(90deg,#FFD666,#FA8C16)}
+.temp .bar.hot i{background:linear-gradient(90deg,#FFA39E,#F5222D)}
+.temp em{font-style:normal;font-size:12px;color:var(--colorTextTertiary);font-weight:400}
+/* combobox */
+.combo{position:relative;min-width:260px}
+.combo .inp{width:100%;padding-right:30px;cursor:text}
+.combo .arrow{position:absolute;right:10px;top:9px;color:var(--colorTextQuaternary);pointer-events:none;font-size:12px}
+.combo-list{position:absolute;left:0;right:0;top:36px;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);max-height:216px;overflow:auto;z-index:60;padding:4px;display:none}
+.combo-list.open{display:block}
+.combo-item{height:32px;display:flex;align-items:center;padding:0 10px;border-radius:var(--radiusSM);cursor:pointer;font-size:14px;color:var(--colorText)}
+.combo-item:hover,.combo-item.hl{background:var(--primaryBg)}
+.combo-item .tick{margin-left:auto;color:var(--colorPrimary)}
+.combo-item.dis{color:var(--colorTextQuaternary);cursor:not-allowed;background:transparent}
+.combo-empty{padding:10px;text-align:center;color:var(--colorTextQuaternary);font-size:13px}
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:center;justify-content:center}
+.modal{background:#fff;border-radius:var(--radiusLG);width:560px;max-width:94vw;box-shadow:var(--shadow);overflow:hidden}
+.modal.wide{width:760px}
+.modal-h{padding:16px 24px;border-bottom:1px solid var(--colorBorderSecondary);display:flex;align-items:center;gap:8px}
+.modal-h .t{font-size:16px;font-weight:600}
+.modal-h .x{margin-left:auto;cursor:pointer;color:var(--colorTextTertiary);font-size:18px;line-height:1;padding:4px}
+.modal-b{padding:20px 24px 4px;max-height:62vh;overflow:auto}
+.modal-f{padding:12px 24px 18px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--colorBorderSecondary);margin-top:12px}
+.err{color:var(--colorError);font-size:12px;margin-top:4px;min-height:16px}
+.hint{font-size:12px;color:var(--colorTextTertiary);margin-top:4px}
+.drop{border:1px dashed var(--colorBorder);border-radius:var(--radiusLG);padding:22px;text-align:center;background:#FAFAFA;cursor:pointer;transition:all .2s}
+.drop:hover{border-color:var(--colorPrimary);background:var(--primaryBg)}
+.drop .ic{font-size:22px}
+.drop .m{margin-top:6px;font-size:13px;color:var(--colorTextSecondary)}
+.drop .s{font-size:12px;color:var(--colorTextTertiary);margin-top:2px}
+.preview{margin-top:14px;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius);overflow:hidden;max-height:240px;overflow-y:auto}
+.preview table.tbl th,.preview table.tbl td{padding:8px 12px;font-size:13px}
+.badge-err{color:var(--colorError);font-weight:600}
+/* comment mode */
+.q{display:none;width:15px;height:15px;border-radius:50%;background:var(--colorWarning);color:#fff;font-size:11px;line-height:15px;text-align:center;cursor:pointer;margin-left:4px;font-weight:700;vertical-align:middle;user-select:none}
+body.cmt-on .q{display:inline-block}
+.bubble{position:fixed;z-index:1000;max-width:300px;background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow);padding:12px 14px;font-size:13px;color:var(--colorText);border-top:3px solid var(--colorWarning)}
+.bubble .bt{font-weight:600;margin-bottom:4px}
+.bubble .bd{color:var(--colorTextSecondary);font-size:12.5px;line-height:1.65}
+.toast{position:fixed;top:64px;left:50%;transform:translateX(-50%);background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:9px 16px;font-size:13px;z-index:1200;display:flex;align-items:center;gap:8px;border-left:3px solid var(--colorSuccess);animation:tin .2s}
+.toast.err{border-left-color:var(--colorError)}
+@keyframes tin{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
+.empty{padding:40px;text-align:center;color:var(--colorTextQuaternary)}
+</style>
+</head>
+<body data-page-node-id="NNL5MZMrL8wVW0pvTbDAOe">
+<div class="app" data-page-node-id="BunPDFGribKPy1z7maDkZP">
+  <aside class="sider" data-page-node-id="pUVVwBq9Csen7I2YjMyHg1">
+    <div class="logo" data-page-node-id="ReK4BaHnRVdONWD27UfpEZ">
+      <div class="mark" data-page-node-id="pOH4u1bOkY3NjcLFLVk2vn">FS</div>
+      <div data-page-node-id="jjce8lBRjkK1Uxij1kmsEl">
+        <div class="name" data-page-node-id="2D5Na5u9d6xrqtjbchsX8t">Pxsemi FSO</div>
+        <div class="sub" data-page-node-id="BDqwTFdi4z2GeA1CCbwCCJ">智能生产中心 · 光刻排程</div>
+      </div>
+    </div>
+    <nav class="menu" data-page-node-id="Db3I70BBREEPfiuDWfOTqy">
+      <div class="item active" data-page-node-id="2G2PBmi03EK6GRghcM0jsr"><svg class="ic" viewBox="0 0 24 24" fill="currentColor" data-page-node-id="koZXA8uBXSAuLeVX69TNo6"><path d="M12 3v12M12 21a3 3 0 100-6 3 3 0 000 6zM12 3a2 2 0 100 4 2 2 0 000-4z" data-page-node-id="1GicDl4pynZRXP3PZHYFHw"/></svg><a class="item" href="data_zone.html">⇄ 数据接入</a>
+      temperature config</div>
+    </nav>
+  </aside>
+  <div class="main" data-page-node-id="lIvhDFDv6sAFOWHkNycNK9">
+    <header class="header" data-page-node-id="1KjxiOmSfv7xtXuxg61G3v">
+      <div class="crumb" data-page-node-id="GIlGlPyQiewpx5yvn9R7n6">Model Control / Production Config / <b data-page-node-id="23lVp1UElIJJ7LgEEenCih">Device Temperature Layer</b></div>
+      <div class="right" data-page-node-id="vP2fwKUE04bxsm5beoZEGb">
+        <span class="note" id="clock" data-page-node-id="8zCd80WKDhIaXZecMVA34D"></span>
+        <button class="btn" id="cmtBtn" style="display:none" data-page-node-id="Bo49ejGQ5nZXp24Xy0LhGQ">💬 评论模式</button>
+      </div>
+    </header>
+    <main class="content" id="content" data-page-node-id="iVLlxCeB73IliGpHfn7TFD"></main>
+  </div>
+</div>
+<div id="modalRoot" data-page-node-id="BPBP94X1fe7GTzep5JnAuP"></div>
+
+<script>
+/* ================= 数据 ================= */
+const D = {
+  sync:{last:'2026-10-19 14:25:03', auto:'每 5 min', src:'EAP / MES'},
+  equips:[
+    {eqp:'SC01', cap:'Capability1', recipes:['RCP_A','RCP_B','RCP_C'], temp:23, src:'EAP'},
+    {eqp:'SC02', cap:'Capability1', recipes:['RCP_A','RCP_C'],        temp:23, src:'EAP'},
+    {eqp:'SC03', cap:'Capability2', recipes:['RCP_B','RCP_D'],        temp:35, src:'MES'},
+    {eqp:'SC04', cap:'Capability1', recipes:['RCP_A','RCP_B','RCP_C*','RCP_D'], temp:28, src:'EAP'},
+    {eqp:'SC05', cap:'Capability3', recipes:['RCP_C'],               temp:28, src:'MES'},
+    {eqp:'SC06', cap:'Capability2', recipes:['RCP_A','RCP_D'],        temp:35, src:'EAP'},
+    {eqp:'SC07', cap:'Capability3', recipes:['RCP_B'],               temp:23, src:'EAP'},
+  ],
+  // Capability 主数据（来自其他系统，作为下拉可配置值）
+  capMaster:['Capability1','Capability2','Capability3','Capability4','Capability5','Capability6'],
+  caps:[
+    {cap:'Capability1', start:90,  end:110, cost:120, ut:'2026-10-18 14:20', uu:'huangjw'},
+    {cap:'Capability2', start:100, end:120, cost:150, ut:'2026-10-17 09:05', uu:'zhangq'},
+    {cap:'Capability3', start:80,  end:95,  cost:90,  ut:'2026-10-15 18:42', uu:'liwei'},
+    {cap:'Capability4', start:105, end:125, cost:140, ut:'2026-10-16 11:30', uu:'wangl'},
+  ],
+};
+const PAGE_SIZE = 8;
+const state = {tab:'display', cmt:false, kw:'', fCap:'', tMin:'', tMax:'', fCfgCap:'', page:1, dirty:{}, editingKey:null};
+
+/* ================= 工具 ================= */
+const $ = s=>document.querySelector(s);
+const esc = s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const capOf = eqp => (D.equips.find(e=>e.eqp===eqp)||{}).cap || 'Capability1';
+function toast(msg, isErr){
+  const el=document.createElement('div');
+  el.className='toast'+(isErr?' err':'');
+  el.innerHTML=(isErr?'⚠️':'✅')+' <span>'+esc(msg)+'</span>';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 2200);
+}
+function now(){const d=new Date();const p=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());}
+const curUser='huangjw';
+function tip(txt){return '<span class="q" data-tip="'+esc(txt).replace(/"/g,'&quot;')+'">?</span>';}
+function tempVisual(t){
+  const cls = t>=35?'hot':(t>=28?'warm':'');
+  const pct = Math.min(100, Math.max(8, Math.round((t-15)/(45-15)*100)));
+  return '<span class="temp"><span class="bar '+cls+'"><i style="width:'+pct+'%"></i></span>'+t+' <em>℃</em></span>';
+}
+function syncCapsFromEquip(){
+  // Capability 与设备数量的关联展示用（Capability 配置里展示覆盖设备数）
+  return D.equips.map(e=>capOf(e.eqp));
+}
+
+/* ================= 通配符匹配（RECIPE_ID_LIST 搜索） ================= */
+// 仅当关键字含 * 时按 glob 通配：* 转 .*，并自动锚定首尾；其余字符做正则转义。
+function buildRe(kw){
+  if(!kw || !kw.includes('*')) return null;
+  const esc = kw.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+  try { return new RegExp('^'+esc+'$', 'i'); } catch(e){ return null; }
+}
+// 命中关键字时，返回高亮后的 Recipe 文本（仅高亮匹配子串）
+function hlRecipe(r, re){
+  if(!re) return esc(r);
+  const m = re.exec(r);
+  if(!m) return esc(r);
+  const s=m.index, e=m.index+m[0].length;
+  return esc(r.slice(0,s))+'<mark class="hl">'+esc(r.slice(s,e))+'</mark>'+esc(r.slice(e));
+}
+
+/* ================= 渲染：外框 ================= */
+function render(){
+  $('#content').innerHTML = `
+    <div class="card np">
+      <div style="padding:0 24px">
+        <div class="tabs">
+          <div class="tab ${state.tab==='display'?'on':''}" onclick="switchTab('display')">设备温层展示<span class="cnt">${D.equips.length}</span></div>
+          <div class="tab ${state.tab==='config'?'on':''}" onclick="switchTab('config')">Capability 温层配置<span class="cnt">${D.caps.length}</span></div>
+        </div>
+      </div>
+      ${state.tab==='display' ? viewDisplay() : viewConfig()}
+    </div>`;
+  if(state.cmt) bindTips();
+}
+
+function switchTab(t){ state.tab=t; state.kw=''; state.fCap=''; state.tMin=''; state.tMax=''; state.fCfgCap=''; render(); }
+function readDisp(){
+  state.kw=($('#kwInput').value||'').trim();
+  state.fCap=($('#dispCap_input').value||'').trim();
+  state.tMin=($('#tMin').value||'').trim();
+  state.tMax=($('#tMax').value||'').trim();
+}
+function queryDisp(){ readDisp(); state.page=1; render(); }
+function resetDisp(){ state.kw=''; state.fCap=''; state.tMin=''; state.tMax=''; state.page=1; render(); }
+
+/* ================= 视图 1：展示 ================= */
+function viewDisplay(){
+  const list = currentList();
+  const re = buildRe(state.kw.trim());
+  const total = list.length, maxPage=Math.max(1,Math.ceil(total/PAGE_SIZE));
+  if(state.page>maxPage) state.page=maxPage;
+  const rows = list.slice((state.page-1)*PAGE_SIZE, state.page*PAGE_SIZE);
+  const kwTag = re ? `<span class="tag processing" style="margin-right:6px">通配 ${esc(state.kw.trim())}</span>` : '';
+
+  return `
+  <div style="padding:16px 24px 24px">
+    <div class="toolbar">
+      <input class="inp" id="kwInput" placeholder="搜索 EQUIP_ID / RECIPE_ID（支持 * 通配，如 RCP_A*）" value="${esc(state.kw)}">
+      ${ssHTML('dispCap', state.fCap, D.capMaster, '全部 Capability')}
+      <span style="display:inline-flex;align-items:center;gap:4px">温度
+        <input class="inp" id="tMin" style="width:72px" placeholder="min" value="${esc(state.tMin)}"> ~
+        <input class="inp" id="tMax" style="width:72px" placeholder="max" value="${esc(state.tMax)}"> ℃
+      </span>
+      <button class="btn" onclick="queryDisp()">查询</button>
+      <button class="btn" onclick="resetDisp()">重置</button>
+      <span id="rowCount">${kwTag}<span class="note">共 ${total} 条</span></span>
+      <span class="sp"></span>
+      <button class="btn" onclick="openImport()">⬆ CSV 导入</button>
+      <button class="btn primary" onclick="openEquipModal(null)">+ 新增设备记录</button>
+    </div>
+    <table class="tbl">
+      <thead><tr>
+        <th class="num">#</th>
+        <th>EQUIP_ID ${tip('设备编号，来自 EAP 设备主数据；同编号唯一，重复导入按覆盖处理。')}</th>
+        <th>RECIPE_ID_LIST ${tip('该设备可加工的 Recipe 列表，源系统以分隔符拼接同步；排程时按 Recipe 命中设备。列表中的 Recipe 本身也可为通配模式（如 RCP_A* 表示所有 RCP_A 开头的配方），以橙色虚线标签「⊛」显示。搜索框亦支持 * 通配定位。')}</th>
+        <th>TEMPERATURE ${tip('设备温层当前温度（℃）。与 Capability 配置的温度区间比对，超出区间则不可排入。')}</th>
+        <th>Capability</th>
+        <th style="width:100px">操作</th>
+      </tr></thead>
+      <tbody id="dspBody">${rowsHtml(rows, re)}</tbody>
+    </table>
+    ${pagerHTML(total,maxPage)}
+  </div>`;
+}
+
+function currentList(){
+  const kw=state.kw.trim();
+  const re=buildRe(kw);
+  const tMin=state.tMin==='' ? null : parseInt(state.tMin);
+  const tMax=state.tMax==='' ? null : parseInt(state.tMax);
+  return D.equips.filter(e=>{
+    let hit;
+    if(re){
+      hit = re.test(e.eqp) || e.recipes.some(r=>re.test(r));
+    } else {
+      const l=kw.toLowerCase();
+      hit = !l || e.eqp.toLowerCase().includes(l) || e.recipes.join(',').toLowerCase().includes(l);
+    }
+    const tHit = (tMin===null||e.temp>=tMin) && (tMax===null||e.temp<=tMax);
+    return hit && (!state.fCap || e.cap===state.fCap) && tHit;
+  });
+}
+
+function rowsHtml(rows, re){
+  if(!rows.length) return '<tr><td colspan="6"><div class="empty">暂无匹配数据</div></td></tr>';
+  return rows.map((e,i)=>{
+    const start=(state.page-1)*PAGE_SIZE+i+1;
+    const shown=e.recipes.slice(0,3), rest=e.recipes.length-shown.length;
+    return `<tr>
+      <td class="num">${start}</td>
+      <td><b>${esc(e.eqp)}</b></td>
+      <td><div class="recips">${shown.map(r=>{
+        const wild=/[*?]/.test(r);
+        const m=re&&re.test(r)&&!wild;
+        const cls=wild?'wild':(m?'match':'');
+        const title=wild?'通配模式配方（如 RCP_A* 表示所有 RCP_A 开头的配方）':'';
+        return `<span class="tag ${cls}" title="${title}">${wild?'⊛ ':''}${hlRecipe(r,re)}</span>`;
+      }).join('')}${rest>0?`<span class="more">+${rest}</span>`:''}</div></td>
+      <td>${e.temp} ℃</td>
+      <td><span class="tag processing">${e.cap}</span></td>
+      <td><button class="btn link" onclick="openEquipModal('${esc(e.eqp)}')">修改</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function pagerHTML(total,maxPage){
+  if(total<=PAGE_SIZE) return `<div id="pagerBox" class="note" style="padding:12px 0 0">共 ${total} 条 · 单页展示</div>`;
+  return `<div id="pagerBox" style="display:flex;align-items:center;gap:8px;padding:14px 0 0">
+    <span class="note">共 ${total} 条 · 第 ${state.page}/${maxPage} 页</span>
+    <span style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn sm" ${state.page<=1?'disabled':''} onclick="state.page--;refreshDisplayRows()">上一页</button>
+      <button class="btn sm" ${state.page>=maxPage?'disabled':''} onclick="state.page++;refreshDisplayRows()">下一页</button>
+    </span></div>`;
+}
+function refreshDisplayRows(){
+  const host=$('#dspBody'); if(!host) return;
+  const re=buildRe(state.kw.trim());
+  const list=currentList(), total=list.length, maxPage=Math.max(1,Math.ceil(total/PAGE_SIZE));
+  if(state.page>maxPage) state.page=maxPage;
+  const rows=list.slice((state.page-1)*PAGE_SIZE,state.page*PAGE_SIZE);
+  host.innerHTML=rowsHtml(rows, re);
+  const old=document.querySelector('#pagerBox'); if(old) old.remove();
+  host.closest('table').insertAdjacentHTML('afterend', pagerHTML(total,maxPage));
+  const rc=$('#rowCount');
+  if(rc) rc.innerHTML=(re?`<span class="tag processing" style="margin-right:6px">通配 ${esc(state.kw.trim())}</span>`:'')+'<span class="note">共 '+total+' 条</span>';
+}
+
+function doSync(btn){
+  btn.disabled=true; btn.textContent='同步中…';
+  setTimeout(()=>{
+    D.sync.last=now();
+    toast('同步完成：7 台设备温层数据已更新');
+    render();
+  },900);
+}
+
+/* ================= 视图 2：Capability 配置 ================= */
+function viewConfig(){
+  return `
+  <div style="padding:16px 24px 24px">
+    <div class="toolbar">
+      ${ssHTML('cfgCap', state.fCfgCap, D.capMaster, '全部 Capability')}
+      <button class="btn" onclick="queryCfg()">查询</button>
+      <button class="btn" onclick="resetCfg()">重置</button>
+      <span id="cfgCount"><span class="note">共 ${cfgList().length} 条</span></span>
+      <span class="sp"></span>
+      <button class="btn" onclick="openCapImport()">⬆ CSV 导入</button>
+      <button class="btn primary" onclick="openCapModal()">+ 新增配置</button>
+    </div>
+    <table class="tbl">
+      <thead><tr>
+        <th class="num">#</th>
+        <th style="min-width:170px">Capability ${tip('下拉单选，取值来自 Capability 主数据，支持输入模糊搜索。')}</th>
+        <th>TEM START ${tip('该 Capability 可控温度的下限（℃）。')}</th>
+        <th>TEM END ${tip('该 Capability 可控温度的上限（℃），需大于 TEM START。')}</th>
+        <th>花费时间 (s) ${tip('在该热板的 [TEM START, TEM END] 区间内完成一次温度切换所需的标准耗时（秒），用于排程换温成本。')}</th>
+        <th>Update Time</th>
+        <th>Update User</th>
+        <th style="width:120px">操作</th>
+      </tr></thead>
+      <tbody id="cfgBody">${cfgRows()}</tbody>
+    </table>
+  </div>`;
+}
+
+const capKey = c => c.cap;
+function cfgList(){
+  return D.caps.filter(c=>!state.fCfgCap || c.cap===state.fCfgCap);
+}
+function readCfg(){ state.fCfgCap=($('#cfgCap_input').value||'').trim(); }
+function queryCfg(){ readCfg(); render(); }
+function resetCfg(){ state.fCfgCap=''; render(); }
+function cfgRows(){
+  const list=cfgList();
+  if(!list.length) return '<tr><td colspan="8"><div class="empty">'+(D.caps.length?'当前筛选无匹配配置':'暂无配置，请点击「新增配置」')+'</div></td></tr>';
+  return list.map((c,i)=>{
+    const key=capKey(c);
+    if(state.editingKey===key){
+      const d=state.dirty;
+      return `<tr>
+        <td class="num">${i+1}</td>
+        <td><b>${esc(c.cap)}</b></td>
+        <td><input class="inp" style="width:88px" value="${d.start==null?'':d.start}" placeholder="通配" oninput="state.dirty.start=this.value"></td>
+        <td><input class="inp" style="width:88px" value="${d.end==null?'':d.end}" placeholder="通配" oninput="state.dirty.end=this.value"></td>
+        <td><input class="inp" style="width:96px" value="${d.cost}" oninput="state.dirty.cost=this.value"></td>
+        <td class="note">保存后更新</td>
+        <td class="note">${curUser}</td>
+        <td>
+          <button class="btn link" onclick="saveCap('${key}')">保存</button>
+          <button class="btn link" onclick="cancelCap()">取消</button>
+        </td>
+      </tr>`;
+    }
+    return `<tr>
+      <td class="num">${i+1}</td>
+      <td><b>${esc(c.cap)}</b></td>
+      <td>${c.start==null?'<span class="note">—（通配）</span>':c.start+' ℃'}</td>
+      <td>${c.end==null?'<span class="note">—（通配）</span>':c.end+' ℃'}</td>
+      <td>${c.cost} s</td>
+      <td class="note">${c.ut}</td>
+      <td>${esc(c.uu)}</td>
+      <td>
+        <button class="btn link" onclick="editCap('${key}')">编辑</button>
+        <button class="btn link danger" onclick="delCap('${key}')">删除</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+function editCap(key){
+  const c=D.caps.find(x=>capKey(x)===key);
+  state.editingKey=key;
+  state.dirty={start:c.start,end:c.end,cost:c.cost};
+  render();
+}
+function cancelCap(){ state.editingKey=null; state.dirty={}; render(); }
+function saveCap(key){
+  const d=state.dirty;
+  const rawS=(d.start==null?'':String(d.start)).trim(), rawE=(d.end==null?'':String(d.end)).trim();
+  let s=null, e=null;
+  if(!rawS && !rawE){ s=null; e=null; }
+  else if(rawS && rawE){ s=parseInt(rawS); e=parseInt(rawE);
+    if(isNaN(s)||isNaN(e)) return toast('TEM START / TEM END 需为数字（或同时留空=通配）',true);
+    if(s>=e) return toast('TEM START 必须小于 TEM END',true);
+  } else return toast('TEM START 与 TEM END 需同时填写或同时留空（留空=通配）',true);
+  if(ct<=0) return toast('花费时间需大于 0',true);
+  const c=D.caps.find(x=>capKey(x)===key);
+  Object.assign(c,{start:s,end:e,cost:ct,ut:now().slice(0,16),uu:curUser});
+  state.editingKey=null; state.dirty={};
+  toast('已保存：'+c.cap); render();
+}
+function delCap(key){
+  const c=D.caps.find(x=>capKey(x)===key)||{};
+  showModal('删除配置','确定删除 <b>'+esc(c.cap)+'</b> 的温层配置？删除后该 Capability 不参与换温成本计算。',
+    '<button class="btn" onclick="closeModal()">取消</button><button class="btn primary" style="background:var(--colorError);border-color:var(--colorError)" onclick="doDelCap(\''+key+'\')">确认删除</button>');
+}
+function doDelCap(key){
+  const c=D.caps.find(x=>capKey(x)===key)||{};
+  D.caps=D.caps.filter(x=>capKey(x)!==key);
+  closeModal(); toast('已删除：'+c.cap); render();
+}
+
+/* ================= 弹窗：新增 / 修改设备 ================= */
+function openEquipModal(eqp){
+  const isEdit = !!eqp;
+  const e = isEdit ? D.equips.find(x=>x.eqp===eqp) : {eqp:'',recipes:[],temp:23};
+  const body = `
+    <div class="field"><div class="lab"><i>*</i>EQUIP_ID</div>
+      <input class="inp" id="f_eqp" style="width:220px" value="${esc(e.eqp)}" ${isEdit?'readonly':''} placeholder="如 SC08">
+      <span class="note">${isEdit?'设备编号不可修改':'唯一，重复则提示已存在'}</span></div>
+    <div class="field" style="align-items:flex-start"><div class="lab" style="padding-top:6px"><i>*</i>RECIPE_ID_LIST</div>
+      <div>
+        <textarea class="inp" id="f_recipes" style="width:360px;height:70px" placeholder="多个 Recipe 用逗号分隔，如 RCP_A,RCP_B">${esc(e.recipes.join(','))}</textarea>
+        <div class="hint">支持逗号 / 竖线 / 分号分隔；保存时自动去重</div>
+      </div></div>
+    <div class="field"><div class="lab"><i>*</i>TEMPERATURE</div>
+      <input class="inp" id="f_temp" style="width:120px" value="${e.temp}"> <span class="note">℃　范围 15 ~ 45</span></div>
+    <div class="err" id="f_err"></div>`;
+  showModal(isEdit?'修改设备温层记录':'新增设备温层记录', body,
+    `<button class="btn" onclick="closeModal()">取消</button>
+     <button class="btn primary" onclick="submitEquip(${isEdit?"'"+eqp+"'":'null'})">${isEdit?'保存':'确定新增'}</button>`);
+}
+
+function submitEquip(eqp){
+  const id=$('#f_eqp').value.trim().toUpperCase();
+  const raw=$('#f_recipes').value.trim();
+  const t=parseInt($('#f_temp').value);
+  const err=$('#f_err');
+  if(!id) return err.textContent='请输入 EQUIP_ID';
+  if(!raw) return err.textContent='请至少填写一个 RECIPE_ID';
+  if(isNaN(t)||t<15||t>45) return err.textContent='TEMPERATURE 需为 15~45 之间的数字';
+  const recipes=[...new Set(raw.split(/[,，;；|]/).map(s=>s.trim().toUpperCase()).filter(Boolean))];
+  if(eqp){
+    const e=D.equips.find(x=>x.eqp===eqp);
+    Object.assign(e,{recipes,temp:t,src:'手工维护'});
+    toast('已修改 '+eqp);
+  }else{
+    if(D.equips.some(x=>x.eqp===id)) return err.textContent='EQUIP_ID 已存在，请通过「修改」维护';
+    D.equips.push({eqp:id, cap:'Capability1', recipes, temp:t, src:'手工维护'});
+    toast('已新增 '+id);
+  }
+  closeModal(); render();
+}
+
+/* ================= 弹窗：CSV 导入 ================= */
+function openImport(){
+  const body=`
+    <div class="drop" onclick="document.getElementById('csvFile').click()">
+      <div class="ic">📄</div>
+      <div class="m">点击选择 CSV 文件，或将文件拖拽到此处</div>
+      <div class="s">列顺序：EQUIP_ID, RECIPE_ID_LIST, TEMPERATURE（首行可为表头）</div>
+    </div>
+    <input type="file" id="csvFile" accept=".csv,text/csv" style="display:none" onchange="parseCsv(this)">
+    <div class="hint" style="margin-top:10px">RECIPE_ID_LIST 支持 <code>,</code> <code>|</code> <code>;</code> 分隔；已存在 EQUIP_ID 按<b>覆盖更新</b>处理。</div>
+    <div id="csvResult"></div>`;
+  showModal('CSV 导入设备温层','<div>'+body+'</div>',
+    `<button class="btn" onclick="downloadTpl()">下载模板</button>
+     <span style="flex:1"></span>
+     <button class="btn" onclick="closeModal()">取消</button>
+     <button class="btn primary" id="csvOk" disabled onclick="confirmImport()">确认导入</button>`, true);
+}
+
+let csvParsed=[];
+function parseCsv(input){
+  const f=input.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    let txt=String(rd.result).replace(/^\uFEFF/,'');
+    const lines=txt.split(/\r?\n/).filter(l=>l.trim());
+    if(!lines.length) return $('#csvResult').innerHTML='<div class="err">文件为空</div>';
+    const head=lines[0].toLowerCase();
+    const startIdx = head.includes('equip')?1:0;
+    csvParsed=[]; let bad=0;
+    for(let i=startIdx;i<lines.length;i++){
+      const cols=lines[i].split(',').map(s=>s.trim().replace(/^"|"$/g,''));
+      const [id,rc,tp]=cols;
+      const t=parseInt(tp);
+      const ok=!!id && !!rc && !isNaN(t);
+      if(!ok) bad++;
+      csvParsed.push({eqp:(id||'').toUpperCase(), recipes:(rc||'').split(/[,，;；|]/).map(s=>s.trim().toUpperCase()).filter(Boolean),
+        temp:t, ok});
+    }
+    const exist=csvParsed.filter(r=>r.ok && D.equips.some(x=>x.eqp===r.eqp)).length;
+    const add=csvParsed.filter(r=>r.ok && !D.equips.some(x=>x.eqp===r.eqp)).length;
+    $('#csvResult').innerHTML=`
+      <div style="display:flex;gap:8px;margin:14px 0 8px;align-items:center">
+        <span class="tag success">可导入 ${csvParsed.filter(r=>r.ok).length}</span>
+        <span class="tag processing">新增 ${add}</span>
+        <span class="tag warning">覆盖 ${exist}</span>
+        ${bad?`<span class="tag error">异常行 ${bad}</span>`:''}
+        <span class="note" style="margin-left:auto">${esc(f.name)}</span>
+      </div>
+      <div class="preview"><table class="tbl">
+        <thead><tr><th>行</th><th>EQUIP_ID</th><th>RECIPE_ID_LIST</th><th>TEMPERATURE</th><th>校验</th></tr></thead>
+        <tbody>${csvParsed.slice(0,20).map((r,i)=>`<tr>
+          <td>${i+1}</td><td><b>${esc(r.eqp||'-')}</b></td>
+          <td>${esc(r.recipes.join(', ')||'-')}</td>
+          <td>${isNaN(r.temp)?'<span class="badge-err">-</span>':r.temp}</td>
+          <td>${r.ok?'<span class="tag success">PASS</span>':(D.equips.some(x=>x.eqp===r.eqp)?'<span class="tag warning">WARN</span>':'<span class="tag error">FAIL</span>')}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+      ${csvParsed.length>20?`<div class="hint">仅预览前 20 行，共 ${csvParsed.length} 行</div>`:''}
+      ${bad?`<div class="hint" style="color:var(--colorError)">存在 ${bad} 行字段缺失或温度非法，导入时将自动跳过</div>`:''}`;
+    $('#csvOk').disabled = csvParsed.filter(r=>r.ok).length===0;
+  };
+  rd.readAsText(f,'UTF-8');
+}
+
+function confirmImport(){
+  let add=0, upd=0, skip=0;
+  csvParsed.forEach(r=>{
+    if(!r.ok){ skip++; return; }
+    const ex=D.equips.find(x=>x.eqp===r.eqp);
+    if(ex){ Object.assign(ex,{recipes:r.recipes,temp:r.temp,src:'CSV 导入'}); upd++; }
+    else { D.equips.push({eqp:r.eqp, cap:'Capability1', recipes:r.recipes,temp:r.temp,src:'CSV 导入'}); add++; }
+  });
+  closeModal();
+  toast(`导入完成：新增 ${add} 条，覆盖 ${upd} 条${skip?`，跳过 ${skip} 条`:''}`);
+  D.sync.last=now();
+  render();
+}
+
+function downloadTpl(){
+  const csv='EQUIP_ID,RECIPE_ID_LIST,TEMPERATURE\nSC08,"RCP_A|RCP_B",23\nSC09,"RCP_C",28\n';
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download='equip_temp_layer_template.csv'; a.click();
+  toast('模板已下载');
+}
+
+/* ================= 弹窗：新增 Capability 配置 ================= */
+function openCapModal(){
+  const cnt = c => D.caps.filter(x=>x.cap===c).length;
+  const opts=D.capMaster.map(c=>`<div class="combo-item" data-v="${c}">
+      ${c}${cnt(c)?`<span class="tick" style="color:var(--colorTextQuaternary)">已配 ${cnt(c)} 个温层</span>`:''}</div>`).join('');
+  const body=`
+    <div class="field">
+      <div class="lab"><i>*</i>Capability</div>
+      <div class="combo" id="comboCap" style="flex:1;max-width:340px">
+        <input class="inp" id="capInput" placeholder="输入关键字搜索，或点击选择" autocomplete="off"
+          onfocus="openCombo()" oninput="filterCombo(this.value)" onkeydown="comboKey(event)">
+        <span class="arrow">▾</span>
+        <div class="combo-list" id="capList">${opts}</div>
+      </div>
+      <span class="note">单选，支持模糊搜索</span>
+    </div>
+    <div class="field"><div class="lab">TEM START</div>
+      <input class="inp" id="c_start" style="width:110px" placeholder="90"> <span class="note">℃　选填；与 TEM END 同时留空 = 通配行</span></div>
+    <div class="field"><div class="lab">TEM END</div>
+      <input class="inp" id="c_end" style="width:110px" placeholder="110"> <span class="note">℃　选填；填写时需大于 TEM START</span></div>
+    <div class="field"><div class="lab"><i>*</i>花费时间</div>
+      <input class="inp" id="c_cost" style="width:110px" placeholder="120"> <span class="note">s　区间内一次温度切换标准耗时</span></div>
+    <div class="err" id="c_err"></div>`;
+  showModal('新增 Capability 温层配置', body,
+    `<button class="btn" onclick="closeModal()">取消</button>
+     <button class="btn primary" onclick="submitCap()">确定</button>`);
+  setTimeout(()=>$('#capInput').focus(),50);
+}
+
+let comboVal='', comboHl=-1;
+function openCombo(){ $('#capList').classList.add('open'); }
+function filterCombo(v){
+  comboVal=v; comboHl=-1;
+  const kw=v.trim().toLowerCase();
+  [...document.querySelectorAll('#capList .combo-item')].forEach(el=>{
+    el.style.display = !kw || el.dataset.v.toLowerCase().includes(kw) ? 'flex':'none';
+  });
+  const anyVisible=[...document.querySelectorAll('#capList .combo-item')].some(el=>el.style.display!=='none');
+  let empty=$('#capList .combo-empty');
+  if(!anyVisible){
+    if(!empty){ $('#capList').insertAdjacentHTML('beforeend','<div class="combo-empty">无匹配的 Capability</div>'); }
+  } else if(empty) empty.remove();
+  openCombo();
+}
+function pickCombo(v){
+  if(!v || v.dataset.dis) return;
+  $('#capInput').value=v.dataset.v; comboVal=v.dataset.v;
+  $('#capList').classList.remove('open');
+}
+function comboKey(e){
+  const items=[...document.querySelectorAll('#capList .combo-item')].filter(el=>el.style.display!=='none'&&!el.dataset.dis);
+  if(e.key==='ArrowDown'){ e.preventDefault(); comboHl=Math.min(items.length-1,comboHl+1); items.forEach((el,i)=>el.classList.toggle('hl',i===comboHl)); }
+  else if(e.key==='ArrowUp'){ e.preventDefault(); comboHl=Math.max(0,comboHl-1); items.forEach((el,i)=>el.classList.toggle('hl',i===comboHl)); }
+  else if(e.key==='Enter'){ e.preventDefault(); if(items[comboHl]) pickCombo(items[comboHl]); }
+  else if(e.key==='Escape'){ $('#capList').classList.remove('open'); }
+}
+document.addEventListener('click', e=>{
+  const list=$('#capList'); if(!list) return;
+  const item=e.target.closest('#capList .combo-item'); if(item){ pickCombo(item); return; }
+  if(!e.target.closest('#comboCap')) list.classList.remove('open');
+});
+
+/* ================= 通用模糊搜索下拉（列表筛选用） ================= */
+function ssHTML(id, value, items, placeholder){
+  const opts = items.map(v=>`<div class="combo-item" data-v="${esc(v)}" onclick="ssPick('${id}','${esc(v)}')">${esc(v)}</div>`).join('');
+  return `<div class="combo" id="${id}">
+    <input class="inp" id="${id}_input" placeholder="${placeholder}" autocomplete="off" value="${esc(value)}"
+      onfocus="ssOpen('${id}')" oninput="ssFilter('${id}',this.value)" onkeydown="ssKey(event,'${id}')">
+    <span class="arrow">▾</span>
+    <div class="combo-list" id="${id}_list">${opts}</div>
+  </div>`;
+}
+function ssOpen(id){ const l=$('#'+id+'_list'); if(l) l.classList.add('open'); }
+function ssFilter(id,v){
+  const kw=v.trim().toLowerCase(); let any=false;
+  [...document.querySelectorAll('#'+id+'_list .combo-item')].forEach(el=>{
+    const show = !kw || el.dataset.v.toLowerCase().includes(kw);
+    el.style.display = show?'flex':'none'; if(show) any=true;
+  });
+  const l=$('#'+id+'_list');
+  let empty=l.querySelector('.combo-empty');
+  if(!any){ if(!empty) l.insertAdjacentHTML('beforeend','<div class="combo-empty">无匹配</div>'); }
+  else if(empty) empty.remove();
+  ssOpen(id);
+}
+function ssPick(id,v){
+  const inp=$('#'+id+'_input'); if(inp) inp.value=v;
+  const l=$('#'+id+'_list'); if(l) l.classList.remove('open');
+}
+function ssKey(e,id){
+  const items=[...document.querySelectorAll('#'+id+'_list .combo-item')].filter(el=>el.style.display!=='none');
+  let hl=parseInt(($('#'+id).dataset.hl)||'-1');
+  if(e.key==='ArrowDown'){ e.preventDefault(); hl=Math.min(items.length-1,hl+1); }
+  else if(e.key==='ArrowUp'){ e.preventDefault(); hl=Math.max(0,hl-1); }
+  else if(e.key==='Enter'){ e.preventDefault(); if(items[hl]) ssPick(id,items[hl].dataset.v); return; }
+  else if(e.key==='Escape'){ const l=$('#'+id+'_list'); if(l) l.classList.remove('open'); return; }
+  items.forEach((el,i)=>el.classList.toggle('hl',i===hl));
+  $('#'+id).dataset.hl=hl;
+}
+document.addEventListener('click', e=>{
+  document.querySelectorAll('.combo-list.open').forEach(l=>{
+    if(!l.closest('.combo').contains(e.target)) l.classList.remove('open');
+  });
+});
+
+function submitCap(){
+  const cap=($('#capInput').value||'').trim();
+  const ct=parseInt($('#c_cost').value);
+  const err=$('#c_err');
+  if(!cap) return err.textContent='请选择 Capability';
+  if(!D.capMaster.includes(cap)) return err.textContent='Capability 不在可选值范围内';
+  if(D.caps.some(c=>c.cap===cap)) return err.textContent='该 Capability 已配置，请直接编辑';
+  const rawS=($('#c_start').value||'').trim(), rawE=($('#c_end').value||'').trim();
+  let s=null, en=null;
+  if(!rawS && !rawE){ s=null; en=null; }
+  else if(rawS && rawE){ s=parseInt(rawS); en=parseInt(rawE);
+    if(isNaN(s)||isNaN(en)) return err.textContent='TEM START / TEM END 需为数字（或同时留空=通配）';
+    if(s>=en) return err.textContent='TEM START 必须小于 TEM END';
+  } else return err.textContent='TEM START 与 TEM END 需同时填写或同时留空（留空=通配）';
+  if(isNaN(ct)||ct<=0) return err.textContent='花费时间需为大于 0 的秒数';
+  D.caps.push({cap,start:s,end:en,cost:ct,ut:now().slice(0,16),uu:curUser});
+  closeModal(); toast('已新增配置：'+cap); render();
+}
+
+/* ===== Capability 温层 CSV 导入（TEM START/END 选填=通配；已存在按覆盖更新） ===== */
+let capCsv=[];
+function openCapImport(){
+  const body='<div class="drop" onclick="document.getElementById(\'capCsvFile\').click()">'
+    +'<div class="ic">📄</div>'
+    +'<div class="m">点击选择 CSV 文件，或将文件拖拽到此处</div>'
+    +'<div class="s">列顺序：CAPABILITY, TEM START, TEM END, 花费时间(s)（首行可为表头；TEM START/END 选填，同时留空=通配行）</div></div>'
+    +'<input type="file" id="capCsvFile" accept=".csv,text/csv" style="display:none" onchange="parseCapCsv(this)">'
+    +'<div class="hint" style="margin-top:10px">已存在 Capability 按<b>覆盖更新</b>处理；花费时间必填（>0 秒）。</div>'
+    +'<div id="capCsvResult"></div>';
+  showModal('CSV 导入 · Capability 温层配置','<div>'+body+'</div>',
+    '<button class="btn" onclick="downloadCapTpl()">下载模板</button>'
+    +'<span style="flex:1"></span>'
+    +'<button class="btn" onclick="closeModal()">取消</button>'
+    +'<button class="btn primary" id="capCsvOk" disabled onclick="confirmCapImport()">确认导入</button>', true);
+}
+function parseCapCsv(input){
+  const f=input.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    let txt=String(rd.result).replace(/^\uFEFF/,'');
+    const lines=txt.split(/\r?\n/).filter(l=>l.trim());
+    const box=document.getElementById('capCsvResult');
+    if(!lines.length){ box.innerHTML='<div class="err">文件为空</div>'; return; }
+    const startIdx=lines[0].toLowerCase().includes('capabilit')?1:0;
+    capCsv=[]; let bad=0;
+    for(let i=startIdx;i<lines.length;i++){
+      const cols=lines[i].split(',').map(x=>x.trim().replace(/^"|"$/g,''));
+      const cap=(cols[0]||'').toUpperCase(), rawS=cols[1]||'', rawE=cols[2]||'', ct=parseInt(cols[3]);
+      let st=null, en=null, ok=!!cap && !isNaN(ct) && ct>0;
+      if(rawS&&rawE){ st=parseInt(rawS); en=parseInt(rawE); if(isNaN(st)||isNaN(en)||st>=en) ok=false; }
+      else if(rawS||rawE){ ok=false; }
+      if(!ok) bad++;
+      capCsv.push({cap:cap,start:st,end:en,cost:ct,ok:ok});
+    }
+    const exist=capCsv.filter(r=>r.ok&&D.caps.some(x=>x.cap===r.cap)).length;
+    const add=capCsv.filter(r=>r.ok&&!D.caps.some(x=>x.cap===r.cap)).length;
+    const okN=capCsv.filter(r=>r.ok).length;
+    let h='<div style="display:flex;gap:8px;margin:14px 0 8px;align-items:center">'
+      +'<span class="tag success">可导入 '+okN+'</span>'
+      +'<span class="tag processing">新增 '+add+'</span>'
+      +'<span class="tag warning">覆盖 '+exist+'</span>'
+      +(bad?'<span class="tag error">异常行 '+bad+'</span>':'')
+      +'<span class="note" style="margin-left:auto">'+esc(f.name)+'</span></div>'
+      +'<div class="preview"><table class="tbl"><thead><tr><th>行</th><th>Capability</th><th>TEM START</th><th>TEM END</th><th>花费时间(s)</th><th>校验</th></tr></thead><tbody>';
+    capCsv.slice(0,20).forEach(function(r,i){
+      h+='<tr><td>'+(i+1)+'</td><td><b>'+esc(r.cap||'-')+'</b></td>'
+        +'<td>'+(r.start==null?'<span class="note">通配</span>':r.start)+'</td>'
+        +'<td>'+(r.end==null?'<span class="note">通配</span>':r.end)+'</td>'
+        +'<td>'+(isNaN(r.cost)?'<span class="badge-err">-</span>':r.cost)+'</td>'
+        +'<td>'+(r.ok?'<span class="tag success">PASS</span>':'<span class="tag error">FAIL</span>')+'</td></tr>';
+    });
+    h+='</tbody></table></div>'
+      +(capCsv.length>20?'<div class="hint">仅预览前 20 行，共 '+capCsv.length+' 行</div>':'')
+      +(bad?'<div class="hint" style="color:var(--colorError)">存在 '+bad+' 行字段缺失或数值非法，导入时将自动跳过</div>':'');
+    box.innerHTML=h;
+    document.getElementById('capCsvOk').disabled=okN===0;
+  };
+  rd.readAsText(f,'UTF-8');
+}
+function confirmCapImport(){
+  let add=0, upd=0, skip=0;
+  capCsv.forEach(function(r){
+    if(!r.ok){ skip++; return; }
+    const ex=D.caps.find(x=>x.cap===r.cap);
+    if(ex){ Object.assign(ex,{start:r.start,end:r.end,cost:r.cost,ut:now().slice(0,16),uu:curUser}); upd++; }
+    else { D.caps.push({cap:r.cap,start:r.start,end:r.end,cost:r.cost,ut:now().slice(0,16),uu:curUser}); add++; }
+  });
+  closeModal();
+  toast('导入完成：新增 '+add+' 条，覆盖 '+upd+' 条'+(skip?'，跳过 '+skip+' 条':''));
+  render();
+}
+function downloadCapTpl(){
+  const csv='CAPABILITY,TEM START,TEM END,花费时间(s)\nCapability5,105,125,140\nCapability6,,,80\n';
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download='capability_temp_template.csv'; a.click();
+  toast('模板已下载');
+}
+
+/* ================= 通用弹窗 ================= */
+function showModal(title, body, footer, wide){
+  $('#modalRoot').innerHTML=`
+    <div class="overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal ${wide?'wide':''}">
+        <div class="modal-h"><span class="t">${esc(title)}</span><span class="x" onclick="closeModal()">✕</span></div>
+        <div class="modal-b">${body}</div>
+        <div class="modal-f">${footer}</div>
+      </div>
+    </div>`;
+}
+function closeModal(){ $('#modalRoot').innerHTML=''; }
+
+/* ================= 评论模式 ================= */
+function bindTips(){
+  document.querySelectorAll('.q').forEach(el=>{
+    el.onclick=ev=>{
+      ev.stopPropagation();
+      document.querySelectorAll('.bubble').forEach(b=>b.remove());
+      const b=document.createElement('div');
+      b.className='bubble';
+      b.innerHTML='<div class="bt">字段说明</div><div class="bd">'+esc(el.dataset.tip)+'</div>';
+      document.body.appendChild(b);
+      const r=el.getBoundingClientRect();
+      b.style.left=Math.min(window.innerWidth-320, r.left)+'px';
+      b.style.top=(r.bottom+8)+'px';
+      setTimeout(()=>document.addEventListener('click',()=>b.remove(),{once:true}),0);
+    };
+  });
+}
+
+/* ================= 启动 ================= */
+$('#cmtBtn').onclick=()=>{
+  state.cmt=!state.cmt;
+  document.body.classList.toggle('cmt-on', state.cmt);
+  $('#cmtBtn').classList.toggle('primary', state.cmt);
+  if(state.cmt) bindTips();
+};
+function clock(){ $('#clock').textContent=new Date().toLocaleString('zh-CN',{hour12:false}); }
+render(); clock(); setInterval(clock,1000);
+</script>
+</body>
+</html>

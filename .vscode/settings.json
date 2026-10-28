@@ -1,0 +1,21 @@
+{
+  // GTX FSO Litho · 工作区设置
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+  "python.terminal.activateEnvironment": true,
+  "python.analysis.extraPaths": ["${workspaceFolder}"],
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "backend/solver/output": true
+  },
+  "files.associations": {
+    "*.yaml": "yaml"
+  },
+  "editor.rulers": [],
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.venv": true,
+    "backend/solver/output": true,
+    "frontend/dist": true
+  }
+}

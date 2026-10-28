@@ -1,0 +1,105 @@
+<!doctype html>
+<!-- GTX FSO Litho 原型 · 求解演示页 scheduling-test · v1 · 2026-10-29
+     作用：调 FastAPI /api/solve/run 跑六步 MILP，渲染排程列表 + 简易甘特。
+     视觉沿用 docs/_DESIGN_SPEC.md 的 Token 与组件约定；PM 评论气泡 .q[data-cm] 机制保留。 -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GTX FSO Litho · 求解演示 Scheduling Test</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div class="app">
+  <!-- ===== 左侧导航（与原型一致的骨架） ===== -->
+  <aside class="sider">
+    <div class="logo"><b>Pxsemi FSO</b><span>智能生产中心 · 光刻排程</span></div>
+    <nav>
+      <div class="nav-g">导航</div>
+      <a href="../../index.html">总览 Dashboard</a>
+      <a href="../../prototypes/config_zone.html">数据配置区</a>
+      <a href="../../prototypes/model_zone.html">模型管理区</a>
+      <a href="../../prototypes/result_litho.html">结果 · Litho 排程</a>
+      <a href="../../prototypes/result_reticle.html">结果 · Reticle 排程</a>
+      <a href="../../prototypes/log_zone.html">日志区</a>
+      <div class="nav-g">演示</div>
+      <a class="on" href="index.html">求解演示（真算法）</a>
+    </nav>
+  </aside>
+
+  <!-- ===== 主区 ===== -->
+  <div class="main">
+    <header class="header">
+      <div class="crumb">Scheduling Result / <b>求解演示 Scheduling Test</b></div>
+      <div class="right">
+        <span id="clock" class="clock"></span>
+        <button id="cmBtn" class="btn sm">💬 评论模式</button>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="card">
+        <div class="card-h">
+          <div><div class="t">六步 MILP 求解（PuLP + CBC）</div>
+            <div class="sub">预处理 → Reticle 预组批 → Lot 细排程 → 后处理 → BARC 反推 → 光罩五态推演</div></div>
+        </div>
+        <div class="toolbar">
+          <div class="field"><label class="lab">Scenario 用例</label>
+            <select id="caseSel" class="inp"><option value="">加载中…</option></select>
+          </div>
+          <button id="runBtn" class="btn primary">▶ 运行求解</button>
+          <span id="runState" class="run-state"></span>
+          <div class="sp"></div>
+          <span class="hint">求解在子进程执行，约 2~5s；每次运行 run_id 唯一</span>
+          <span class="q" data-cm="scenario 与 mock_data 覆盖规则见 docs/03_ALGORITHM_DEMO.md §5：config/lots/reticles 三区块覆盖，只影响子进程内存，不写回磁盘。">?</span>
+        </div>
+        <div class="case-desc" id="caseDesc"></div>
+      </div>
+
+      <div class="kpis" id="kpis">
+        <div class="kpi"><div class="k-l">MILP 状态</div><div class="k-v" id="kMilp">—</div></div>
+        <div class="kpi"><div class="k-l">MakeSpan</div><div class="k-v" id="kSpan">—</div></div>
+        <div class="kpi"><div class="k-l">排产 Lot 数</div><div class="k-v" id="kLots">—</div></div>
+        <div class="kpi"><div class="k-l">急货 LOT-A01 上机</div><div class="k-v" id="kUrgent">—</div></div>
+        <div class="kpi"><div class="k-l">RT-0101 就绪</div><div class="k-v" id="kReticle">—</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><div class="t">机台甘特（按 Eqp 分行）</div>
+          <div class="legend"><span class="li"><i style="background:var(--colorPrimary)"></i>Process</span>
+            <span class="li"><i style="background:var(--colorWarning)"></i>Setup/换罩</span></div></div>
+        <div class="scrollx"><div id="gantt"></div></div>
+        <div class="empty" id="ganttEmpty">点击「运行求解」后展示排程甘特</div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <div><div class="t">Scanner Schedule · List</div>
+            <div class="sub">对应算法 step3 Lot 细排程结果（run_summary.schedule）</div></div>
+          <div class="right"><button id="csvBtn" class="btn sm">导出 CSV</button></div>
+        </div>
+        <div class="tscroll">
+          <table class="dt" id="tbl">
+            <thead><tr>
+              <th>LotId</th><th>Eqp</th><th>Eqp Group</th><th>Reticle</th><th>Priority</th>
+              <th>Temp</th><th>Start</th><th>End</th><th>BARC ER</th><th>BARC LR</th><th>说明</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><div class="t">运行记录（内存，服务重启清空）</div></div>
+        <div class="tscroll"><table class="dt" id="histTbl">
+          <thead><tr><th>run_id</th><th>Case</th><th>状态</th><th>开始</th><th>结束</th><th></th></tr></thead>
+          <tbody></tbody></table></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tt" class="tt"></div>
+<script type="module" src="./script.js"></script>
+</body>
+</html>

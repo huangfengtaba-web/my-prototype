@@ -1,0 +1,379 @@
+<!doctype html>
+<!-- GTX FSO Litho 原型 · 数据接入区 · v1 · 2026-10-25 · 对应：设计书 2.2/3.2/4.2 预处理数据来源 + 缺口 D8 接口 + 计划序号24/24.1 同步字段确认 -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>数据接入 · Pxsemi FSO</title>
+<style>
+:root{
+  --colorPrimary:#1677FF; --colorPrimaryHover:#4096FF; --colorPrimaryActive:#0958D9;
+  --colorSuccess:#52C41A; --colorWarning:#FAAD14; --colorError:#FF4D4F;
+  --colorText:rgba(0,0,0,.88); --colorTextSecondary:rgba(0,0,0,.65); --colorTextTertiary:rgba(0,0,0,.45); --colorTextQuaternary:rgba(0,0,0,.25);
+  --bgContainer:#fff; --bgLayout:#F5F5F5;
+  --colorBorder:#D9D9D9; --colorBorderSecondary:#F0F0F0; --colorSplit:rgba(5,5,5,.06);
+  --primaryBg:#E6F4FF; --primaryBorder:#91CAFF;
+  --successBg:#F6FFED; --successBorder:#B7EB7F; --warningBg:#FFFBE6; --warningBorder:#FFE58F;
+  --errorBg:#FFF2F0; --errorBorder:#FFCCC7;
+  --radiusSM:4px; --radius:6px; --radiusLG:8px; --siderW:208px; --headerH:48px;
+  --shadow3:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --shadow:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:var(--font);font-size:14px;line-height:1.5714;color:var(--colorText);background:var(--bgLayout)}
+a{color:var(--colorPrimary);text-decoration:none}
+.app{display:flex;height:100vh;overflow:hidden}
+.sider{width:var(--siderW);flex:0 0 var(--siderW);background:#fff;border-right:1px solid var(--colorBorderSecondary);display:flex;flex-direction:column;height:100vh}
+.logo{height:var(--headerH);display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--colorBorderSecondary);flex:0 0 var(--headerH)}
+.logo .mark{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#1677FF,#69B1FF);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.logo .name{font-weight:600;font-size:14px}.logo .sub{font-size:11px;color:var(--colorTextTertiary);margin-top:-3px}
+.menu{padding:8px 0;overflow-y:auto;flex:1}
+.menu .grp{padding:8px 16px 4px;font-size:12px;color:var(--colorTextQuaternary)}
+.menu .item{height:40px;display:flex;align-items:center;gap:10px;padding:0 16px;cursor:pointer;color:var(--colorTextSecondary);font-size:14px;text-decoration:none}
+.menu .item:hover{background:rgba(0,0,0,.04)}
+.menu .item.active{background:var(--primaryBg);color:var(--colorPrimary);font-weight:500}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.header{height:var(--headerH);flex:0 0 var(--headerH);background:#fff;border-bottom:1px solid var(--colorBorderSecondary);display:flex;align-items:center;padding:0 24px;gap:12px}
+.crumb{font-size:13px;color:var(--colorTextTertiary)}.crumb b{color:var(--colorText);font-weight:500}
+.header .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.content{flex:1;overflow:auto;padding:24px}
+.btn{height:32px;padding:0 15px;border-radius:var(--radius);border:1px solid var(--colorBorder);background:#fff;color:var(--colorText);font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-family:inherit}
+.btn:hover{color:var(--colorPrimary);border-color:var(--colorPrimary)}
+.btn.primary{background:var(--colorPrimary);border-color:var(--colorPrimary);color:#fff}
+.btn.sm{height:28px;padding:0 10px;font-size:13px}
+.btn.link{border-color:transparent;background:transparent;color:var(--colorPrimary);padding:0 4px;height:24px}
+.btn.link.danger{color:var(--colorError)}
+.card{background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow3);padding:24px;margin-bottom:16px}
+.card.np{padding:0}
+.card-h{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.card-h .t{font-size:16px;font-weight:600}.card-h .sub{font-size:12px;color:var(--colorTextTertiary)}
+.card-h .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:var(--radiusSM);font-size:12px;line-height:20px;border:1px solid transparent;white-space:nowrap}
+.tag.success{background:var(--successBg);color:#389E0D;border-color:var(--successBorder)}
+.tag.processing{background:var(--primaryBg);color:var(--colorPrimary);border-color:var(--primaryBorder)}
+.tag.warning{background:var(--warningBg);color:#D48806;border-color:var(--warningBorder)}
+.tag.error{background:var(--errorBg);color:var(--colorError);border-color:var(--errorBorder)}
+.tag.default{background:#FAFAFA;color:var(--colorTextSecondary);border-color:var(--colorBorder)}
+table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
+table.tbl th{background:#FAFAFA;text-align:left;font-weight:600;color:var(--colorText);padding:10px 14px;border-bottom:1px solid var(--colorBorderSecondary);white-space:nowrap;font-size:13px}
+table.tbl td{padding:9px 14px;border-bottom:1px solid var(--colorBorderSecondary);color:var(--colorTextSecondary);vertical-align:middle}
+table.tbl tr:hover td{background:#FAFAFA}
+table.tbl td b{color:var(--colorText)}
+th[data-sort]{cursor:pointer}th[data-sort]:hover{color:var(--colorPrimary)}
+th[data-sort][data-dir=asc]::after{content:' ▲';color:var(--colorPrimary)}
+th[data-sort][data-dir=desc]::after{content:' ▼';color:var(--colorPrimary)}
+.tabs{display:flex;gap:32px;border-bottom:1px solid var(--colorBorderSecondary);margin-bottom:20px}
+.tabs .tab{padding:10px 0 12px;font-size:14px;color:var(--colorTextSecondary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs .tab.on{color:var(--colorPrimary);border-color:var(--colorPrimary);font-weight:500}
+.note{font-size:12px;color:var(--colorTextTertiary);line-height:1.7}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.toolbar .sp{margin-left:auto}
+.inp{height:32px;border:1px solid var(--colorBorder);border-radius:var(--radius);padding:0 11px;font-size:14px;outline:none;color:var(--colorText);background:#fff;font-family:inherit}
+select.inp{cursor:pointer}
+.toast{position:fixed;top:64px;left:50%;transform:translateX(-50%);background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:9px 16px;font-size:13px;z-index:1200;border-left:3px solid var(--colorSuccess)}
+.toast.err{border-left-color:var(--colorError)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--colorTextSecondary);margin:8px 0}
+.legend .li{display:inline-flex;align-items:center;gap:5px}
+.legend .li i{width:14px;height:11px;border-radius:3px;display:inline-block}
+.tscroll{overflow:auto;max-height:560px;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius)}
+.tscroll table.tbl{margin:0}
+.tscroll th{position:sticky;top:0;z-index:2}
+/* 数据源卡 */
+.src-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:4px}
+.src{border:1px solid var(--colorBorderSecondary);border-radius:var(--radiusLG);padding:16px;background:#fff;position:relative;transition:all .2s}
+.src:hover{box-shadow:var(--shadow3);transform:translateY(-2px)}
+.src .dot{position:absolute;right:14px;top:16px;width:9px;height:9px;border-radius:50%}
+.src .dot.ok{background:var(--colorSuccess);box-shadow:0 0 0 3px rgba(82,196,26,.15)}
+.src .dot.warn{background:var(--colorWarning);box-shadow:0 0 0 3px rgba(250,173,20,.15)}
+.src .dot.err{background:var(--colorError);box-shadow:0 0 0 3px rgba(255,77,79,.15)}
+.src .nm{font-size:15px;font-weight:700}
+.src .en{font-size:11px;color:var(--colorTextTertiary);margin:2px 0 10px}
+.src .row{display:flex;justify-content:space-between;font-size:12px;color:var(--colorTextSecondary);padding:3px 0}
+.src .row .k{color:var(--colorTextTertiary)}
+.src .acts{margin-top:10px;display:flex;gap:6px}
+.mono{font-family:Consolas,'Courier New',monospace;font-size:12.5px}
+/* 映射表 */
+.map-arrow{color:var(--colorPrimary);font-weight:700}
+.rule-pill{display:inline-block;font-size:11px;padding:1px 6px;border-radius:3px;background:#FAFAFA;border:1px solid var(--colorBorder);color:var(--colorTextSecondary);margin:1px 2px 1px 0}
+.rule-pill.req{background:var(--primaryBg);border-color:var(--primaryBorder);color:#0958D9}
+.rule-pill.warn{background:var(--warningBg);border-color:var(--warningBorder);color:#D48806}
+/* 对账 */
+.alert{display:flex;gap:9px;border-radius:var(--radius);padding:10px 14px;font-size:13px;line-height:1.7}
+.alert.i{background:var(--primaryBg);border:1px solid var(--primaryBorder);color:#0958D9}
+.alert.w{background:var(--warningBg);border:1px solid var(--warningBorder);color:#D48806}
+.alert .dot{width:8px;height:8px;border-radius:50%;flex:none;margin-top:6px}
+.alert.i .dot{background:var(--colorPrimary)}.alert.w .dot{background:var(--colorWarning)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+.kpi{background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow3);padding:16px 20px}
+.kpi .l{font-size:13px;color:var(--colorTextTertiary);margin-bottom:6px}
+.kpi .v{font-size:24px;font-weight:600;line-height:1.2}
+.kpi .v small{font-size:13px;font-weight:400;color:var(--colorTextTertiary);margin-left:4px}
+.kpi .d{font-size:12px;color:var(--colorTextTertiary);margin-top:4px}
+.wl-bar{height:8px;border-radius:4px;background:#F0F0F0;overflow:hidden}
+.wl-bar i{display:block;height:100%;border-radius:4px}
+.q{display:none;width:15px;height:15px;border-radius:50%;background:var(--colorWarning);color:#fff;font-size:11px;line-height:15px;text-align:center;cursor:pointer;margin-left:4px;font-weight:700;vertical-align:middle;user-select:none}
+body.cmt-on .q{display:inline-block}
+.bubble{position:fixed;z-index:1000;max-width:320px;background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow);padding:12px 14px;font-size:13px;border-top:3px solid var(--colorWarning)}
+.bubble .bt{font-weight:600;margin-bottom:4px}.bubble .bd{color:var(--colorTextSecondary);font-size:12.5px;line-height:1.65}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:center;justify-content:center}
+.modal{background:#fff;border-radius:var(--radiusLG);width:760px;max-width:94vw;box-shadow:var(--shadow);overflow:hidden;max-height:86vh;display:flex;flex-direction:column}
+.modal-h{padding:16px 24px;border-bottom:1px solid var(--colorBorderSecondary);display:flex;align-items:center}
+.modal-h .t{font-size:16px;font-weight:600}.modal-h .x{margin-left:auto;cursor:pointer;color:var(--colorTextTertiary);font-size:18px;padding:4px}
+.modal-b{padding:16px 24px;overflow:auto;flex:1}
+.empty{padding:40px;text-align:center;color:var(--colorTextQuaternary)}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sider">
+    <div class="logo"><div class="mark">FS</div><div><div class="name">Pxsemi FSO</div><div class="sub">智能生产中心 · 光刻排程</div></div></div>
+    <nav class="menu">
+      <div class="grp">总览</div><a class="item" href="../index.html">◈ 总览 Dashboard</a>
+      <div class="grp">数据接入</div><a class="item active" href="data_zone.html">⇄ Data Integration</a>
+      <div class="grp">配置</div><a class="item" href="config_zone.html">⚙ 数据配置</a>
+      <div class="grp">模型</div><a class="item" href="model_zone.html">▦ 模型管理</a>
+      <div class="grp">结果</div>
+      <a class="item" href="result_litho.html">▤ 结果-Litho排程</a>
+      <a class="item" href="result_reticle.html">▣ 结果-Reticle排程</a>
+      <div class="grp">日志</div><a class="item" href="log_zone.html">☰ 日志</a>
+      <div class="grp">扩展页面</div>
+      <a class="item" href="stacking_bond_ui_v6.html">◱ Stacking Bond</a>
+      <a class="item" href="equip_temp_layer_config.html">◌ 温层配置详细版</a>
+    </nav>
+  </aside>
+  <div class="main">
+    <header class="header">
+      <div class="crumb">Data Integration / <b id="crumbCur">数据源管理</b></div>
+      <div class="right"><span class="note" id="clock"></span><button class="btn sm" id="cmtBtn">💬 评论模式</button></div>
+    </header>
+    <main class="content" id="content"></main>
+  </div>
+</div>
+<div id="modalRoot"></div>
+<script>
+/* ================= 工具 ================= */
+var $=function(s){return document.querySelector(s)};
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function toast(m,e){var t=document.createElement('div');t.className='toast'+(e?' err':'');t.textContent=(e?'⚠️ ':'✅ ')+m;document.body.appendChild(t);setTimeout(function(){t.remove();},2400);}
+function tip(t){return '<span class="q" data-cm="'+esc(t)+'">?</span>';}
+function now(){var d=new Date(),p=function(n){return (n<10?'0':'')+n;};return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());}
+function dl(name,text){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+text],{type:'text/csv;charset=utf-8'}));a.download=name;a.click();URL.revokeObjectURL(a.href);}
+function showModal(title,body,footer){document.getElementById('modalRoot').innerHTML='<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-h"><span class="t">'+esc(title)+'</span><span class="x" onclick="closeModal()">✕</span></div><div class="modal-b">'+body+'</div><div class="modal-f" style="padding:12px 24px 18px;display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--colorBorderSecondary)">'+(footer||'<button class="btn" onclick="closeModal()">关闭</button>')+'</div></div></div>';}
+function closeModal(){document.getElementById('modalRoot').innerHTML='';}
+var cmOn=false;
+document.getElementById('cmtBtn').onclick=function(){cmOn=!cmOn;document.body.classList.toggle('cmt-on',cmOn);this.classList.toggle('primary',cmOn);};
+document.addEventListener('click',function(e){
+  var q=e.target.closest?e.target.closest('.q'):null;
+  var old=document.querySelector('.bubble');if(old)old.remove();
+  if(q){
+    var parts=(q.getAttribute('data-cm')||'').split(' :: ');
+    var b=document.createElement('div');b.className='bubble';
+    b.innerHTML='<div class="bt">'+(parts[0]||'说明')+'</div><div class="bd">'+(parts[1]||'')+'</div>';
+    document.body.appendChild(b);
+    var r=q.getBoundingClientRect();
+    b.style.left=Math.min(window.innerWidth-340,Math.max(8,r.left-140))+'px';
+    b.style.top=Math.min(window.innerHeight-130,r.bottom+8)+'px';
+    e.stopPropagation();
+  }
+});
+(function tick(){var d=new Date(),p=function(n){return (n<10?'0':'')+n;};document.getElementById('clock').textContent=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());setTimeout(tick,1000);})();
+
+/* ================= mock 数据（口径与结果区一致：数据水位 17:50 / 急货 LOT-A01 故事线 / WIP 120） ================= */
+var SRC=[
+ {id:'MES',name:'MES 制造执行',proto:'DB Link / View',freq:'5 min',latency:'42 s',last:'17:50:03',st:'ok',tables:8,note:'Lot / Flow / Reticle 绑定主数据源（序号24 同步字段确认已完成 11 表）'},
+ {id:'EAP',name:'EAP 设备自动化',proto:'Kafka Topic',freq:'实时',latency:'2 s',last:'17:51:44',st:'ok',tables:3,note:'EQP 状态 / Chamber / Reticle 位置事件流'},
+ {id:'QTMS',name:'QTMS 水位管控',proto:'REST API',freq:'15 min',latency:'810 ms',last:'17:45:00',st:'ok',tables:2,note:'FSO_LOOP_TARGET_WIP 水位读取 + 校准回写'},
+ {id:'SDR',name:'SDR 搬送调度',proto:'REST API',freq:'事件驱动',latency:'230 ms',last:'17:49:12',st:'ok',tables:1,note:'搬送指令下发与执行回执'},
+ {id:'APC',name:'APC / R2R',proto:'DB View',freq:'30 min',latency:'—',last:'10-24 14:30:00',st:'err',tables:1,note:'连接失败：ORA-12170 超时（阶段二接入，当前 24 项检查项走 MES 快照）'}
+];
+/* 同步任务：12 张 SOURCE_* 表口径（04_数据库设计.md §1.1） */
+var TASKS=[
+ {tbl:'SOURCE_LOT',src:'MES',mode:'增量',water:'UPDATE_TIME',rows:'1,204',delta:'86',freq:'5 min',dur:'3.2s',st:'ok',last:'17:50:03'},
+ {tbl:'SOURCE_PRODUCT_FLOW',src:'MES',mode:'全量+版本',water:'FLOW_VER',rows:'3,982',delta:'0',freq:'日 06:00',dur:'18.4s',st:'ok',last:'06:00:11'},
+ {tbl:'SOURCE_LOT_REMAIN_QTIME',src:'MES',mode:'增量',water:'UPDATE_TIME',rows:'867',delta:'41',freq:'5 min',dur:'1.8s',st:'ok',last:'17:50:04'},
+ {tbl:'SOURCE_EQP_INFO',src:'EAP',mode:'全量',water:'—',rows:'36',delta:'0',freq:'日 06:00',dur:'0.6s',st:'ok',last:'06:00:15'},
+ {tbl:'SOURCE_EQP_STATUS',src:'EAP',mode:'增量',water:'CHANGE_TIME',rows:'36',delta:'7',freq:'实时',dur:'0.4s',st:'ok',last:'17:51:44'},
+ {tbl:'SOURCE_EQP_CHAMBER_STATUS',src:'EAP',mode:'增量',water:'CHANGE_TIME',rows:'214',delta:'12',freq:'实时',dur:'0.5s',st:'ok',last:'17:51:45'},
+ {tbl:'SOURCE_EQP_RECIPE',src:'EAP',mode:'全量',water:'—',rows:'1,530',delta:'2',freq:'日 06:00',dur:'2.1s',st:'ok',last:'06:00:18'},
+ {tbl:'SOURCE_EQP_RUNNING_INFO',src:'EAP',mode:'增量',water:'TRANX_TIME',rows:'54',delta:'9',freq:'实时',dur:'0.4s',st:'ok',last:'17:51:46'},
+ {tbl:'SOURCE_RETICLE_INFO',src:'EAP',mode:'全量',water:'—',rows:'156',delta:'0',freq:'日 06:00',dur:'1.1s',st:'ok',last:'06:00:20'},
+ {tbl:'SOURCE_RETICLE_STATUS',src:'EAP+SDR回执',mode:'增量',water:'DATA_VERSION',rows:'156',delta:'14',freq:'实时',dur:'0.9s',st:'warn',last:'17:51:40',msg:'2 条记录跳过：POD_STATUS 非法值（已入隔离区）'},
+ {tbl:'SOURCE_RETICLE_SCHEDULED_DOWN',src:'MES',mode:'增量',water:'UPDATE_TIME',rows:'23',delta:'1',freq:'15 min',dur:'0.3s',st:'ok',last:'17:45:02'},
+ {tbl:'LOTHIST',src:'MES',mode:'增量',water:'TRX_TIME',rows:'98,410',delta:'1,203',freq:'15 min',dur:'6.7s',st:'ok',last:'17:45:05'}
+];
+/* 字段映射（以 SOURCE_LOT / SOURCE_RETICLE_STATUS 两组为代表） */
+var MAPS=[
+ {srcTbl:'MES.WIP_LOT (View)',dstTbl:'SOURCE_LOT',ver:'MAP-LOT v2.4 · 2026-10-23 生效',rows:[
+  {s:'LOT_ID',d:'LOT_ID',r:['TRIM','UPPER'],req:true},
+  {s:'PRODUCT_ID + PRODUCT_VER',d:'PRODUCT / PRODUCT_VERSION',r:['CONCAT','LOOKUP product_master'],req:true},
+  {s:'PLAN / TOPPLAN',d:'PLAN / PLAN_VERSION',r:['SPLIT 字符 -'],req:true},
+  {s:'QTY_1',d:'WAFER_COUNT',r:['TO_NUMBER','>0 校验'],req:true},
+  {s:'LOT_STATUS in (Active,Hold)',d:'PROCESS_STATUS',r:['ENUM: Active→active / Hold→hold'],req:true},
+  {s:'TRACK_OUT_TIME',d:'LAST_JOB_OUT_TIME',r:['TZ+8','FORMAT YYYY-MM-DD HH24:MI:SS'],req:false},
+  {s:'STEPPER_CODE（最近绑定）',d:'STEPPER_CODE',r:['LAST_BY(JOB_IN_TIME)'],req:false},
+  {s:'—（MES 无）',d:'IS_PILOT / IS_NTO',r:['FROM config_lot_type_map（Lot Type 映射）'],req:false,warn:true}],
+  lots:[{lot:'LOT-A01',issues:['PRODUCT_VERSION 缺省 → 用默认版本 1']},{lot:'LOT-B12',issues:['双紧急标识冲突（SHR+SHIP）→ 已隔离，待确认']}]},
+ {srcTbl:'EAP.RTS_RETICLE_EVENT (Kafka)',dstTbl:'SOURCE_RETICLE_STATUS',ver:'MAP-RTS v1.7 · 2026-10-21 生效',rows:[
+  {s:'RT_ID',d:'RETICLE_ID',r:['TRIM','UPPER'],req:true},
+  {s:'LOCATION_CODE',d:'RETICLE_LOCATION / RETICLE_SUB_LOCATION',r:['SPLIT 字符 :','ENUM 映射 STK/IRIS/SCN'],req:true},
+  {s:'CABINET_ID + SLOT',d:'PHYSICAL_LOCATION',r:['CONCAT'],req:true},
+  {s:'POD_ID / POD_STATE',d:'POD_ID / POD_STATUS',r:['ENUM: OK/NOK/EMPTY'],req:true},
+  {s:'LAST_IRIS_TS',d:'LAST_IRISIN_TIME',r:['EPOCH→DATE'],req:false},
+  {s:'WAFER_SINCE_IRIS',d:'WAFER_COUNT_TO_IRIS',r:['resetCountIris − 已加工数'],req:false},
+  {s:'SEQ_NO（事件序号）',d:'DATA_VERSION',r:['乐观锁递增'],req:false}],
+  lots:[{lot:'RT-0204',issues:['POD_STATUS=UNKNOWN → 隔离，等待 SDR 库存对账']},{lot:'RT-0305',issues:['LAST_IRIS_TS 时区偏差 −8h → 规则已修正']}]}
+];
+/* 对账 */
+var RECON={ts:'2026-10-25 17:55:00',items:[
+ {name:'WIP 当站对账（Scanner 当站 WIP）',mes:120,fso:118,diff:2,st:'warn',note:'2 批在隔离区（见下）：LOT-B12 双紧急标识 / LOT-F03 Flow 缺失',target:'≤2'},
+ {name:'在库 Reticle 对账',mes:156,fso:156,diff:0,st:'ok',note:'含 RT-0204 隔离记录（POD 状态）',target:'0'},
+ {name:'QTime 配置行数对账',mes:327,fso:327,diff:0,st:'ok',note:'SOURCE_PRODUCT_FLOW.QTIME_* 与 MES QTMS 配置一致',target:'0'},
+ {name:'Eqp 状态对账',mes:36,fso:36,diff:0,st:'ok',note:'EAP 事件流实时（延迟 <5s）',target:'0'}]};
+var QUAR=[
+ {id:'Q-1025-01',tbl:'SOURCE_LOT',lot:'LOT-B12',field:'紧急标识',val:'SHR=true, SHIP=true',rule:'互斥校验（R8 Case 冲突）',ts:'17:50:05',act:'待 MES 确认属性'},
+ {id:'Q-1025-02',tbl:'SOURCE_LOT',lot:'LOT-F03',field:'PRODUCT_FLOW',val:'5004A/plan V3',rule:'Flow 缺失（主数据未同步）',ts:'17:50:05',act:'触发 MES 全量重导 06:00'},
+ {id:'Q-1025-03',tbl:'SOURCE_RETICLE_STATUS',lot:'RT-0204',field:'POD_STATUS',val:'UNKNOWN',rule:'ENUM 白名单 {OK,NOK,EMPTY}',ts:'17:51:40',act:'SDR 库存对账后重导'}
+];
+
+/* ================= 框架 ================= */
+var TABS=[['src','数据源管理'],['task','同步任务监控'],['map','字段映射配置'],['recon','数据质量对账']];
+var S={tab:'src'};
+function render(){
+  var h='<div class="card np"><div style="padding:0 24px"><div class="tabs">'
+   +TABS.map(function(t){return '<div class="tab '+(S.tab===t[0]?'on':'')+'" data-t="'+t[0]+'">'+t[1]+'</div>';}).join('')
+   +'</div></div><div style="padding:16px 24px 24px">'+V[S.tab]()+'</div></div>';
+  document.getElementById('content').innerHTML=h;
+  document.getElementById('crumbCur').textContent=TABS.find(function(t){return t[0]===S.tab;})[1];
+  document.querySelectorAll('.tabs .tab').forEach(function(t){t.onclick=function(){S.tab=t.getAttribute('data-t');render();};});
+}
+var V={};
+
+/* ===== 页签1 数据源管理 ===== */
+V.src=function(){
+  var ok=SRC.filter(function(s){return s.st==='ok';}).length;
+  var h='<div class="kpis">'
+   +'<div class="kpi"><div class="l">数据源</div><div class="v">'+SRC.length+'<small>个</small></div><div class="d">MES / EAP / QTMS / SDR / APC</div></div>'
+   +'<div class="kpi"><div class="l">连接正常</div><div class="v" style="color:'+(ok===SRC.length?'var(--colorSuccess)':'var(--colorError)')+'">'+ok+'<small>/'+SRC.length+'</small></div><div class="d">APC 连接失败（阶段二）</div></div>'
+   +'<div class="kpi"><div class="l">当前数据水位</div><div class="v mono">17:50</div><div class="d">SOURCE_LOT 增量到 17:50:03</div></div>'
+   +'<div class="kpi"><div class="l">当日隔离记录</div><div class="v" style="color:var(--colorWarning)">'+QUAR.length+'<small>条</small></div><div class="d">见「数据质量对账」隔离区</div></div>'
+   +'</div>';
+  h+='<div class="src-grid">'+SRC.map(function(s){
+    var dc=s.st==='ok'?'ok':(s.st==='warn'?'warn':'err');
+    return '<div class="src"><span class="dot '+dc+'"></span><div class="nm">'+s.id+'</div><div class="en">'+esc(s.name)+' · '+s.proto+'</div>'
+     +'<div class="row"><span class="k">同步频率</span><span>'+s.freq+'</span></div>'
+     +'<div class="row"><span class="k">延迟</span><span class="mono">'+s.latency+'</span></div>'
+     +'<div class="row"><span class="k">上次成功</span><span class="mono">'+s.last+'</span></div>'
+     +'<div class="row"><span class="k">承载表</span><span>'+s.tables+' 张</span></div>'
+     +'<div class="row" style="min-height:34px"><span class="k" style="width:100%">'+tip(s.id+' :: '+esc(s.note))+'<span class="note">'+esc(s.note.slice(0,22))+'…</span></span></div>'
+     +'<div class="acts"><button class="btn sm" onclick="toast(\'连通性测试通过：'+s.id+'（演示）\')">测试连接</button>'
+     +(s.id==='APC'?'<button class="btn sm" onclick="toast(\'重连失败：ORA-12170（演示）\',true)">重连</button>':'')
+     +'</div></div>';
+  }).join('')+'</div>';
+  h+='<div class="legend" style="margin-top:14px"><span class="li"><i style="background:var(--colorSuccess);border-radius:50%;width:9px;height:9px"></i>正常</span>'
+   +'<span class="li"><i style="background:var(--colorWarning);border-radius:50%;width:9px;height:9px"></i>告警</span>'
+   +'<span class="li"><i style="background:var(--colorError);border-radius:50%;width:9px;height:9px"></i>故障</span>'
+   +'<span class="note">APC 为阶段二接入项（RFP 2.2.1/2.2.3，计划序号30，12 月开发）——当前 24 项检查通过 MES 快照表执行。</span></div>';
+  return h;
+};
+
+/* ===== 页签2 同步任务监控 ===== */
+V.task=function(){
+  var h='<div class="toolbar"><input class="inp" id="qT" placeholder="表名过滤，如 SOURCE_LOT" style="width:240px" oninput="renderTasks()">'
+   +'<select class="inp" id="fSt" onchange="renderTasks()"><option value="">状态：全部</option><option value="ok">正常</option><option value="warn">告警</option><option value="err">失败</option></select>'
+   +'<button class="btn primary" onclick="toast(\'已触发全量同步（演示）：12 个任务入队\')">▶ 触发全部同步</button>'
+   +'<span class="sp"></span><button class="btn sm" onclick="dlTasks()">⬇ CSV</button></div>'
+   +'<div class="tscroll"><table class="tbl" id="taskTbl"><thead><tr>'
+   +'<th data-sort="tbl" onclick="sortTasks(\'tbl\')">目标表</th><th>来源</th><th>模式'+tip('同步模式 :: 全量=每日整表刷新；增量=按水位字段（UPDATE_TIME / DATA_VERSION / TRX_TIME）断点续传，仅拉取水位之后的数据。')+'</th><th>增量水位</th><th data-sort="rows" onclick="sortTasks(\'rows\')">总行数</th><th>近次增量</th><th>频率</th><th>耗时</th><th>状态</th><th>最后同步</th><th style="width:110px">操作</th>'
+   +'</tr></thead><tbody></tbody></table></div>'
+   +'<div class="note" style="margin-top:10px" id="taskHint"></div>';
+  return h;
+};
+var taskSort={k:'tbl',d:1};
+function sortTasks(k){taskSort.d=taskSort.k===k?-taskSort.d:1;taskSort.k=k;renderTasks();}
+function renderTasks(){
+  var kw=(document.getElementById('qT')||{}).value||'';
+  var st=(document.getElementById('fSt')||{}).value||'';
+  var rows=TASKS.filter(function(t){return (!kw||t.tbl.toLowerCase().indexOf(kw.toLowerCase())>-1)&&(!st||t.st===st);});
+  rows.sort(function(a,b){var va=a[taskSort.k],vb=b[taskSort.k];return va<vb?-taskSort.d:va>vb?taskSort.d:0;});
+  var tb=document.querySelector('#taskTbl tbody');if(!tb)return;
+  tb.innerHTML=rows.length?rows.map(function(t){
+    var tag=t.st==='ok'?'<span class="tag success">正常</span>':(t.st==='warn'?'<span class="tag warning">告警</span>':'<span class="tag error">失败</span>');
+    return '<tr><td><b class="mono">'+t.tbl+'</b>'+(t.msg?'<div class="note" style="color:#D48806">'+esc(t.msg)+'</div>':'')+'</td>'
+     +'<td>'+t.src+'</td><td>'+t.mode+'</td><td class="mono">'+t.water+'</td><td class="mono">'+t.rows+'</td>'
+     +'<td class="mono">'+(t.delta==='0'?'<span class="note">0</span>':t.delta)+'</td><td>'+t.freq+'</td><td class="mono">'+t.dur+'</td>'
+     +'<td>'+tag+'</td><td class="mono">'+t.last+'</td>'
+     +'<td><button class="btn link" onclick="toast(\'已触发 '+t.tbl+' 增量同步（演示）\')">同步</button><button class="btn link" onclick="showTaskLog(\''+t.tbl+'\')">日志</button></td></tr>';
+  }).join(''):'<tr><td colspan="11"><div class="empty">无匹配任务</div></td></tr>';
+  var warn=rows.filter(function(t){return t.st==='warn';}).length;
+  var hint=document.getElementById('taskHint');
+  if(hint)hint.innerHTML='共 <b>'+rows.length+'</b> / '+TASKS.length+' 个任务 · 正常 '+(rows.length-warn)+' · 告警 '+warn+' —— 增量水位字段与 04_数据库设计.md 各表 UPDATE_TIME / DATA_VERSION 对齐；失败自动重试 3 次（退避 1/5/15 min），仍失败转 Error Management（DATA_ERROR）并冻结该表参与排程。';
+}
+function showTaskLog(tbl){
+  var t=TASKS.filter(function(x){return x.tbl===tbl;})[0];
+  var log='['+(t.last)+'] '+t.tbl+' '+t.mode+' 同步完成 · 耗时 '+t.dur+' · 增量 '+t.delta+' 行 · 水位='+(t.water==='—'?'N/A':t.water)+(t.msg?('\n[WARN] '+t.msg):'')
+   +'\n[source] '+t.src+' → [target] FSO.'+t.tbl+'\n[retry] 0/3 · [lock] 无并行锁冲突\n[audit] 批次 SYS-20261025-同步批次号已登记（含行数校验和）';
+  showModal(t.tbl+' 同步日志', '<pre class="det" style="background:#FAFAFA;border:1px solid var(--colorBorderSecondary);border-radius:6px;padding:12px;font-family:Consolas,monospace;font-size:12px;white-space:pre-wrap">'+esc(log)+'</pre>');
+}
+
+/* ===== 页签3 字段映射配置 ===== */
+V.map=function(){
+  var h='<div class="alert i" style="margin-bottom:14px"><span class="dot"></span><div>映射规则对应「计划序号 24 同步字段确认」结论（10/28 剩余字段开发完成）；版本化生效：修改映射不立即生效，生成新 MAP 版本并在下次全量刷新时切换，保证与输入快照（Run Trace）可对账。</div></div>';
+  h+=MAPS.map(function(m,mi){
+    return '<div class="card np" style="margin-bottom:16px"><div style="padding:16px 24px 6px"><div class="card-h" style="margin-bottom:10px"><div class="t" style="font-size:15px">'
+     +'<span class="mono">'+esc(m.srcTbl)+'</span> <span class="map-arrow">→</span> <span class="mono">'+esc(m.dstTbl)+'</span></div>'
+     +'<div class="sub">'+esc(m.ver)+'</div>'
+     +'<div class="right"><button class="btn sm" onclick="toast(\'已生成新映射草稿 vNext（演示）\')">编辑映射</button><button class="btn sm" onclick="toast(\'CSV 已下载（演示）\')">⬇ CSV</button></div></div>'
+     +'<table class="tbl"><thead><tr><th style="width:260px">MES/EAP 源字段</th><th style="width:34px"></th><th style="width:250px">FSO 目标字段</th><th>清洗/转换规则</th></tr></thead><tbody>'
+     +m.rows.map(function(r){
+        return '<tr><td class="mono">'+esc(r.s)+'</td><td class="map-arrow">→</td><td class="mono"><b>'+esc(r.d)+'</b></td>'
+         +'<td>'+r.r.map(function(x){return '<span class="rule-pill '+(x.indexOf('校验')>-1?'warn':'req')+'">'+esc(x)+'</span>';}).join('')+(r.req?' <span class="tag error" style="height:18px;font-size:11px">必填</span>':'')+(r.warn?' <span class="tag warning" style="height:18px;font-size:11px">间接映射</span>':'')+'</td></tr>';
+      }).join('')
+     +'</tbody></table>'
+     +'<div style="padding:8px 2px 14px" class="note"><b>本组映射当前命中问题样例：</b> '
+     +m.lots.map(function(l){return '<span class="mono">'+l.lot+'</span>（'+l.issues.join('；')+'）';}).join('　·　')
+     +'　'+tip('样例联动 :: 命中问题的记录进入隔离区（数据质量对账页签）；修复重导后自动移出并标记 DATA_ERROR 关闭。')+'</div>'
+     +'</div></div>';
+  }).join('');
+  return h;
+};
+
+/* ===== 页签4 数据质量对账 ===== */
+V.recon=function(){
+  var h='<div class="toolbar"><span class="note">最近对账批次：<b class="mono">'+RECON.ts+'</b>（排程触发前自动执行 + 每小时例行）</span><span class="sp"></span>'
+   +'<button class="btn primary" onclick="toast(\'对账完成：与上次结果一致（演示）\')">▶ 立即对账</button><button class="btn sm" onclick="dlRecon()">⬇ CSV</button></div>';
+  h+='<table class="tbl"><thead><tr><th>对账项</th><th>MES 侧</th><th>FSO 侧</th><th>差异</th><th>阈值</th><th>状态</th><th>说明</th></tr></thead><tbody>'
+   +RECON.items.map(function(r){
+     var tag=r.st==='ok'?'<span class="tag success">通过</span>':'<span class="tag warning">超阈值</span>';
+     return '<tr><td><b>'+esc(r.name)+'</b></td><td class="mono">'+r.mes+'</td><td class="mono">'+r.fso+'</td>'
+      +'<td class="mono" style="color:'+(r.diff?'#D48806':'var(--colorSuccess)')+'">'+r.diff+'</td><td class="mono">'+r.target+'</td><td>'+tag+'</td><td class="note">'+esc(r.note)+'</td></tr>';
+   }).join('')+'</tbody></table>';
+  h+='<div class="alert w" style="margin:16px 0 12px"><span class="dot"></span><div><b>隔离区（'+QUAR.length+' 条）</b>：不入 FSO 正式表、不参与排程；超时未处理自动升级 Error Management（DATA_ERROR）。'+tip('隔离区 :: 违反清洗规则的记录落 FSO_DATA_QUARANTINE 表；修复动作=源头修正后按隔离 ID 重导；重导成功后该记录状态变 CLOSED 并写审计。')+'</div></div>';
+  h+='<table class="tbl"><thead><tr><th>隔离 ID</th><th>目标表</th><th>Lot / Reticle</th><th>字段</th><th>原始值</th><th>命中规则</th><th>时间</th><th>处置</th><th style="width:130px">操作</th></tr></thead><tbody>'
+   +QUAR.map(function(q,i){
+     return '<tr><td class="mono">'+q.id+'</td><td class="mono">'+q.tbl+'</td><td><b class="mono">'+q.lot+'</b></td><td>'+q.field+'</td>'
+      +'<td class="mono" style="color:#D48806">'+esc(q.val)+'</td><td class="note">'+esc(q.rule)+'</td><td class="mono">'+q.ts+'</td><td class="note">'+esc(q.act)+'</td>'
+      +'<td><button class="btn link" onclick="toast(\''+q.id+' 已标记修复重导（演示）\')">修复重导</button><button class="btn link danger" onclick="toast(\''+q.id+' 已豁免入正式表（演示）\',true)">豁免</button></td></tr>';
+   }).join('')+'</tbody></table>';
+  h+='<div class="note" style="margin-top:10px">对账差异超阈值时的联动：① 冻结受影响表参与下一轮排程；② Error Management 生成 DATA_ERROR（与日志区联跳）；③ 通知看板标记「数据水位」为告警色。所有对账/隔离/重导动作均写 FSO_DQ_AUDIT 审计表，供 Run Trace 反查「这次排程用了哪批数据」。</div>';
+  return h;
+};
+function dlTasks(){
+  var head=['目标表','来源','模式','增量水位','总行数','近次增量','频率','耗时','状态','最后同步'];
+  var body=TASKS.map(function(t){return [t.tbl,t.src,t.mode,t.water,t.rows,t.delta,t.freq,t.dur,t.st==='ok'?'正常':(t.st==='warn'?'告警':'失败'),t.last];});
+  dl('sync_tasks.csv',[head].concat(body).map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\r\n'));
+  toast('已导出 sync_tasks.csv');
+}
+function dlRecon(){
+  var head=['对账项','MES侧','FSO侧','差异','阈值','状态','说明'];
+  var body=RECON.items.map(function(r){return [r.name,r.mes,r.fso,r.diff,r.target,r.st==='ok'?'通过':'超阈值',r.note];});
+  dl('reconciliation.csv',[head].concat(body).map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\r\n'));
+  toast('已导出 reconciliation.csv');
+}
+
+/* ================= 启动 ================= */
+render();renderTasks();
+</script>
+</body>
+</html>

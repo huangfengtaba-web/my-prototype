@@ -1,0 +1,814 @@
+<!doctype html>
+<!-- GTX FSO Litho 原型 · 日志 System Log · v1 · 2026-10-24 · 对应设计书 4.7.4 日志（Scheduling Log p:871-883 + t:44/t:45；Error Management p:885-904 + t:46） -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>日志 System Log · GTX FSO Litho 原型</title>
+<style>
+:root{
+  --colorPrimary:#1677FF; --colorPrimaryHover:#4096FF; --colorPrimaryActive:#0958D9;
+  --colorSuccess:#52C41A; --colorWarning:#FAAD14; --colorError:#FF4D4F;
+  --colorText:rgba(0,0,0,.88); --colorTextSecondary:rgba(0,0,0,.65);
+  --colorTextTertiary:rgba(0,0,0,.45); --colorTextQuaternary:rgba(0,0,0,.25);
+  --bgContainer:#fff; --bgLayout:#F5F5F5;
+  --colorBorder:#D9D9D9; --colorBorderSecondary:#F0F0F0; --colorSplit:rgba(5,5,5,.06);
+  --primaryBg:#E6F4FF; --primaryBorder:#91CAFF;
+  --successBg:#F6FFED; --successBorder:#B7EB7F;
+  --warningBg:#FFFBE6; --warningBorder:#FFE58F;
+  --errorBg:#FFF2F0; --errorBorder:#FFCCC7;
+  --radiusSM:4px; --radius:6px; --radiusLG:8px;
+  --siderW:208px; --headerH:48px;
+  --shadow3:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
+  --shadow:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:var(--font);font-size:14px;line-height:1.5714;color:var(--colorText);background:var(--bgLayout)}
+a{color:var(--colorPrimary);text-decoration:none}
+a:hover{color:var(--colorPrimaryHover)}
+.app{display:flex;height:100vh;overflow:hidden}
+.sider{width:var(--siderW);flex:0 0 var(--siderW);background:#fff;border-right:1px solid var(--colorBorderSecondary);display:flex;flex-direction:column;height:100vh}
+.logo{height:var(--headerH);display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--colorBorderSecondary);flex:0 0 var(--headerH)}
+.logo .mark{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#1677FF,#69B1FF);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.logo .name{font-weight:600;font-size:14px}
+.logo .sub{font-size:11px;color:var(--colorTextTertiary);margin-top:-3px}
+.menu{padding:8px 0;overflow-y:auto;flex:1}
+.menu .grp{padding:8px 16px 4px;font-size:12px;color:var(--colorTextQuaternary)}
+.menu .item{height:40px;display:flex;align-items:center;gap:10px;padding:0 16px;cursor:pointer;color:var(--colorTextSecondary);font-size:14px;transition:background .2s;text-decoration:none}
+.menu .item:hover{background:rgba(0,0,0,.04)}
+.menu .item.active{background:var(--primaryBg);color:var(--colorPrimary);font-weight:500}
+.menu .item .ic{width:16px;height:16px;flex:0 0 16px;opacity:.85}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.header{height:var(--headerH);flex:0 0 var(--headerH);background:#fff;border-bottom:1px solid var(--colorBorderSecondary);display:flex;align-items:center;padding:0 24px;gap:12px}
+.crumb{font-size:13px;color:var(--colorTextTertiary)}
+.crumb b{color:var(--colorText);font-weight:500}
+.header .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.content{flex:1;overflow:auto;padding:24px}
+.btn{height:32px;padding:0 15px;border-radius:var(--radius);border:1px solid var(--colorBorder);background:#fff;color:var(--colorText);font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap;font-family:var(--font)}
+.btn:hover{color:var(--colorPrimary);border-color:var(--colorPrimary)}
+.btn.primary{background:var(--colorPrimary);border-color:var(--colorPrimary);color:#fff}
+.btn.primary:hover{background:var(--colorPrimaryHover);border-color:var(--colorPrimaryHover);color:#fff}
+.btn.link{border-color:transparent;background:transparent;color:var(--colorPrimary);padding:0 4px;height:24px}
+.btn.link:hover{background:var(--primaryBg)}
+.btn.sm{height:28px;padding:0 10px;font-size:13px}
+.card{background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow3);padding:24px;margin-bottom:16px}
+.card-h{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.card-h .t{font-size:16px;font-weight:600}
+.card-h .sub{font-size:12px;color:var(--colorTextTertiary)}
+.card-h .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.tabs{display:flex;gap:32px;border-bottom:1px solid var(--colorBorderSecondary);margin-bottom:20px}
+.tabs .tab{padding:10px 0 12px;font-size:14px;color:var(--colorTextSecondary);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:6px}
+.tabs .tab.on{color:var(--colorPrimary);border-color:var(--colorPrimary);font-weight:500}
+.tabs .tab .cnt{font-size:12px;background:#F0F0F0;color:var(--colorTextTertiary);border-radius:9px;padding:0 6px;height:18px;line-height:18px}
+.tabs .tab.on .cnt{background:var(--primaryBg);color:var(--colorPrimary)}
+.tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:var(--radiusSM);font-size:12px;line-height:20px;border:1px solid transparent;white-space:nowrap}
+.tag.success{background:var(--successBg);color:#389E0D;border-color:var(--successBorder)}
+.tag.processing{background:var(--primaryBg);color:var(--colorPrimary);border-color:var(--primaryBorder)}
+.tag.warning{background:var(--warningBg);color:#D48806;border-color:var(--warningBorder)}
+.tag.error{background:var(--errorBg);color:var(--colorError);border-color:var(--errorBorder)}
+.tag.default{background:#FAFAFA;color:var(--colorTextSecondary);border-color:var(--colorBorder)}
+.note{font-size:12px;color:var(--colorTextTertiary)}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.toolbar .sp{margin-left:auto}
+.inp{height:32px;border:1px solid var(--colorBorder);border-radius:var(--radius);padding:0 11px;font-size:14px;outline:none;color:var(--colorText);background:#fff;font-family:var(--font)}
+.inp:focus{border-color:var(--colorPrimary);box-shadow:0 0 0 2px rgba(22,119,255,.1)}
+select.inp{cursor:pointer}
+table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
+table.tbl th{background:#FAFAFA;text-align:left;font-weight:600;color:var(--colorText);padding:12px 16px;border-bottom:1px solid var(--colorBorderSecondary);white-space:nowrap;font-size:13px}
+table.tbl th.sortable{cursor:pointer;user-select:none}
+table.tbl th.sortable:hover{color:var(--colorPrimary)}
+table.tbl th .si{font-size:10px;margin-left:2px;color:var(--colorTextQuaternary)}
+table.tbl td{padding:12px 16px;border-bottom:1px solid var(--colorBorderSecondary);color:var(--colorTextSecondary);vertical-align:middle}
+table.tbl tr:hover td{background:#FAFAFA}
+table.tbl td b{color:var(--colorText)}
+.mono{font-family:Consolas,'Courier New',monospace;font-size:12.5px}
+.tscroll{overflow:auto;max-height:560px;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius)}
+.tscroll table.tbl{margin:0}
+.tscroll th{position:sticky;top:0;z-index:2}
+.empty{padding:40px;text-align:center;color:var(--colorTextQuaternary)}
+/* 筛选栏 */
+.fbar{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;padding:16px;background:#FAFAFA;border:1px solid var(--colorBorderSecondary);border-radius:var(--radiusLG);margin-bottom:12px}
+.fbar .fi{display:flex;flex-direction:column;gap:6px}
+.fbar .fi .lb{font-size:12px;color:var(--colorTextTertiary)}
+.fbar .fi .lb i{color:var(--colorError);font-style:normal;margin-right:2px}
+.fbar .sep{width:1px;align-self:stretch;background:var(--colorBorderSecondary)}
+.fbar .dash{font-size:12px;color:var(--colorTextQuaternary);align-self:center;padding:0 2px}
+input.inp.dt{width:205px;font-size:13px;font-family:Consolas,'Courier New',monospace}
+/* 多选下拉 */
+.ms{position:relative}
+.ms-btn{height:32px;min-width:230px;max-width:300px;border:1px solid var(--colorBorder);border-radius:var(--radius);background:#fff;display:flex;align-items:center;gap:6px;padding:0 11px;cursor:pointer;font-size:13px}
+.ms-btn:hover{border-color:var(--colorPrimary)}
+.ms-btn .tx{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;color:var(--colorText)}
+.ms-btn .tx.ph{color:var(--colorTextQuaternary)}
+.ms-btn .ar{color:var(--colorTextQuaternary);font-size:12px}
+.ms-panel{position:absolute;top:36px;left:0;width:280px;background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);z-index:80;padding:8px;display:none}
+.ms-panel.open{display:block}
+.ms-search{width:100%;margin-bottom:6px;height:28px;font-size:13px}
+.ms-list{max-height:200px;overflow:auto}
+.ms-item{display:flex;align-items:center;gap:8px;height:30px;padding:0 8px;border-radius:var(--radiusSM);cursor:pointer;font-size:13px;color:var(--colorText)}
+.ms-item:hover,.ms-item.hl{background:var(--primaryBg)}
+.ms-item input{accent-color:var(--colorPrimary);margin:0}
+.ms-item .mono2{font-family:Consolas,'Courier New',monospace;font-size:12px}
+.ms-item .tick{margin-left:auto;color:var(--colorPrimary);font-weight:700;font-size:12px}
+.ms-empty{padding:12px;text-align:center;color:var(--colorTextQuaternary);font-size:12px}
+.ms-foot{display:flex;justify-content:space-between;padding:6px 8px 2px;border-top:1px solid var(--colorBorderSecondary);margin-top:6px}
+.ms-foot a{color:var(--colorPrimary);font-size:12px;cursor:pointer}
+/* 明细展开 */
+pre.det{margin:0;background:#FAFAFA;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius);padding:10px 12px;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:1.75;color:var(--colorTextSecondary);white-space:pre-wrap;word-break:break-all}
+/* 评论模式 */
+.q{display:none;width:15px;height:15px;border-radius:50%;background:var(--colorWarning);color:#fff;font-size:11px;line-height:15px;text-align:center;cursor:pointer;margin-left:4px;font-weight:700;vertical-align:middle;user-select:none}
+body.cmt-on .q{display:inline-block}
+.bubble{position:fixed;z-index:1000;max-width:300px;background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow);padding:12px 14px;font-size:13px;color:var(--colorText);border-top:3px solid var(--colorWarning)}
+.bubble .bt{font-weight:600;margin-bottom:4px}
+.bubble .bd{color:var(--colorTextSecondary);font-size:12.5px;line-height:1.65}
+.toast{position:fixed;top:64px;left:50%;transform:translateX(-50%);background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:9px 16px;font-size:13px;z-index:1200;display:flex;align-items:center;gap:8px;border-left:3px solid var(--colorSuccess);animation:tin .2s}
+.toast.err{border-left-color:var(--colorError)}
+@keyframes tin{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sider">
+    <div class="logo">
+      <div class="mark">FS</div>
+      <div>
+        <div class="name">Pxsemi FSO</div>
+        <div class="sub">智能生产中心 · 光刻排程</div>
+      </div>
+    </div>
+    <nav class="menu">
+      <div class="grp">总览</div>
+      <a class="item" href="../index.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>总览 Dashboard</a>
+      <div class="grp">配置</div>
+      <a class="item" href="config_zone.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>数据配置</a>
+      <div class="grp">模型</div>
+      <a class="item" href="model_zone.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>模型管理</a>
+      <div class="grp">结果</div>
+      <a class="item" href="result_litho.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18M6 12h12M9 19h6"/></svg>结果-Litho排程</a>
+      <a class="item" href="result_reticle.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 12h4M7 15h7"/></svg>结果-Reticle排程</a>
+      <div class="grp">日志</div>
+      <a class="item active" href="log_zone.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h14v16l-4-2-3 2-3-2-4 2z"/><path d="M9 9h6M9 13h4"/></svg>日志</a>
+      <div class="grp">扩展页面</div>
+      <a class="item" href="stacking_bond_ui_v6.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="7" height="8" rx="1"/><rect x="14" y="12" width="7" height="8" rx="1"/><rect x="8" y="4" width="8" height="6" rx="1"/></svg>Stacking Bond</a>
+      <a class="item" href="equip_temp_layer_config.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v10a3 3 0 1 0 0 6 3 3 0 0 0 0-6"/><path d="M12 9h4M12 6h3"/></svg>温层配置详细版</a>
+    </nav>
+  </aside>
+  <div class="main">
+    <header class="header">
+      <div class="crumb">System Log / <b id="crumbPage">Scheduling Log</b></div>
+      <div class="right">
+        <span class="note" id="clock"></span>
+        <button class="btn" id="cmtBtn">💬 评论模式</button>
+      </div>
+    </header>
+    <main class="content" id="content">
+
+      <div class="tabs" id="tabs">
+        <div class="tab on" data-tab="log">Scheduling Log <span class="cnt" id="cntLog"></span></div>
+        <div class="tab" data-tab="err">Error Management <span class="cnt" id="cntErr"></span></div>
+        <div class="tab" data-tab="trace">Run Trace <span class="cnt" id="cntTrace"></span></div>
+      </div>
+
+      <!-- ============ 页签 1 · Scheduling Log ============ -->
+      <section id="page-log">
+        <div class="card">
+          <div class="card-h">
+            <div class="t">Scheduling Log</div>
+            <div class="sub">记录模型调度历史（设计书 4.7.4 · t:44 字段 / t:45 筛选）</div>
+            <div class="right">
+              <span class="q" data-cm="Scheduling Log :: 记录每次模型调度的 Model Name / Version / Model Type / Status（Error|Abnormal|Success）/ Error Type / 起止时间；Error 与 Abnormal 行提供 View Error 跳转。">?</span>
+              <button class="btn sm" id="logCSV">导出 CSV</button>
+            </div>
+          </div>
+          <div class="fbar">
+            <div class="fi">
+              <div class="lb">Model Name<span class="q" data-cm="Model Name 筛选 :: 可搜索多选下拉框，非必选；精确匹配所有 Schedule Model 中的 Model Name，自然排序（t:45）。">?</span></div>
+              <div id="msLogModels"></div>
+            </div>
+            <div class="fi">
+              <div class="lb">Model Type</div>
+              <select class="inp" id="selLogType">
+                <option value="">全部</option>
+                <option value="Scheduling">Scheduling</option>
+                <option value="Planning">Planning</option>
+              </select>
+            </div>
+            <div class="fi">
+              <div class="lb">Scheduling End Time<span class="q" data-cm="End Time 筛选 :: 时间范围选择，非必选，默认当日；秒级、查询含边界值；可选范围最长 90 天（90 天以前不可选，t:45）。">?</span></div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <input class="inp dt" type="datetime-local" step="1" id="logFrom" min="2026-07-26T00:00:00">
+                <span class="dash">~</span>
+                <input class="inp dt" type="datetime-local" step="1" id="logTo" min="2026-07-26T00:00:00">
+              </div>
+            </div>
+            <div class="fi">
+              <div class="lb">Status<span class="q" data-cm="Status 筛选 :: 多选下拉框，非必选；可选 Abnormal / Error / Success 三态（t:45）。">?</span></div>
+              <div id="msLogStatus"></div>
+            </div>
+            <div class="fi" style="flex-direction:row;align-items:center">
+              <button class="btn primary" id="logQuery">查 询</button>
+              <button class="btn" id="logReset">重 置</button>
+            </div>
+          </div>
+          <div class="note" style="margin-bottom:12px" id="logHint"></div>
+          <div class="tscroll">
+            <table class="tbl" id="logTbl">
+              <thead>
+                <tr>
+                  <th class="sortable" data-k="model">Model Name<span class="si"></span></th>
+                  <th class="sortable" data-k="ver">Version<span class="si"></span></th>
+                  <th class="sortable" data-k="run">RUN_ID<span class="si"></span></th>
+                  <th class="sortable" data-k="type">Model Type<span class="si"></span></th>
+                  <th class="sortable" data-k="status">Status<span class="si"></span></th>
+                  <th class="sortable" data-k="etype">Error Type<span class="si"></span></th>
+                  <th class="sortable" data-k="start">Scheduling Start Time<span class="si"></span></th>
+                  <th class="sortable" data-k="end">Scheduling End Time<span class="si"></span></th>
+                  <th style="width:150px">操作<span class="q" data-cm="View Error :: Error / Abnormal 行显示跳转按钮，切换至 Error Management 并带入查询条件：Model Name、Create Time（=该行 End Time）、Error Type（设计书 p:881-883）。Trace :: 跳转 Run Trace 页签查看该轮四级版本链与决策审计。">?</span></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 页签 2 · Error Management ============ -->
+      <section id="page-err" style="display:none">
+        <div class="card">
+          <div class="card-h">
+            <div class="t">Error Management</div>
+            <div class="sub">记录模型调度错误日志 · Create Time 逆序（设计书 4.7.4 · t:46 筛选）</div>
+            <div class="right">
+              <span class="q" data-cm="Error Management :: Error Type 三类：DATA_ERROR（输入数据）/ MODEL_ERROR（模型求解）/ UNKNOWN_ERROR（其他异常）；列表默认按 Create Time 逆序，Detail 可展开查看堆栈与处置建议。">?</span>
+              <button class="btn sm" id="errCSV">导出 CSV</button>
+            </div>
+          </div>
+          <div class="fbar">
+            <div class="fi">
+              <div class="lb">Model Name<span class="q" data-cm="Model Name 筛选 :: 可搜索多选下拉框，非必选；精确匹配所有 Schedule Model 中的 Model Name，自然排序（t:46）。">?</span></div>
+              <div id="msErrModels"></div>
+            </div>
+            <div class="fi">
+              <div class="lb">Model Type</div>
+              <select class="inp" id="selErrType">
+                <option value="">全部</option>
+                <option value="Scheduling">Scheduling</option>
+                <option value="Planning">Planning</option>
+              </select>
+            </div>
+            <div class="fi">
+              <div class="lb"><i>*</i>Create Time<span class="q" data-cm="Create Time 筛选 :: 必选，默认当日；秒级、查询含边界值（t:46）。列表按 Create Time 逆序展示。">?</span></div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <input class="inp dt" type="datetime-local" step="1" id="errFrom">
+                <span class="dash">~</span>
+                <input class="inp dt" type="datetime-local" step="1" id="errTo">
+              </div>
+            </div>
+            <div class="fi">
+              <div class="lb">Error Type<span class="q" data-cm="Error Type 筛选 :: 单选下拉框，非必选；可选 DATA_ERROR / UNKNOWN_ERROR / MODEL_ERROR（t:46）。">?</span></div>
+              <select class="inp" id="selErrEtype">
+                <option value="">全部</option>
+                <option value="DATA_ERROR">DATA_ERROR</option>
+                <option value="UNKNOWN_ERROR">UNKNOWN_ERROR</option>
+                <option value="MODEL_ERROR">MODEL_ERROR</option>
+              </select>
+            </div>
+            <div class="fi" style="flex-direction:row;align-items:center">
+              <button class="btn primary" id="errQuery">查 询</button>
+              <button class="btn" id="errReset">重 置</button>
+            </div>
+          </div>
+          <div class="note" style="margin-bottom:12px" id="errHint"></div>
+          <div class="tscroll">
+            <table class="tbl" id="errTbl">
+              <thead>
+                <tr>
+                  <th class="sortable" data-k="model">Model Name<span class="si"></span></th>
+                  <th class="sortable" data-k="ver">Version<span class="si"></span></th>
+                  <th class="sortable" data-k="type">Model Type<span class="si"></span></th>
+                  <th class="sortable" data-k="create">Create Time<span class="si"></span></th>
+                  <th class="sortable" data-k="etype">Error Type<span class="si"></span></th>
+                  <th style="min-width:230px">Error Info</th>
+                  <th style="width:96px">Detail</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 页签 3 · Run Trace（版本链 + 决策审计） ============ -->
+      <section id="page-trace" style="display:none">
+        <div class="card">
+          <div class="card-h">
+            <div class="t">Run Trace · 排程运行溯源</div>
+            <div class="sub">RUN_ID → 输入快照 / 配置版本 / 算法版本 → 结果版本 四级版本链 + 决策审计（为何排这台机）</div>
+            <div class="right">
+              <span class="q" data-cm="Run Trace :: 每次排程生成唯一 RUN_ID，绑定四个版本：SNAP_ID（输入快照=对账通过的全部 SOURCE_* 数据冻结副本）、CFG_VER（配置+Data Parameter 生效版本）、ALGO_VER（算法代码版本）、RESULT_VER（结果集版本）。任何结果条目可反查到这四个版本，任何版本可重放对比。">?</span>
+              <select class="inp" id="selRun" style="min-width:280px"></select>
+            </div>
+          </div>
+          <div id="traceChain" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:6px"></div>
+          <div class="legend" style="margin:10px 0 4px">
+            <span class="li"><i style="background:var(--colorSuccess)"></i>一致</span>
+            <span class="li"><i style="background:var(--colorWarning)"></i>与上次运行有差异（点击卡看 diff）</span>
+            <span class="li" style="margin-left:auto"><a href="result_litho.html?page=mid">→ 打开「中间结果」页（六步过程产物逐行溯源）</a></span>
+          </div>
+          <div id="traceResult" style="padding:10px 4px 2px;font-size:13px;color:var(--colorTextSecondary)"></div>
+        </div>
+        <div class="card">
+          <div class="card-h">
+            <div class="t">决策审计 · 该轮排程为何这样分</div>
+            <div class="sub">每条 Lot→机台分配记录原因码（优先级得分 / 温层代价 / Train Size / 约束命中），可逐行展开代入值</div>
+            <div class="right">
+              <span class="q" data-cm="决策审计 :: 记录模型对每个 Lot 的候选机台评分明细：reason_code（主因）+ 各因子分值。事后追溯时，用当时快照重算评分并与记录值比对，若一致则证明算法未变、结果可信；不一致则定位是数据/配置/算法哪个版本变了。">?</span>
+              <input class="inp" id="auditKw" placeholder="Lot / Eqp / 原因码过滤" style="width:220px" oninput="renderAudit()">
+              <button class="btn sm" id="auditCSV">导出 CSV</button>
+            </div>
+          </div>
+          <div class="tscroll">
+            <table class="tbl" id="auditTbl">
+              <thead><tr>
+                <th>Lot</th><th>机台</th><th>主原因码</th><th>优先级分</th><th>温层代价</th><th>Train Size 增益</th><th>QTime 余量</th><th>约束命中</th><th>Replay</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <div class="note" style="text-align:center;padding:4px 0 12px">GTX FSO Litho 原型 · 单文件离线 · 演示数据确定性好复现 · v1 · 2026-10-24</div>
+    </main>
+  </div>
+</div>
+
+<script>
+/* ================= mock 数据（确定性，无随机） ================= */
+var TODAY='2026-10-24';
+/* Model Name 与 model_zone.html「Schedule Model」页签 mock 命名保持一致（Litho_Main / Litho_BARC_Rel / Etch_A_V1） */
+var MODELS=['Etch_A_V1','Litho_BARC_Rel','Litho_Main'];
+
+/* Scheduling Log：End Time 降序（含 2 条昨日记录，默认当日区间不显示，用于演示 90 天范围查询） */
+var SLOG=[
+  {id:'L01',model:'Litho_Main',     ver:'V2.4.1',type:'Scheduling',status:'Error',   etype:'DATA_ERROR',   start:'2026-10-24 18:10:02',end:'2026-10-24 18:12:05'},
+  {id:'L02',model:'Litho_Main',     ver:'V2.4.1',type:'Scheduling',status:'Success', etype:'',             start:'2026-10-24 17:55:00',end:'2026-10-24 17:55:38'},
+  {id:'L03',model:'Litho_Main',     ver:'V2.4.1',type:'Scheduling',status:'Success', etype:'',             start:'2026-10-24 17:40:11',end:'2026-10-24 17:52:44'},
+  {id:'L04',model:'Etch_A_V1',      ver:'V2.9.9',type:'Planning',  status:'Abnormal', etype:'DATA_ERROR',   start:'2026-10-24 16:40:05',end:'2026-10-24 16:44:31'},
+  {id:'L05',model:'Litho_BARC_Rel', ver:'V1.7.6',type:'Scheduling',status:'Error',   etype:'MODEL_ERROR',  start:'2026-10-24 15:10:23',end:'2026-10-24 15:20:47'},
+  {id:'L06',model:'Litho_Main',     ver:'V2.4.0',type:'Scheduling',status:'Abnormal', etype:'UNKNOWN_ERROR',start:'2026-10-24 14:00:58',end:'2026-10-24 14:02:19'},
+  {id:'L07',model:'Litho_Main',     ver:'V2.3.9',type:'Scheduling',status:'Success', etype:'',             start:'2026-10-24 13:35:40',end:'2026-10-24 13:41:08'},
+  {id:'L08',model:'Etch_A_V1',      ver:'V2.9.8',type:'Planning',  status:'Success', etype:'',             start:'2026-10-24 12:18:30',end:'2026-10-24 12:26:55'},
+  {id:'L09',model:'Litho_Main',     ver:'V2.3.8',type:'Scheduling',status:'Success', etype:'',             start:'2026-10-24 11:24:47',end:'2026-10-24 11:37:12'},
+  {id:'L10',model:'Litho_BARC_Rel', ver:'V1.7.5',type:'Scheduling',status:'Success', etype:'',             start:'2026-10-24 10:45:19',end:'2026-10-24 10:52:26'},
+  {id:'L11',model:'Litho_Main',     ver:'V2.3.7',type:'Scheduling',status:'Success', etype:'',             start:'2026-10-24 09:46:52',end:'2026-10-24 09:48:03'},
+  {id:'L12',model:'Litho_Main',     ver:'V2.3.6',type:'Scheduling',status:'Success', etype:'',             start:'2026-10-24 09:09:15',end:'2026-10-24 09:15:44'},
+  {id:'L13',model:'Litho_Main',     ver:'V2.3.5',type:'Scheduling',status:'Success', etype:'',             start:'2026-10-23 20:52:06',end:'2026-10-23 21:05:30'},
+  {id:'L14',model:'Litho_BARC_Rel', ver:'V1.7.4',type:'Scheduling',status:'Success', etype:'',             start:'2026-10-23 18:21:54',end:'2026-10-23 18:22:41'}
+];
+
+/* Error Management：12 条，Create Time 降序；e01~e04 与 Scheduling Log 的 Error/Abnormal 行对应（Create Time = End Time）；e11/e12 在当日区间之外 */
+/* RUN_ID：每次调度唯一运行号；Error Management 的 e01/e03/e04 与 L01/L05/L06 同源（Create Time = End Time） */
+var RUNMAP={L01:'RUN-20261024-1812',L02:'RUN-20261024-1755',L03:'RUN-20261024-1740',L04:'RUN-20261024-1640',L05:'RUN-20261024-1510',L06:'RUN-20261024-1400',L07:'RUN-20261024-1335',L08:'RUN-20261024-1218',L09:'RUN-20261024-1124',L10:'RUN-20261024-1045',L11:'RUN-20261024-0946',L12:'RUN-20261024-0909',L13:'RUN-20261023-2052',L14:'RUN-20261023-1821'};
+SLOG.forEach(function(r){r.run=RUNMAP[r.id];});
+
+/* Run Trace：四版本链 + 决策审计（演示口径：数据水位 17:50 / 快照含对账批次） */
+var RUNS={
+ 'RUN-20261024-1812':{model:'Litho_Main',ver:'V2.4.1',status:'Error',snap:'SNAP-20261024-1750',snapRows:'SOURCE_* 12 表 · 104,636 行 · 对账批次 RC-1755（WIP 差异 2，隔离 3）',snapDiff:0,cfg:'CFG-V2.4.1-1024（Lot Control 10 类型 · Reticle Config 9 项 · Fix Lot IMM01=3）',cfgDiff:1,cfgNote:'与上轮 diff：BARC_SAME_STAGE_RELEASE_GAP 2h→3h（试算）',algo:'ALGO-GIT-8f2c3a1（预组批+chunk 细排程+后处理推演）',algoDiff:0,result:'—（DATA_ERROR：SOURCE_LOT.QTIME_UPPER 为空，未出结果）',resultDiff:0},
+ 'RUN-20261024-1755':{model:'Litho_Main',ver:'V2.4.1',status:'Success',snap:'SNAP-20261024-1750',snapRows:'SOURCE_* 12 表 · 104,636 行 · 对账批次 RC-1755',snapDiff:1,snapNote:'vs 上轮：SOURCE_EQP_STATUS 7 条状态变更（IMM03 PM 开始）',cfg:'CFG-V2.4.1-1024',cfgDiff:0,algo:'ALGO-GIT-8f2c3a1',algoDiff:0,result:'RESULT-V20261024-1755 · 120 Lot / 6 机台 · 中间结果 26 行全 PASS',resultDiff:1,resultNote:'vs 上轮：IMM03 PM 时段排程避让，makespan +14min'},
+ 'RUN-20261024-1740':{model:'Litho_Main',ver:'V2.4.1',status:'Success',snap:'SNAP-20261024-1735',snapRows:'SOURCE_* 12 表 · 104,550 行 · 对账批次 RC-1735',snapDiff:0,cfg:'CFG-V2.4.1-1024',cfgDiff:0,algo:'ALGO-GIT-8f2c3a1',algoDiff:0,result:'RESULT-V20261024-1740 · 120 Lot / 6 机台',resultDiff:0},
+ 'RUN-20261024-1510':{model:'Litho_BARC_Rel',ver:'V1.7.6',status:'Error',snap:'SNAP-20261024-1505',snapRows:'SOURCE_LOT/FLOW/EQP 3 表 · 5,222 行',snapDiff:0,cfg:'CFG-V1.7.6-1024（Release 间隔 2h）',cfgDiff:0,algo:'ALGO-GIT-8f2c3a1',algoDiff:0,result:'—（MODEL_ERROR：MILP 超时，采用最优可行解）',resultDiff:0}
+};
+var DEF_RUN='RUN-20261024-1755';
+var AUDIT=[
+ {lot:'LOT-A01',eqp:'IMM01',code:'KEY_LOT_PRIORITY',pri:98,temp:0,ts:12,qt:'35min',hit:'Reticle 储位预留 1 位；IRIS 链 09:45 就绪',replay:'PASS'},
+ {lot:'LOT-A05',eqp:'IMM01',code:'SAME_RETICLE_TRAIN',pri:62,temp:1,ts:12,qt:'2h10m',hit:'与 LOT-A01 同 RT-0102（TrainSize 2）；温层代价 1 档可接受',replay:'PASS'},
+ {lot:'LOT-B02',eqp:'IMM02',code:'QT_WATERLEVEL_OK',pri:55,temp:0,ts:6,qt:'45min',hit:'Loop 水位余量 45min；内部 IRIS 免搬送',replay:'PASS'},
+ {lot:'LOT-B05',eqp:'IMM02',code:'SAME_RECIPE_BATCH',pri:54,temp:0,ts:6,qt:'40min',hit:'连批 RCP_C（recipe change 0）；降序 3.2 分差',replay:'PASS'},
+ {lot:'LOT-C04',eqp:'IMM04',code:'LOAD_BALANCE',pri:41,temp:2,ts:4,qt:'1h05m',hit:'IMM03 负载 82% vs IMM04 61%；温层代价 2 档换取均衡',replay:'PASS'},
+ {lot:'LOT-D02',eqp:'IMM05',code:'R2R_FEEDBACK',pri:47,temp:0,ts:8,qt:'55min',hit:'APC FF/FB 设定加权 +1.5；Scheduling PM 避让 10:00-10:30',replay:'PASS'},
+ {lot:'LOT-E09',eqp:'IMM06',code:'QT_RISK_AVOID',pri:44,temp:1,ts:6,qt:'18min',hit:'StarLight 10:20-11:05 强制窗口；QTime 余量 18min 触发优先锁定',replay:'PASS'},
+ {lot:'LOT-F03',eqp:'—',code:'DATA_QUARANTINE',pri:0,temp:0,ts:0,qt:'—',hit:'SOURCE_LOT 隔离区（Flow 缺失）→ 本轮不参与排程',replay:'SKIP'}
+];
+
+var ERRS=[
+  {id:'e01',model:'Litho_Main',     ver:'V2.4.1',type:'Scheduling',create:'2026-10-24 18:12:05',etype:'DATA_ERROR',   info:'SOURCE_LOT.QTIME_UPPER 为空（LOT-A07 / Step 2330）',
+   det:'[STEP 1/4] 数据装载 source → OK (2.31s)\n[STEP 2/4] fillQtimeInfo → FAIL\n  at LotPreprocess.fillQtime(LotPreprocess.java:214)\n  字段=SOURCE_LOT.QTIME_UPPER | lot=LOT-A07 | step=2330\n[STEP 3/4] 模型构建 → SKIPPED\n[STEP 4/4] 结果输出 → SKIPPED\n处置建议: 核对 MES 上抛链路（LAST_QTIME_SYNC=2026-10-24 06:00:03）后重跑'},
+  {id:'e02',model:'Etch_A_V1',      ver:'V2.9.9',type:'Planning',  create:'2026-10-24 16:44:31',etype:'DATA_ERROR',   info:'SOURCE_PRODUCT_FLOW 缺失 Layer 层级（5002A / L7）',
+   det:'[STEP 1/3] 加载 SOURCE_PRODUCT_FLOW → 38 字段结构 OK\n[STEP 2/3] RunPath 分组 → FAIL\n  at ProductFlowTree.build(ProductFlowTree.java:96)\n  product=5002A | layer=L7 | parent=NULL\n[STEP 3/3] 30 天推演 → SKIPPED\n处置建议: 补录 5002A/L7 的上下游节点后重跑 Stacking Bond 推演'},
+  {id:'e03',model:'Litho_BARC_Rel', ver:'V1.7.6',type:'Scheduling',create:'2026-10-24 15:20:47',etype:'MODEL_ERROR',  info:'MILP 求解超时（600s 上限，gap 12.4%）',
+   det:'[STEP 1/4] 输入校验 → OK\n[STEP 2/4] Release 三 Case 建模 → OK (变量 18,442 / 约束 26,310)\n[STEP 3/4] 求解 → TIMEOUT\n  solver=CBC | timeLimit=600s | bestGap=12.4% | bestBound=8,214\n[STEP 4/4] 输出 → 采用当前最优可行解\n处置建议: 放宽 MIPGap 或拆分 BARC 站点组分批求解'},
+  {id:'e04',model:'Litho_Main',     ver:'V2.4.0',type:'Scheduling',create:'2026-10-24 14:02:19',etype:'UNKNOWN_ERROR',info:'makespan 段索引越界（RT-0101 → IMM05）',
+   det:'[STEP 1/3] 读取细排程结果 → OK\n[STEP 2/3] Reticle 仿真推演 → EXCEPTION\n  java.lang.IndexOutOfBoundsException: segment 7 of 6\n  at PostProcess.timeline(PostProcess.java:332)\n  reticle=RT-0101 | eqp=IMM05 | window=24h\n[STEP 3/3] 结果回写 → SKIPPED\n处置建议: 检查跨日冻结段与 Setup 段合并逻辑'},
+  {id:'e05',model:'Litho_Main',     ver:'V2.3.9',type:'Scheduling',create:'2026-10-24 11:02:17',etype:'MODEL_ERROR',  info:'温层约束不可行（RCP_F 23℃→35℃ 无转换路径）',
+   det:'[STEP 1/4] 数据装载 → OK\n[STEP 2/4] 温层关系校验 → FAIL\n  at TempLayerGraph.path(TempLayerGraph.java:118)\n  from=23℃(RCP_F) | to=35℃(RCP_G) | capability=Capability2\n[STEP 3/4] 模型构建 → SKIPPED\n[STEP 4/4] 求解 → SKIPPED\n处置建议: 在温层配置中补录 Capability2 的 23→35 转换成本'},
+  {id:'e06',model:'Litho_Main',     ver:'V2.3.8',type:'Scheduling',create:'2026-10-24 09:12:33',etype:'UNKNOWN_ERROR',info:'Reticle 预组批输入为空（当批 WIP = 0）',
+   det:'[STEP 1/3] 读取候选集 → OK\n[STEP 2/3] 预组批建模 → EXCEPTION\n  at ReticleBatch.init(ReticleBatch.java:57)\n  candidates=0 | window=2026-10-24 09:00~12:00\n[STEP 3/3] 求解 → SKIPPED\n处置建议: 检查 Release 区间过滤条件（是否全部被冻结/已排）'},
+  {id:'e07',model:'Etch_A_V1',      ver:'V2.9.8',type:'Planning',  create:'2026-10-24 08:55:09',etype:'DATA_ERROR',   info:'SOURCE_EQP_STATUS.STOCKER_ID 映射失败（STK03）',
+   det:'[STEP 1/3] 加载机台状态 → 8/9 OK\n[STEP 2/3] Stocker 映射 → FAIL\n  eqp=STK03 | field=STOCKER_ID | value=NULL\n[STEP 3/3] 30 天推演 → SKIPPED\n处置建议: 在 Eqp Group 中补录 STK03 的 Stocker 归属'},
+  {id:'e08',model:'Litho_BARC_Rel', ver:'V1.7.5',type:'Scheduling',create:'2026-10-24 08:31:44',etype:'MODEL_ERROR',  info:'Release 三 Case 判定冲突（LOT-B12 双紧急标识）',
+   det:'[STEP 1/4] 输入校验 → OK\n[STEP 2/4] Case 判定 → FAIL\n  lot=LOT-B12 | SHR=true | SHIP=true | 互斥 Case 同时命中\n[STEP 3/4] 反推放货区间 → SKIPPED\n[STEP 4/4] 输出 → SKIPPED\n处置建议: 确认 LOT-B12 优先级属性（SHR/SSHR 与出货标识不可并存）'},
+  {id:'e09',model:'Litho_Main',     ver:'V2.3.7',type:'Scheduling',create:'2026-10-24 08:04:20',etype:'UNKNOWN_ERROR',info:'Reticle 仿真推演输出 NaN（RT-0044）',
+   det:'[STEP 1/3] 读取细排程结果 → OK\n[STEP 2/3] 储位评分 → EXCEPTION\n  at SlotScorer.score(SlotScorer.java:201)\n  reticle=RT-0044 | utilization=NaN\n[STEP 3/3] 结果回写 → SKIPPED\n处置建议: 检查 RETICLE_LIBRARY_SIZE 水位配置（除数是否为 0）'},
+  {id:'e10',model:'Litho_Main',     ver:'V2.3.6',type:'Scheduling',create:'2026-10-24 07:58:11',etype:'DATA_ERROR',   info:'FSO_RETICLE_INFO.CURRENT_LOCATION 为空（RT-0207）',
+   det:'[STEP 1/3] 加载 FSO_RETICLE_INFO → 19 字段结构 OK\n[STEP 2/3] 搬送路径规划 → FAIL\n  reticle=RT-0207 | CURRENT_LOCATION=NULL | dest=IMM03\n[STEP 3/3] 指令生成 → SKIPPED\n处置建议: 触发 SDR 库存对账后重跑搬送计划'},
+  {id:'e11',model:'Litho_Main',     ver:'V2.3.6',type:'Scheduling',create:'2026-10-21 19:44:05',etype:'MODEL_ERROR',  info:'chunk 迭代次数超限（> 50，剩余 12 Lot 未排）',
+   det:'[STEP 1/4] 数据装载 → OK\n[STEP 2/4] 模型构建 → OK\n[STEP 3/4] chunk 迭代 → LIMIT\n  chunk=50 | scheduled=108/120 | residual=12\n[STEP 4/4] 输出 → 部分可行解\n处置建议: 压缩 chunk 粒度或延长求解时间窗口'},
+  {id:'e12',model:'Litho_Main',     ver:'V2.3.5',type:'Scheduling',create:'2026-10-20 10:20:36',etype:'UNKNOWN_ERROR',info:'求解器返回码 3001（license 心跳丢失）',
+   det:'[STEP 1/3] 数据装载 → OK\n[STEP 2/3] 求解 → EXCEPTION\n  solver=CBC | code=3001 | license heartbeat lost\n[STEP 3/3] 输出 → SKIPPED\n处置建议: 联系运维检查求解器 license 服务后重跑'}
+];
+
+/* ================= 状态 ================= */
+var S={tab:'log',logSort:{k:'end',d:-1},errSort:{k:'create',d:-1},exp:{}};
+
+/* ================= 多选下拉组件 ================= */
+function MS(hostId,cfg){
+  var host=document.getElementById(hostId);host.classList.add('ms');
+  host.innerHTML='<button type="button" class="ms-btn"><span class="tx"></span><span class="ar">▾</span></button>'
+    +'<div class="ms-panel"><input class="inp ms-search" placeholder="搜索..."><div class="ms-list"></div>'
+    +'<div class="ms-foot"><a data-a="all">全选</a><a data-a="none">清空</a></div></div>';
+  var st={sel:[],kw:''};
+  var btn=host.querySelector('.ms-btn'),panel=host.querySelector('.ms-panel'),
+      list=host.querySelector('.ms-list'),tx=host.querySelector('.tx'),search=host.querySelector('.ms-search');
+  function draw(){
+    var shown=cfg.options.filter(function(o){return !st.kw||o.toLowerCase().indexOf(st.kw)>-1;});
+    list.innerHTML=shown.length?shown.map(function(o){
+      var on=st.sel.indexOf(o)>-1;
+      return '<div class="ms-item'+(on?' hl':'')+'" data-v="'+o+'"><input type="checkbox" '+(on?'checked':'')+'><span class="mono2">'+o+'</span><span class="tick">'+(on?'✓':'')+'</span></div>';
+    }).join(''):'<div class="ms-empty">无匹配项</div>';
+  }
+  function upd(){
+    tx.textContent=st.sel.length?st.sel.join(', '):(cfg.placeholder||'全部');
+    tx.classList.toggle('ph',!st.sel.length);
+    draw();
+  }
+  btn.addEventListener('click',function(e){
+    e.stopPropagation();
+    var open=panel.classList.contains('open');
+    closeAllMs();
+    if(!open){panel.classList.add('open');search.value='';st.kw='';draw();}
+  });
+  search.addEventListener('input',function(){st.kw=this.value.trim().toLowerCase();draw();});
+  search.addEventListener('click',function(e){e.stopPropagation();});
+  list.addEventListener('click',function(e){
+    e.stopPropagation();
+    var it=e.target.closest('.ms-item');if(!it)return;
+    var v=it.getAttribute('data-v'),i=st.sel.indexOf(v);
+    if(i>-1){st.sel.splice(i,1);}else{st.sel.push(v);}
+    upd();
+  });
+  host.querySelector('.ms-foot').addEventListener('click',function(e){
+    e.stopPropagation();
+    var a=e.target.closest('a');if(!a)return;
+    st.sel=a.getAttribute('data-a')==='all'?cfg.options.slice():[];
+    upd();
+  });
+  upd();
+  return {get:function(){return st.sel.slice();},set:function(v){st.sel=v.slice();upd();}};
+}
+function closeAllMs(){document.querySelectorAll('.ms-panel.open').forEach(function(p){p.classList.remove('open');});}
+document.addEventListener('click',function(e){
+  closeAllMs();
+  var q=e.target.closest?e.target.closest('.q'):null;
+  var old=document.querySelector('.bubble');if(old){old.remove();}
+  if(q){
+    var parts=(q.getAttribute('data-cm')||'').split(' :: ');
+    var b=document.createElement('div');b.className='bubble';
+    b.innerHTML='<div class="bt">'+(parts[0]||'说明')+'</div><div class="bd">'+(parts[1]||'')+'</div>';
+    document.body.appendChild(b);
+    var r=q.getBoundingClientRect();
+    b.style.left=Math.min(window.innerWidth-320,Math.max(8,r.left-140))+'px';
+    b.style.top=Math.min(window.innerHeight-120,r.bottom+8)+'px';
+    e.stopPropagation();
+  }
+});
+var msLogModels=MS('msLogModels',{options:MODELS,placeholder:'全部 Model Name'});
+var msLogStatus=MS('msLogStatus',{options:['Abnormal','Error','Success'],placeholder:'全部 Status'});
+var msErrModels=MS('msErrModels',{options:MODELS,placeholder:'全部 Model Name'});
+
+/* ================= 工具 ================= */
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function iso(s){return s.replace(' ','T');}
+function toast(msg,err){
+  var t=document.createElement('div');t.className='toast'+(err?' err':'');t.textContent=msg;
+  document.body.appendChild(t);setTimeout(function(){t.remove();},2600);
+}
+function tick(){var d=new Date(),p=function(n){return (n<10?'0':'')+n;};document.getElementById('clock').textContent=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());}
+setInterval(tick,1000);tick();
+function dl(name,text){
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\ufeff'+text],{type:'text/csv;charset=utf-8'}));
+  a.download=name;a.click();URL.revokeObjectURL(a.href);
+}
+function statusTag(s){
+  if(s==='Success'){return '<span class="tag success">Success</span>';}
+  if(s==='Error'){return '<span class="tag error">Error</span>';}
+  return '<span class="tag warning">Abnormal</span>';
+}
+function etypeTag(e){
+  if(e==='DATA_ERROR'){return '<span class="tag warning">DATA_ERROR</span>';}
+  if(e==='MODEL_ERROR'){return '<span class="tag error">MODEL_ERROR</span>';}
+  if(e==='UNKNOWN_ERROR'){return '<span class="tag processing">UNKNOWN_ERROR</span>';}
+  return '<span class="note">—</span>';
+}
+function cmp(sortState){
+  return function(a,b){
+    var va=a[sortState.k],vb=b[sortState.k];
+    return va<vb?-sortState.d:va>vb?sortState.d:0;
+  };
+}
+
+/* ================= Scheduling Log ================= */
+function rowsLog(){
+  var models=msLogModels.get(),type=document.getElementById('selLogType').value,
+      from=document.getElementById('logFrom').value,to=document.getElementById('logTo').value,
+      status=msLogStatus.get();
+  return SLOG.filter(function(r){
+    if(models.length&&models.indexOf(r.model)<0)return false;
+    if(type&&r.type!==type)return false;
+    if(status.length&&status.indexOf(r.status)<0)return false;
+    var e=iso(r.end);
+    if(from&&e<from)return false;
+    if(to&&e>to)return false;
+    return true;
+  }).sort(cmp(S.logSort));
+}
+function renderLog(){
+  var rows=rowsLog();
+  var tb=document.querySelector('#logTbl tbody');
+  if(!rows.length){
+    tb.innerHTML='<tr><td colspan="9"><div class="empty">暂无记录 · 请调整筛选条件（默认查询当日，含边界值）</div></td></tr>';
+  }else{
+    tb.innerHTML=rows.map(function(r){
+      var act=(r.status==='Error'||r.status==='Abnormal')
+        ?'<button class="btn sm" data-ve="'+r.id+'">View Error</button> <button class="btn link" data-tr="'+r.run+'">Trace</button>'
+        :'<button class="btn link" data-tr="'+r.run+'">Trace</button>';
+      return '<tr>'
+        +'<td><b class="mono">'+r.model+'</b></td>'
+        +'<td class="mono">'+r.ver+'</td>'
+        +'<td class="mono">'+r.run+'</td>'
+        +'<td>'+r.type+'</td>'
+        +'<td>'+statusTag(r.status)+'</td>'
+        +'<td>'+(r.etype?etypeTag(r.etype):'<span class="note">—</span>')+'</td>'
+        +'<td class="mono">'+r.start+'</td>'
+        +'<td class="mono">'+r.end+'</td>'
+        +'<td>'+act+'</td>'
+        +'</tr>';
+    }).join('');
+  }
+  document.querySelectorAll('#logTbl th.sortable').forEach(function(th){
+    var on=th.getAttribute('data-k')===S.logSort.k;
+    th.querySelector('.si').textContent=on?(S.logSort.d>0?'▲':'▼'):'';
+  });
+  var ok=rows.filter(function(r){return r.status==='Success';}).length;
+  document.getElementById('logHint').innerHTML='当前结果 <b>'+rows.length+'</b> / '+SLOG.length+' 条 · Success '+ok+' · Error '+rows.filter(function(r){return r.status==='Error';}).length+' · Abnormal '+rows.filter(function(r){return r.status==='Abnormal';}).length+' —— 默认区间：当日（'+TODAY+' 00:00:00 ~ 23:59:59），秒级含边界；End Time 可选范围最长 90 天。';
+}
+document.querySelectorAll('#logTbl th.sortable').forEach(function(th){
+  th.addEventListener('click',function(){
+    var k=th.getAttribute('data-k');
+    if(S.logSort.k===k){S.logSort.d=-S.logSort.d;}else{S.logSort.k=k;S.logSort.d=1;}
+    renderLog();
+  });
+});
+document.getElementById('logQuery').addEventListener('click',function(){
+  var from=document.getElementById('logFrom').value,to=document.getElementById('logTo').value;
+  if(from&&to&&from>to){toast('End Time 起止时间反了：开始不能晚于结束',true);return;}
+  if(from&&to&&(Date.parse(to)-Date.parse(from))>90*86400000){toast('End Time 范围最长 90 天（含边界值），请缩小范围',true);return;}
+  renderLog();toast('查询完成');
+});
+function logDefaults(){
+  msLogModels.set([]);msLogStatus.set([]);
+  document.getElementById('selLogType').value='';
+  document.getElementById('logFrom').value=TODAY+'T00:00:00';
+  document.getElementById('logTo').value=TODAY+'T23:59:59';
+  renderLog();
+}
+document.getElementById('logReset').addEventListener('click',function(){logDefaults();toast('已重置为默认条件（当日）');});
+document.getElementById('logCSV').addEventListener('click',function(){
+  var rows=rowsLog();
+  if(!rows.length){toast('当前无数据可导出',true);return;}
+  var head=['Model Name','Version','RUN_ID','Model Type','Status','Error Type','Scheduling Start Time','Scheduling End Time'];
+  var body=rows.map(function(r){return [r.model,r.ver,r.run,r.type,r.status,r.etype||'-',r.start,r.end];});
+  var csv=[head].concat(body).map(function(row){return row.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\r\n');
+  dl('scheduling_log.csv',csv);toast('已导出 scheduling_log.csv（当前筛选 '+rows.length+' 条）');
+});
+
+/* View Error → 切页签并带入查询条件（Model Name / Create Time = End Time / Error Type） */
+document.querySelector('#logTbl').addEventListener('click',function(e){
+  var b=e.target.closest('[data-ve]');if(!b)return;
+  var row=SLOG.filter(function(r){return r.id===b.getAttribute('data-ve');})[0];
+  if(!row)return;
+  msErrModels.set([row.model]);
+  document.getElementById('selErrType').value='';
+  document.getElementById('selErrEtype').value=row.etype||'';
+  var t=iso(row.end);
+  document.getElementById('errFrom').value=t;
+  document.getElementById('errTo').value=t;
+  switchTab('err');
+  renderErr();
+  toast('已带入查询条件 → Model Name: '+row.model+' · Create Time = End Time ('+row.end+') · Error Type: '+(row.etype||'-'));
+});
+
+/* ================= Error Management ================= */
+function rowsErr(){
+  var models=msErrModels.get(),type=document.getElementById('selErrType').value,
+      from=document.getElementById('errFrom').value,to=document.getElementById('errTo').value,
+      et=document.getElementById('selErrEtype').value;
+  return ERRS.filter(function(r){
+    if(models.length&&models.indexOf(r.model)<0)return false;
+    if(type&&r.type!==type)return false;
+    if(et&&r.etype!==et)return false;
+    var c=iso(r.create);
+    if(from&&c<from)return false;
+    if(to&&c>to)return false;
+    return true;
+  }).sort(cmp(S.errSort));
+}
+function renderErr(){
+  var rows=rowsErr();
+  var tb=document.querySelector('#errTbl tbody');
+  if(!rows.length){
+    tb.innerHTML='<tr><td colspan="7"><div class="empty">暂无错误记录 · Create Time 为必选条件（默认当日，含边界值）</div></td></tr>';
+  }else{
+    var html='';
+    rows.forEach(function(r){
+      html+='<tr>'
+        +'<td><b class="mono">'+r.model+'</b></td>'
+        +'<td class="mono">'+r.ver+'</td>'
+        +'<td>'+r.type+'</td>'
+        +'<td class="mono">'+r.create+'</td>'
+        +'<td>'+etypeTag(r.etype)+'</td>'
+        +'<td>'+esc(r.info)+'</td>'
+        +'<td><button class="btn link" data-dt="'+r.id+'">'+(S.exp[r.id]?'收起 ▴':'展开 ▾')+'</button></td>'
+        +'</tr>';
+      if(S.exp[r.id]){
+        html+='<tr><td colspan="7"><pre class="det">'+esc(r.det)+'</pre></td></tr>';
+      }
+    });
+    tb.innerHTML=html;
+  }
+  document.querySelectorAll('#errTbl th.sortable').forEach(function(th){
+    var on=th.getAttribute('data-k')===S.errSort.k;
+    th.querySelector('.si').textContent=on?(S.errSort.d>0?'▲':'▼'):'';
+  });
+  var d=rows.filter(function(r){return r.etype==='DATA_ERROR';}).length,
+      m=rows.filter(function(r){return r.etype==='MODEL_ERROR';}).length,
+      u=rows.filter(function(r){return r.etype==='UNKNOWN_ERROR';}).length;
+  document.getElementById('errHint').innerHTML='当前结果 <b>'+rows.length+'</b> / '+ERRS.length+' 条 · DATA_ERROR '+d+' · MODEL_ERROR '+m+' · UNKNOWN_ERROR '+u+' —— 列表默认按 Create Time 逆序；Create Time 必选，默认当日（含边界值）。';
+}
+document.querySelectorAll('#errTbl th.sortable').forEach(function(th){
+  th.addEventListener('click',function(){
+    var k=th.getAttribute('data-k');
+    if(S.errSort.k===k){S.errSort.d=-S.errSort.d;}else{S.errSort.k=k;S.errSort.d=1;}
+    renderErr();
+  });
+});
+document.querySelector('#errTbl').addEventListener('click',function(e){
+  var b=e.target.closest('[data-dt]');if(!b)return;
+  var id=b.getAttribute('data-dt');
+  S.exp[id]=!S.exp[id];
+  renderErr();
+});
+document.getElementById('errQuery').addEventListener('click',function(){
+  var fromEl=document.getElementById('errFrom'),toEl=document.getElementById('errTo');
+  if(!fromEl.value||!toEl.value){
+    fromEl.value=TODAY+'T00:00:00';toEl.value=TODAY+'T23:59:59';
+    toast('Create Time 为必选条件，已按默认「当日」补全后查询');
+  }else if(fromEl.value>toEl.value){
+    toast('Create Time 起止时间反了：开始不能晚于结束',true);return;
+  }
+  renderErr();toast('查询完成');
+});
+function errDefaults(){
+  msErrModels.set([]);
+  document.getElementById('selErrType').value='';
+  document.getElementById('selErrEtype').value='';
+  document.getElementById('errFrom').value=TODAY+'T00:00:00';
+  document.getElementById('errTo').value=TODAY+'T23:59:59';
+  S.exp={};
+  renderErr();
+}
+document.getElementById('errReset').addEventListener('click',function(){errDefaults();toast('已重置为默认条件（当日）');});
+document.getElementById('errCSV').addEventListener('click',function(){
+  var rows=rowsErr();
+  if(!rows.length){toast('当前无数据可导出',true);return;}
+  var head=['Model Name','Version','Model Type','Create Time','Error Type','Error Info'];
+  var body=rows.map(function(r){return [r.model,r.ver,r.type,r.create,r.etype,r.info];});
+  var csv=[head].concat(body).map(function(row){return row.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\r\n');
+  dl('error_management.csv',csv);toast('已导出 error_management.csv（当前筛选 '+rows.length+' 条）');
+});
+
+/* Trace 按钮 → 切到 Run Trace 并选中该 RUN */
+document.getElementById('logTbl').addEventListener('click',function(e){
+  var b=e.target.closest('[data-tr]');if(!b)return;
+  switchTab('trace');
+  document.getElementById('selRun').value=b.getAttribute('data-tr');
+  renderTrace();
+  toast('Run Trace：'+b.getAttribute('data-tr'));
+});
+
+/* ================= Run Trace ================= */
+var curRun=DEF_RUN;
+function renderTrace(){
+  var r=RUNS[curRun];if(!r){toast('该 Run 无版本链记录',true);return;}
+  var cards=[
+    {t:'RUN',v:curRun,sub:r.model+' · '+r.ver+' · '+r.status,extra:'触发：CRON 0/10',diff:0},
+    {t:'输入快照 SNAP_ID',v:r.snap,sub:r.snapRows,extra:r.snapNote||'与上轮一致',diff:r.snapDiff},
+    {t:'配置版本 CFG_VER',v:r.cfg,sub:'Data Parameter + 8 类 Production Config + Fix Lot',extra:r.cfgNote||'与上轮一致',diff:r.cfgDiff},
+    {t:'算法版本 ALGO_VER',v:r.algo,sub:'求解器 CBC · timeLimit 600s',extra:'与上轮一致',diff:r.algoDiff}
+  ];
+  document.getElementById('traceChain').innerHTML=cards.map(function(c){
+    var bd=c.diff?'border-color:var(--warningBorder);background:var(--warningBg)':'';
+    return '<div style="border:1px solid '+(c.diff?'var(--warningBorder)':'var(--colorBorderSecondary)')+';border-radius:8px;padding:14px;background:'+(c.diff?'var(--warningBg)':'#FAFAFA')+'" '+(c.diff&&c.extra!==('与上轮一致')?'title="'+esc(c.extra)+'"':'')+'>'
+     +'<div class="note" style="font-weight:700;color:var(--colorPrimary)">'+c.t+'</div>'
+     +'<div class="mono" style="font-weight:700;margin:4px 0;word-break:break-all">'+esc(c.v)+'</div>'
+     +'<div class="note">'+esc(c.sub)+'</div>'
+     +(c.diff?'<div class="note" style="color:#D48806;margin-top:4px">⚠ '+esc(c.extra||'')+'</div>':'')
+     +'</div>';
+  }).join('');
+  document.getElementById('traceResult').innerHTML='结果版本 <b class="mono">'+esc(r.result)+'</b>'+(r.resultDiff?' <span class="tag warning">'+esc(r.resultNote||'')+'</span>':'')
+   +'　·　<a href="result_litho.html?page=mid">中间结果溯源 →</a>　<a href="data_zone.html">数据对账批次 →</a>　<button class="btn link" onclick="toast(\'已发起重放对比：同一 SNAP+CFG+ALGO 重算，与 RESULT-V20261024-1755 一致率 100%（演示）\')">重放对比</button>　<button class="btn link" onclick="openWhatIf()">What-if 试算对比 →</button>';
+  renderAudit();
+}
+function renderAudit(){
+  var kw=(document.getElementById('auditKw').value||'').toLowerCase();
+  var rows=AUDIT.filter(function(a){return !kw||(a.lot.toLowerCase().indexOf(kw)>-1)||(a.eqp.toLowerCase().indexOf(kw)>-1)||(a.code.toLowerCase().indexOf(kw)>-1);});
+  var tb=document.querySelector('#auditTbl tbody');
+  tb.innerHTML=rows.length?rows.map(function(a,i){
+    return '<tr><td><b class="mono">'+a.lot+'</b></td><td class="mono">'+a.eqp+'</td><td><span class="tag '+(a.code==='DATA_QUARANTINE'?'warning':'processing')+'">'+a.code+'</span></td>'
+     +'<td class="mono">'+a.pri+'</td><td class="mono">'+a.temp+'</td><td class="mono">'+a.ts+'</td><td class="mono">'+a.qt+'</td>'
+     +'<td class="note" style="min-width:240px">'+esc(a.hit)+'</td>'
+     +'<td><button class="btn link" onclick="toast(\'Replay '+a.lot+'：按 SNAP+CFG+ALGO 重算评分 → 分值与记录一致（'+a.replay+'，演示）\')">'+a.replay+'</button></td></tr>';
+  }).join(''):'<tr><td colspan="9"><div class="empty">无匹配审计行</div></td></tr>';
+}
+/* Opt5：What-if 试算对比（07_优化建议#5）——同 SNAP 不同 CFG 的两次 Run 并排 KPI diff；试算 Run 不入生产版本序列 */
+var WHATIF={
+  kpis:['makespan(min)','QTime Violation(批)','Reticle 切换(次)','Train Size 均值','温层切换(次)'],
+  a:{name:'RUN-20261024-1755（现役 CFG-V2.4.1）',v:[186,0,14,1.8,5]},
+  b:{name:'RUN-20261024-1812（试算 CFG：间隔放货 3h）',v:[200,0,11,2.1,4],note:'DATA_ERROR 未出全量结果，试算列取重放补算值'}
+};
+function openWhatIf(){
+  var h='<table class="tbl"><thead><tr><th>KPI</th><th>'+esc(WHATIF.a.name)+'</th><th>'+esc(WHATIF.b.name)+'</th><th>Δ</th></tr></thead><tbody>';
+  WHATIF.kpis.forEach(function(k,i){
+    var va=WHATIF.a.v[i],vb=WHATIF.b.v[i],d=vb-va;
+    var good=(i===1||i===2||i===4)?(d<=0):(i===3?d>=0:d<=0);
+    h+='<tr><td><b>'+k+'</b></td><td class="mono">'+va+'</td><td class="mono">'+vb+'</td>'
+      +'<td class="mono" style="color:'+(d===0?'var(--colorTextTertiary)':(good?'var(--colorSuccess)':'var(--colorError)'))+'">'+(d>0?'+':'')+d+'</td></tr>';
+  });
+  h+='</tbody></table><div class="note" style="margin-top:8px">试算说明：两次 Run 共享同一 SNAP-20261024-1750（输入快照）与 ALGO-GIT-8f2c3a1，仅 CFG 不同 → KPI 差异可归因于配置变化。'+esc(WHATIF.b.note||'')+'。试算 Run 标记 trial=true，不进入生产结果版本序列、不下发 SDR。</div>';
+  showModal('What-if 试算对比 · 同快照不同配置',h);
+}
+
+document.getElementById('auditCSV').addEventListener('click',function(){
+  var head=['RUN_ID','Lot','Eqp','主原因码','优先级分','温层代价','TrainSize增益','QTime余量','约束命中','Replay'];
+  var body=AUDIT.map(function(a){return [curRun,a.lot,a.eqp,a.code,a.pri,a.temp,a.ts,a.qt,a.hit,a.replay];});
+  dl('decision_audit.csv',[head].concat(body).map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\r\n'));
+  toast('已导出 decision_audit.csv');
+});
+
+/* ================= 页签切换 ================= */
+function switchTab(name){
+  S.tab=name;
+  document.querySelectorAll('#tabs .tab').forEach(function(t){
+    t.classList.toggle('on',t.getAttribute('data-tab')===name);
+  });
+  document.getElementById('page-log').style.display=name==='log'?'':'none';
+  document.getElementById('page-err').style.display=name==='err'?'':'none';
+  document.getElementById('page-trace').style.display=name==='trace'?'':'none';
+  document.getElementById('crumbPage').textContent=name==='log'?'Scheduling Log':(name==='err'?'Error Management':'Run Trace');
+  closeAllMs();
+  if(name==='trace')renderTrace();
+}
+document.querySelectorAll('#tabs .tab').forEach(function(t){
+  t.addEventListener('click',function(){switchTab(t.getAttribute('data-tab'));});
+});
+
+/* ================= 评论模式 ================= */
+var cmt=false;
+document.getElementById('cmtBtn').addEventListener('click',function(){
+  cmt=!cmt;document.body.classList.toggle('cmt-on',cmt);
+  this.textContent=cmt?'💬 评论模式 · 开':'💬 评论模式';
+  toast(cmt?'评论模式已开启：点击 ? 徽章查看设计说明':'评论模式已关闭');
+});
+
+/* ================= 初始化 ================= */
+document.getElementById('cntLog').textContent=SLOG.length;
+document.getElementById('cntErr').textContent=ERRS.length;
+document.getElementById('cntTrace').textContent=Object.keys(RUNS).length;
+/* Run 选择器：RUN 降序 */
+(function(){
+  var sel=document.getElementById('selRun');
+  sel.innerHTML=Object.keys(RUNS).sort().reverse().map(function(k){return '<option value="'+k+'"'+(k===DEF_RUN?' selected':'')+'>'+k+'（'+RUNS[k].model+' · '+RUNS[k].status+'）</option>';}).join('');
+  sel.addEventListener('change',function(){curRun=this.value;renderTrace();});
+})();
+document.getElementById('logFrom').value=TODAY+'T00:00:00';
+document.getElementById('logTo').value=TODAY+'T23:59:59';
+document.getElementById('errFrom').value=TODAY+'T00:00:00';
+document.getElementById('errTo').value=TODAY+'T23:59:59';
+renderLog();
+renderErr();
+</script>
+</body>
+</html>

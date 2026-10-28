@@ -1,0 +1,9 @@
+# 温层冲突：验证相邻 Lot 异温层时，temp_change_min（20min）是否计入机台占用
+# LOT-A02 与 LOT-A01 同光罩 RT-0101；把 LOT-A02 改为 T1，同机台先后加工需换温
+name: 温层冲突
+desc: 同光罩 RT-0101 的 LOT-A01(T2) 与 LOT-A02(T1) 异温层，换温 20min 应计入排程间隔。
+config:
+  temp_change_min: 20      # T1↔T2 转换耗时（capability_temperature_change）
+lots:
+  LOT-A02:
+    temp: T1               # 基线为 T2，改后与 LOT-A01 形成异温层冲突
