@@ -48,21 +48,32 @@ gtx-fso-litho/
 │   ├── package.json  vite.config.js  vercel.json
 │   ├── index.html            总览页（A 的 index.html 迁入）
 │   ├── prototypes/           其余 8 页（原样迁入，保留内联样式与 PM 评论气泡）
-│   ├── src/styles/_design_tokens.css    共享 Design Token
-│   └── src/pages/scheduling-test/       ★ 新增：接 /api/solve 的实时演示页
+│   └── src/
+│       ├── styles/_design_tokens.css    共享 Design Token
+│       └── pages/                       ★ 真后端驱动的智能应用页（共享 shell）
+│           ├── _shared/                 shell.js/shell.css（侧栏/表头/气泡）
+│           ├── scheduling-test/         求解演示（六步 MILP）
+│           ├── simulation/              仿真验证（计划 vs 实际）
+│           ├── ai-workflow/             AI 工作流（模板/时间线/报告）
+│           └── ai-agent/                AI 助手（对话 + 工具调用）
 │
 ├── backend/
-│   ├── requirements.txt
-│   ├── app/api.py            FastAPI 入口（4 个接口）
-│   ├── app/solver_runner.py  封装 litho_solver（进程隔离调用）
+│   ├── requirements.txt  Procfile  runtime.txt  nixpacks.toml
+│   ├── app/
+│   │   ├── api.py            FastAPI 入口（14 个接口）
+│   │   ├── solver_runner.py  求解封装（子进程隔离 + RUNS 注册表）
+│   │   ├── sim_runner.py     仿真封装（求解→仿真串联）
+│   │   ├── workflow.py       ★ 工作流引擎（模板/步骤/线程执行）
+│   │   └── agent/            ★ 排程 Agent（tools/llm/agent，双模式）
+│   ├── sim/fab_sim.py        执行态离散事件仿真（故障/返工/光罩接力）
 │   └── solver/               ← A 的 04_算法demo/ 迁入
-│       ├── litho_solver.py   六步 MILP 主程序
+│       ├── litho_solver.py   六步 MILP 主程序（含光罩就绪耦合约束）
 │       ├── mock_data.py      mock 数据
 │       ├── cli.py  __main__.py   命令行工具
-│       └── viz/              甘特图渲染（算法精化档）
+│       └── viz/              甘特图渲染
 │
-├── tests/                    pytest + cases/ scenario 用例
-├── vendor/semiconfab-fork/   git subtree 拉入，保留 LICENSE
+├── tests/                    pytest（23 用例）+ cases/ 4 个 scenario
+├── vendor/semiconfab-fork/   git subtree 拉入，保留 LICENSE（PolyForm 非商用）
 ├── .vscode/                  launch.json / tasks.json / settings.json
 └── docs/
     ├── HANDOFF_TO_AGENT.md       ★ 接力手册
@@ -71,6 +82,7 @@ gtx-fso-litho/
     ├── 03_ALGORITHM_DEMO.md      ★ VSCode 打开与测试
     ├── 04_DEPLOYMENT.md          Vercel + Railway
     ├── 05_AGENT_HANDOFF_TEMPLATE.md
+    ├── 06_AI_CAPABILITIES.md     ★ AI 能力架构（工作流 + Agent）
     └── specs/                ← A 的 03_文档/ 8 份设计文档
 ```
 
@@ -126,15 +138,23 @@ npm run dev                     # http://localhost:5173
 
 ## 6. 前后端接口契约
 
-| 方法 | 路径 | 用途 |
-|---|---|---|
-| GET | `/api/health` | 探活，返回求解器状态 |
-| POST | `/api/solve/run` | body `{"case": "用例名"}`，返回 `run_id` + 六步结果 JSON |
-| GET | `/api/solve/result/{run_id}` | 按 run_id 取结果 |
-| GET | `/api/mock/data` | 返回 mock_data 快照（机台/Lot/光罩/配置） |
-| GET | `/api/cases` | 列出所有 scenario 用例 |
+| 分组 | 方法 | 路径 | 用途 |
+|---|---|---|---|
+| 基础 | GET | `/api/health` | 探活（求解器 + Agent 模式 + 版本） |
+| 基础 | GET | `/api/mock/data` | 返回 mock_data 快照（机台/Lot/光罩/配置） |
+| 基础 | GET | `/api/cases` | 列出所有 scenario 用例 |
+| 求解 | POST | `/api/solve/run` | body `{"case": "用例名"}`，返回 `run_id` + 六步结果 JSON |
+| 求解 | GET | `/api/solve/result/{run_id}` | 按 run_id 取结果 |
+| 仿真 | POST | `/api/sim/run` | 求解 + 执行态仿真（`seed`/`breakdown` 可调，同种子可复现） |
+| 工作流 | GET | `/api/workflow/templates` | 工作流模板清单 |
+| 工作流 | POST | `/api/workflow/run` | 异步启动（`{"template": "...", "params": {...}}`） |
+| 工作流 | GET | `/api/workflow/status/{wf_id}` | 轮询执行状态与步骤时间线 |
+| 工作流 | GET | `/api/workflow/list` | 最近运行记录 |
+| Agent | GET | `/api/agent/status` | Agent 模式（llm/rule）与工具清单 |
+| Agent | POST | `/api/agent/chat` | 对话（可触发任意工具，`session_id` 多轮） |
 
-**求解器默认 CBC**（PuLP 自带，零配置）。`litho_solver.py` 内保留 solver 适配器位，换 Gurobi/COPT 只改一处。
+**求解器默认 CBC**（PuLP 自带，零配置），`LITHO_SOLVER` 环境变量可切 Gurobi/COPT（未安装自动回退 CBC）。
+AI 能力详见 [`docs/06_AI_CAPABILITIES.md`](docs/06_AI_CAPABILITIES.md)。
 
 ---
 
@@ -153,19 +173,16 @@ npm run dev                     # http://localhost:5173
 
 ## 8. 当前状态快照
 
-> 生成时间：2026-10-29 · 生成方：WorkBuddy
+> 更新时间：2026-10-29 · 生成方：WorkBuddy（骨架）→ Zcode（全量工程化 + AI 能力）
 
-**已完成**
-- 目录骨架建立（`frontend/` `backend/` `docs/` `tests/` `vendor/` `.vscode/`）
-- 资产 A 迁移：`frontend/index.html` + `frontend/prototypes/` 8 页 + `backend/solver/` 2 个 py + `docs/specs/` 8 份文档
-- `backend/requirements.txt`、`backend/solver/{__init__,__main__,cli}.py` 已就位
+**已完成（本地全链路验证通过，pytest 23/23）**
+- 排程主线：9 页原型 + 六步 MILP（含光罩就绪耦合约束）+ FastAPI + 求解演示页
+- 仿真腿：执行态 DES（故障/返工/光罩接力，种子可复现）+ 仿真验证页
+- AI 能力：工作流引擎（2 模板）+ 排程 Agent（LLM/规则双模式，7 工具）+ 2 个新页面
+- 工程配套：.vscode 三件套、pytest 23 用例、4 个 scenario、部署配置文件、9+1 份文档
+- git 仓库初始化 + SemiconFab subtree 拉入（vendor/，PolyForm LICENSE 保留）
 
-**未完成**
-- `backend/app/api.py`、`backend/app/solver_runner.py`（目录已建，文件待写）
-- `frontend/package.json`、`vite.config.js`、`vercel.json`
-- `.vscode/` 三件套
-- `tests/` 用例与 pytest
-- 全部 MD 文档（本文件除外）
-- git 初始化与首次推送
+**未完成（需用户账号/凭据）**
+- `git push`（GitHub 空仓库 gtx-fso-litho 待建）与 Vercel/Railway 部署（G4~G7）
 
 详细分项见 [`CHECKLIST.md`](CHECKLIST.md)。

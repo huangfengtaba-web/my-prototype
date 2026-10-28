@@ -74,21 +74,24 @@ def test_rt0101_ready_chain_35min():
     assert chain == expected, f"就绪链路 {chain}min ≠ IRIS{CONFIG['iris_min']}+搬送{CONFIG['transport_min']}+装载{CONFIG['load_min']}"
 
 
-def test_reticle_delay_postpones_ready():
-    """光罩延迟场景：RT-0101 外部 IRIS 推迟到 11:00 后，其就绪时间应等量顺延。
-
-    算法现状（step3 约束只看 Lot 到站时间，光罩就绪在 step6 推演、不回写 step3）：
-    Lot 开工不变，验证口径是「就绪链路 35min 守恒」→ ready 550+35=585(09:45) → 660+35=695(11:35)。
-    """
+def test_reticle_delay_couples_to_lots():
+    """光罩延迟场景：RT-0101 IRIS 推迟到 11:00 后，就绪链路 35min 守恒，
+    且依赖它的 Lot 开工必须顺延（step3 光罩就绪耦合约束）。"""
+    from backend.solver.cli import load_case
     from backend.solver.mock_data import RETICLES
     base = run_cli()
     delayed = run_cli("reticle-delay")
-    case = __import__("backend.solver.cli", fromlist=["load_case"]).load_case("reticle-delay")
-    iris_delayed = case["reticles"]["RT-0101"]["iris_at"]
+    iris_delayed = load_case("reticle-delay")["reticles"]["RT-0101"]["iris_at"]
     assert iris_delayed != RETICLES["RT-0101"]["iris_at"], "用例未生效：iris_at 与基线相同"
+    # 35min 链路守恒
     assert to_min(base["reticles"]["RT-0101"]["ready"]) - RETICLES["RT-0101"]["iris_at"] == 35
-    assert to_min(delayed["reticles"]["RT-0101"]["ready"]) - iris_delayed == 35, \
-        "IRIS 推迟后就绪链路不再等于 35min"
+    assert to_min(delayed["reticles"]["RT-0101"]["ready"]) - iris_delayed == 35
+    # Lot 开工顺延：急货 LOT-A01 开工 ≥ 光罩就绪时间（基线 585，延迟后 695）
+    base_a01 = next(r for r in base["schedule"] if r["lot"] == "LOT-A01")
+    del_a01 = next(r for r in delayed["schedule"] if r["lot"] == "LOT-A01")
+    assert to_min(del_a01["start"]) >= iris_delayed + 35, \
+        f"光罩推迟后 LOT-A01 未顺延：{del_a01['start']}"
+    assert to_min(del_a01["start"]) > to_min(base_a01["start"]), "延迟场景下 LOT-A01 开工未晚于基线"
 
 
 def test_story_check_consistent():

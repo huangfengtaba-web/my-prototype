@@ -1,0 +1,73 @@
+<!doctype html>
+<!-- GTX FSO Litho · 仿真验证页 simulation · v1 · 2026-10-29
+     求解（六步 MILP）→ 执行态仿真（故障/返工/光罩接力扰动）→ 计划 vs 实际对比。 -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GTX FSO Litho · 仿真验证 Simulation</title>
+<link rel="stylesheet" href="../_shared/shell.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sider" id="sider"></aside>
+  <div class="main">
+    <header class="header">
+      <div class="crumb">Scheduling Result / <b>仿真验证 Simulation</b></div>
+      <div class="right"><span id="clock" class="clock"></span>
+        <button id="cmBtn" class="btn sm">💬 评论模式</button></div>
+    </header>
+    <div class="content">
+      <div class="card">
+        <div class="card-h">
+          <div><div class="t">执行态仿真（SemiconFab 叙事移植）</div>
+            <div class="sub">先跑六步 MILP 得到计划，再叠加三类扰动看计划的抗性：
+              机台故障（MTBF/MTTR）· 光罩接力搬送 · 良率返工</div></div>
+          <span class="q" data-cm="扰动由随机种子驱动：同一种子结果完全一致（可复现），换种子看不同工况。参数口径见 backend/sim/fab_sim.py。">?</span>
+        </div>
+        <div class="toolbar">
+          <div class="field"><label class="lab">Scenario</label>
+            <select id="caseSel" class="inp narrow"><option value="">基线</option></select></div>
+          <div class="field"><label class="lab">随机种子</label>
+            <input id="seed" class="inp" type="number" value="42" style="width:90px"></div>
+          <div class="field"><label class="lab">机台故障</label>
+            <input id="breakdown" type="checkbox" checked></div>
+          <button id="runBtn" class="btn primary">▶ 求解 + 仿真</button>
+          <span id="runState" class="run-state"></span>
+          <div class="sp"></div>
+          <span class="hint">约 2~5s（含子进程求解冷启动）</span>
+        </div>
+      </div>
+
+      <div class="kpis" id="kpis">
+        <div class="kpi"><div class="k-l">准时率（±15min 容差）</div><div class="k-v" id="kOnTime">—</div></div>
+        <div class="kpi"><div class="k-l">实际 MakeSpan</div><div class="k-v" id="kSpan">—</div></div>
+        <div class="kpi"><div class="k-l">MakeSpan 偏差</div><div class="k-v" id="kDelta">—</div></div>
+        <div class="kpi"><div class="k-l">平均延误</div><div class="k-v" id="kAvg">—</div></div>
+        <div class="kpi"><div class="k-l">扰动（故障/返工/QTime）</div><div class="k-v" id="kDist" style="font-size:15px">—</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><div class="t">计划 vs 实际甘特（按 Eqp 分行，每行上=计划 下=实际）</div>
+          <div class="legend">
+            <span class="li"><i style="background:var(--primaryBg);border:1px solid var(--primaryBorder)"></i>计划</span>
+            <span class="li"><i style="background:var(--colorPrimary)"></i>实际·准时</span>
+            <span class="li"><i style="background:var(--colorError)"></i>实际·延误</span></div></div>
+        <div class="scrollx"><div id="gantt"></div></div>
+        <div class="empty" id="ganttEmpty">点击「求解 + 仿真」后展示对比甘特</div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><div class="t">Lot 明细（延误 = 实际完工 − 计划完工）</div></div>
+        <div class="tscroll"><table class="dt" id="tbl">
+          <thead><tr><th>LotId</th><th>Eqp</th><th>Reticle</th><th>计划开工</th><th>计划完工</th>
+            <th>实际开工</th><th>实际完工</th><th>延误(min)</th><th>QTime</th><th>扰动说明</th></tr></thead>
+          <tbody></tbody></table></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tt" class="tt"></div>
+<script type="module" src="./script.js"></script>
+</body>
+</html>

@@ -6,7 +6,7 @@
 > - 收工前必须更新本文件与 [`STATUS.md`](STATUS.md)
 > - 状态图例：`[x]` 已完成 / `[ ]` 未完成 / `❌` 阻塞
 
-最后更新：2026-10-29 02:30（Zcode 初版完成）
+最后更新：2026-10-29 04:10（Zcode 第二轮：全量工程化 + AI 能力完成）
 
 ---
 
@@ -112,6 +112,39 @@
 - [x] F9 `docs/05_AGENT_HANDOFF_TEMPLATE.md` 接手模板
 
 > **F 档全部完成（2026-10-29 00:15）**。文档体系已可直接交给 Zcode 执行。
+
+---
+
+## H. 全量工程化 + AI 能力（2026-10-29 第二轮，用户要求：全量复杂项目 + 工作流 + Agent）
+
+- [x] H1 算法补足
+      - step3 新增「光罩就绪耦合约束」`s[l] ≥ reticle_ready_lb`（外部 IRIS 链路/StarLight 到期/跨机搬送三口径），
+        MakeSpan 11:10 → 12:34（RT-0204 11:18 到期正确卡控），基线自检不受影响
+      - `_pick_solver()` 求解器适配器：`LITHO_SOLVER=CBC/GUROBI/COPT`，未安装自动回退 CBC
+      - 测试口径同步：reticle-delay 断言升级为「Lot 随光罩顺延」
+- [x] H2 仿真模块（SemiconFab 叙事移植）
+      - `backend/sim/fab_sim.py`：轻量自研 DES（零依赖，事件按计划开工全局推进），
+        三类扰动：机台故障（MTBF900/MTTR30）、光罩接力（10+5min）、良率返工（5%×2）
+      - 同种子完全可复现；无扰动时准时率 ≥0.8；KPI：准时率/MakeSpan 偏差/延误/QTime 违约
+      - `backend/app/sim_runner.py`（求解→仿真串联）+ `POST /api/sim/run`
+- [x] H3 工作流引擎 `backend/app/workflow.py`
+      - 模板 `daily-scheduling`（校验→求解→仿真→报告）与 `scenario-compare`（3 场景对比→报告），
+        均端到端跑通；步骤函数签名 `step(ctx, params)`，ctx 黑板传值
+      - 后台线程异步执行 + 同步入口（测试/Agent 用）；步骤级状态/耗时/输出
+      - 4 个接口：templates / run / status/{id} / list
+- [x] H4 排程 Agent `backend/app/agent/`
+      - 7 个工具（list_cases/run_solve/get_result/get_mock_data/run_sim/run_workflow/list_workflows）
+      - 双模式：LLM（OpenAI 兼容 function calling，`LLM_API_BASE/KEY/MODEL` 配置即启用）
+        + 规则模式兜底（关键词路由，7 类意图全对，无 Key 演示永不冷场）
+      - 会话记忆（内存 20 条）+ 2 个接口（status/chat）
+- [x] H5 前端 3 个新页（共享 shell：`src/pages/_shared/`）
+      - `simulation/`：计划 vs 实际双轨甘特 + 扰动 KPI + Lot 延误明细
+      - `ai-workflow/`：模板卡片 + 轮询时间线（步骤状态灯）+ Markdown 报告渲染
+      - `ai-agent/`：对话式助手（工具调用 chip、快捷提问、LLM/规则模式徽章）
+      - vite 入口扩至 13 页，`npm run build` 通过；scheduling-test 导航补齐 4 页互链
+- [x] H6 测试扩展：23/23 全绿（原 9 + 仿真 4 + 工作流 3 + Agent 7）
+- [x] H7 文档：`docs/06_AI_CAPABILITIES.md`（三层架构/接口/LLM 接入/扩展指南）+ README 目录/接口契约更新 + `.env.example` 增 LLM 三项
+- [x] H8 本地验证记录：uvicorn 全 14 接口冒烟通过；agent 经 HTTP（UTF-8）路由正确触发 run_solve/run_workflow/run_sim
 
 ---
 

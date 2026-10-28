@@ -20,7 +20,10 @@ export default defineConfig({
         logZone:       r('prototypes/log_zone.html'),
         stacking:      r('prototypes/stacking_bond_ui_v6.html'),
         equipTemp:     r('prototypes/equip_temp_layer_config.html'),
-        schedTest:     r('src/pages/scheduling-test/index.html')
+        schedTest:     r('src/pages/scheduling-test/index.html'),
+        simPage:       r('src/pages/simulation/index.html'),
+        workflowPage:  r('src/pages/ai-workflow/index.html'),
+        agentPage:     r('src/pages/ai-agent/index.html')
       }
     }
   }

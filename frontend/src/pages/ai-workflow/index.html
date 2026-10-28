@@ -1,0 +1,78 @@
+<!doctype html>
+<!-- GTX FSO Litho · AI 工作流页 ai-workflow · v1 · 2026-10-29
+     工作流模板选择 → 异步执行（线程）→ 轮询步骤时间线 → Markdown 报告。 -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GTX FSO Litho · AI 工作流 Workflow</title>
+<link rel="stylesheet" href="../_shared/shell.css">
+<style>
+.tpl-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.tpl{border:1px solid var(--colorBorder);border-radius:var(--radius);padding:12px 14px;cursor:pointer;transition:border-color .15s}
+.tpl:hover{border-color:var(--colorPrimaryHover)}
+.tpl.on{border-color:var(--colorPrimary);background:var(--primaryBg)}
+.tpl .t-name{font-weight:600;font-size:14px}
+.tpl .t-desc{font-size:12px;color:var(--colorTextSecondary);margin-top:4px;line-height:1.6}
+.tpl .t-params{font-size:11px;color:var(--colorTextQuaternary);margin-top:6px}
+.steps{display:flex;flex-direction:column;gap:0}
+.step{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--colorBorderSecondary)}
+.step:last-child{border-bottom:none}
+.step .s-rail{width:14px;flex:none;display:flex;flex-direction:column;align-items:center}
+.step .s-dot{width:12px;height:12px;border-radius:50%;background:var(--colorBorder);margin-top:2px}
+.step.done .s-dot{background:var(--colorSuccess)}
+.step.failed .s-dot{background:var(--colorError)}
+.step.running .s-dot{background:var(--colorWarning);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.4}}
+.step .s-main{flex:1}
+.step .s-name{font-weight:600}
+.step .s-out{font-size:12px;color:var(--colorTextSecondary);margin-top:3px;font-family:Consolas,monospace;
+  background:#FAFAFA;border-radius:var(--radiusSM);padding:6px 10px;white-space:pre-wrap;word-break:break-all}
+.step .s-err{color:var(--colorError)}
+.report{background:#FAFAFA;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius);
+  padding:14px;font-size:12px;white-space:pre-wrap;font-family:Consolas,monospace;max-height:420px;overflow:auto}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sider" id="sider"></aside>
+  <div class="main">
+    <header class="header">
+      <div class="crumb">Model Control / <b>AI 工作流 Workflow</b></div>
+      <div class="right"><span id="clock" class="clock"></span>
+        <button id="cmBtn" class="btn sm">💬 评论模式</button></div>
+    </header>
+    <div class="content">
+      <div class="card">
+        <div class="card-h">
+          <div><div class="t">选择工作流模板</div>
+            <div class="sub">步骤在后端线程异步执行，每步有独立状态与耗时；前端轮询时间线</div></div>
+          <span class="q" data-cm="扩展新工作流：在 backend/app/workflow.py 的 TEMPLATES 里加条目即可，步骤函数签名统一 step(ctx, params)。">?</span>
+        </div>
+        <div class="tpl-grid" id="tplGrid">加载中…</div>
+        <div class="toolbar">
+          <div class="field"><label class="lab">Scenario（日计划链路用）</label>
+            <select id="caseSel" class="inp narrow"><option value="">基线</option></select></div>
+          <div class="field"><label class="lab">仿真种子</label>
+            <input id="seed" class="inp" type="number" value="42" style="width:90px"></div>
+          <button id="runBtn" class="btn primary">▶ 运行工作流</button>
+          <span id="runState" class="run-state"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><div class="t">执行时间线</div><div id="wfMeta" class="hint"></div></div>
+        <div class="steps" id="steps"><div class="empty">运行后展示各步骤状态</div></div>
+      </div>
+
+      <div class="card" id="reportCard" style="display:none">
+        <div class="card-h"><div class="t">执行报告（Markdown）</div></div>
+        <div class="report" id="report"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tt" class="tt"></div>
+<script type="module" src="./script.js"></script>
+</body>
+</html>

@@ -47,6 +47,43 @@ def save_csv(name, header, rows):
     return path
 
 
+def _pick_solver():
+    """求解器适配器位（设计书需求38 降级策略）：LITHO_SOLVER=CBC(默认)/GUROBI/COPT。
+
+    未安装商业求解器时自动回退 CBC，保证 demo 永远能跑。
+    """
+    name = os.getenv("LITHO_SOLVER", "CBC").upper()
+    limit = CONFIG["time_limit_s"]
+    if name == "GUROBI":
+        try:
+            return pulp.GUROBI_CMD(msg=False, timeLimit=limit)
+        except Exception:
+            print("[solver] GUROBI 不可用，回退 CBC")
+    elif name == "COPT":
+        try:
+            return pulp.COPT_CMD(msg=False, timeLimit=limit)
+        except Exception:
+            print("[solver] COPT 不可用，回退 CBC")
+    return pulp.PULP_CBC_CMD(msg=False, timeLimit=limit)
+
+
+def reticle_ready_lb(reticle_id, eqp):
+    """光罩就绪时间下界（step3 用；step6 给出精确五态推演，此处为静态保守下界）。
+
+    - 外部 IRIS 光罩（need_iris + iris_at）：iris_at + 检测20 + 搬送10 + 装载5
+    - StarLight 计时光罩：iris_at 到期后可用
+    - 在库/在别机：搬送 + 装载
+    """
+    meta = RETICLES[reticle_id]
+    if meta.get("need_iris") and meta.get("iris_at"):
+        return meta["iris_at"] + CONFIG["iris_min"] + CONFIG["transport_min"] + CONFIG["load_min"]
+    if meta["status"] == "StarLight" and meta.get("iris_at"):
+        return meta["iris_at"]
+    if meta["location"] != eqp:
+        return CONFIG["transport_min"] + CONFIG["load_min"]
+    return 0
+
+
 # =====================================================================
 # ① 预处理（设计书 §2/§4.2）：Lot 属性打标 + 机台可用性 + 加工时长
 # =====================================================================
@@ -103,7 +140,7 @@ def step2_reticle_grouping(lots):
         prob += C >= pulp.lpSum(x[l["lot"], e] * l["dur_est"] for l in lots
                                 if (l["lot"], e) in x)
 
-    solver = pulp.PULP_CBC_CMD(msg=False, timeLimit=CONFIG["time_limit_s"])
+    solver = _pick_solver()
     prob.solve(solver)
     status = pulp.LpStatus[prob.status]
 
@@ -137,8 +174,13 @@ def step3_lot_scheduling(lots, assign):
     t0 = time.time()
     prob = pulp.LpProblem("lot_scheduling", pulp.LpMinimize)
     s, o = {}, {}
+    gated = 0
     for l in lots:
-        s[l["lot"]] = pulp.LpVariable(f"s_{l['lot']}", lowBound=l["ready"], cat="Integer")
+        # 光罩就绪耦合：开工不得早于该 Lot 所配机台上光罩的就绪下界
+        lb = max(l["ready"], reticle_ready_lb(l["reticle"], assign[l["lot"]]))
+        if lb > l["ready"]:
+            gated += 1
+        s[l["lot"]] = pulp.LpVariable(f"s_{l['lot']}", lowBound=lb, cat="Integer")
     by_m = {}
     for l in lots:
         by_m.setdefault(assign[l["lot"]], []).append(l)
@@ -161,7 +203,7 @@ def step3_lot_scheduling(lots, assign):
             prob += C >= s[l["lot"]] + dur_on(l, e)
     # 目标：MakeSpan（弱权）+ Σ 优先级权 × 超出 ready 的延迟（强权，保证急货优先）
     prob += 0.05 * C + pulp.lpSum(l["pri_w"] * (s[l["lot"]] - l["ready"]) for l in lots)
-    solver = pulp.PULP_CBC_CMD(msg=False, timeLimit=CONFIG["time_limit_s"])
+    solver = _pick_solver()
     prob.solve(solver)
     status = pulp.LpStatus[prob.status]
     for l in lots:
@@ -177,7 +219,7 @@ def step3_lot_scheduling(lots, assign):
              ["LotId", "Litho Eqp", "Eqp Group", "ProductId", "Step Seq", "ReticleId",
               "Litho Start", "Litho End", "Process Time(min)", "Priority", "Temp", "Status"], rows)
     log_step(3, "③ Lot 细排程 MILP", status, time.time() - t0,
-             f"MakeSpan={fmt(int(round(C.value())))}")
+             f"MakeSpan={fmt(int(round(C.value())))}, 光罩就绪卡控 {gated} 条")
     return status
 
 
