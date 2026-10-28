@@ -115,13 +115,17 @@
 
 ---
 
-## G. 版本管理与部署（P2）—— 需用户授权（GitHub / Vercel / Railway 账号），代码侧文件已备齐
+## G. 版本管理与部署（P2）—— 本地部分已完成，仅剩需要用户账号/凭据的远端操作
 
 - [x] G0（前置）`backend/Procfile` + `backend/runtime.txt` + `backend/nixpacks.toml` 已备齐（docs/04 §3.1）
-- [ ] G1 `git init` + 配置 user.name / user.email
-- [ ] G2 添加 origin（GitHub 空仓库 `gtx-fso-litho`）
-- [ ] G3 `git subtree add` 拉入 SemiconFab（保留 LICENSE）
-- [ ] G4 首次 commit + push（按 docs/01_GIT_WORKFLOW.md，代理 http://127.0.0.1:10808）
+- [x] G1 `git init`（main 分支；身份沿用全局配置 aichifeizailuo / huangjwshan@163.com，首次提交 a166aed）
+- [x] G2 `git remote add origin https://github.com/huangfengtaba-web/gtx-fso-litho.git` 已配置（⚠️ GitHub 侧空仓库尚需用户创建，push 时才用到）
+- [x] G3 `git subtree add` 拉入 SemiconFab（保留 LICENSE）✅ 2026-10-29
+      - `vendor/semiconfab-fork/` 12MB，LICENSE = PolyForm Noncommercial 1.0.0 已验证存在
+      - 拉入前须先删掉空壳目录 `vendor/semiconfab-fork/`（否则 subtree 报 "prefix already exists"）
+      - 同步上游：`git subtree pull --prefix=vendor/semiconfab-fork semiconfab main --squash`
+      - 转商用时删除整个 vendor/ 即可（docs/01 §4）
+- [ ] G4 首次 commit ✅（本地已有 2 个 commit）+ **push ❌**（gh CLI 未装、无凭据；需用户按 docs/01 §1 建 GitHub 空仓库后 `git push -u origin main`，走代理 http://127.0.0.1:10808）
 - [ ] G5 Vercel 连 `frontend/` 部署（Root Directory = frontend，环境变量 VITE_API_BASE_URL）
 - [ ] G6 Railway/Render 连 `backend/` 部署（Root Directory = 仓库根，环境变量 LITHO_CORS_ORIGINS）
 - [ ] G7 生产环境 CORS 联调验证
@@ -133,4 +137,4 @@
 | 日期 | 事项 | 阻塞原因 | 需要的支持 |
 |---|---|---|---|
 | （暂无） | | | |
-| 备注 | G1~G7 未执行 | 属 P2 且需用户账号授权（GitHub/Vercel/Railway），代码与配置文件已全部备好 | 用户按 docs/01、docs/04 操作或授权 Agent 代办 |
+| 备注 | G4 的 push / G5~G7 未执行 | gh CLI 未安装、无 GitHub/Vercel/Railway 凭据；本地 git（init/commit/subtree/remote）已全部完成 | 用户按 docs/01 §1 建 `gtx-fso-litho` 空仓库后 `git push -u origin main`，再按 docs/04 部署 |

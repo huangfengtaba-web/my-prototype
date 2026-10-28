@@ -8,18 +8,18 @@
 ## 当前阶段
 
 ```
-阶段：MVP 档 · 本地全链路已跑通（CLI + pytest 9/9 + API 5 接口 + Vite 构建 10 页）
-进度：█████████░░░  85%
-阻塞：无（G 档 git/部署需用户授权账号）
-下一步：G 档 —— git init + subtree 拉 SemiconFab + push + Vercel/Railway 部署（照 docs/01、docs/04 执行）
+阶段：MVP 档 · 本地全链路跑通（pytest 9/9 + API 5 接口 + Vite 构建 10 页）+ SemiconFab 已 subtree 拉入
+进度：██████████░░  90%
+阻塞：push/部署需用户凭据（gh 未安装）
+下一步：用户建 GitHub 空仓库 gtx-fso-litho → git push -u origin main → Vercel/Railway 部署
 ```
 
 | 项 | 值 |
 |---|---|
-| 当前阶段 | **MVP 档收尾**（A~F 档全部完成，仅剩 G 档版本管理与部署） |
-| 本阶段负责人 | Zcode（初版，2026-10-29 完成）→ 下一 Agent（G 档 + 优化） |
-| 最近更新 | 2026-10-29 02:30 |
-| 阻塞项 | 无 |
+| 当前阶段 | **MVP 档收尾**（A~F 完成；G1~G3 本地完成，剩 push 与部署） |
+| 本阶段负责人 | Zcode（初版，2026-10-29）→ 下一 Agent（远端部署 + 优化档） |
+| 最近更新 | 2026-10-29 03:10 |
+| 阻塞项 | GitHub/Vercel/Railway 凭据（用户侧） |
 
 ---
 
@@ -39,6 +39,8 @@
 | 10 | **算法精化档入口** | `backend/solver/viz/`（matplotlib 甘特，中文字体已配） |
 | 11 | **部署配置文件** | `backend/Procfile`、`runtime.txt`、`nixpacks.toml`、`.env.example`、`.gitignore` |
 | 12 | MD 文档体系（9 份） | `STATUS.md` `CHECKLIST.md` `docs/01`~`05` `HANDOFF_TO_AGENT.md` |
+| 13 | **git 仓库初始化** | main 分支，2 个 commit（初版 a166aed + subtree 合并 d61bf），origin/semiconfab 双远端已配 |
+| 14 | **SemiconFab subtree 拉入** | `vendor/semiconfab-fork/`（12MB，PolyForm Noncommercial LICENSE 已验证保留） |
 
 ### 本地验证记录（2026-10-29，全部实跑通过）
 
@@ -55,10 +57,10 @@
 
 | 优先级 | 事项 | 应产出 | 依赖 |
 |---|---|---|---|
-| **P2** | git 初始化与首推 | G1~G4（docs/01_GIT_WORKFLOW.md） | 用户 GitHub 账号 + 代理 10808 |
+| **P2** | push 到 GitHub | `git push -u origin main`（docs/01 §1、§6） | 用户先建空仓库 `huangfengtaba-web/gtx-fso-litho`；gh CLI 未装，走代理 10808 |
 | **P2** | 部署上线 | G5~G7：Vercel（frontend/）+ Railway/Render（仓库根） | 用户授权，配置文件已备齐 |
+| P1（优化档） | **SemiconFab 仿真移植** | `frontend/src/pages/simulation/`（从 vendor/semiconfab-fork 的 twin/仿真叙事移植） | vendor 已就位，可直接开工 |
 | P1（优化档） | 光罩就绪回写 step3 | step3 加 `s[l] ≥ reticle_ready` 约束，让 Lot 随光罩延迟顺延 | 算法精化档，见下「算法现状」 |
-| P1（优化档） | SimPy 仿真移植 | `frontend/src/pages/simulation/`（从 vendor/semiconfab-fork 移植） | G3 subtree 先拉入 vendor/ |
 | P1（优化档） | RUNS 持久化 | 求解历史目前存内存，重启即失；可落 SQLite/JSON | 按需 |
 
 ---
@@ -106,10 +108,10 @@
 
 ## 下一步动作（按序执行）
 
-1. **G 档（需用户账号）**：按 `docs/01_GIT_WORKFLOW.md` 执行 G1~G4（git init → subtree 拉 SemiconFab → push）
+1. **push（需用户账号）**：按 `docs/01_GIT_WORKFLOW.md` §1 建 GitHub 空仓库 `gtx-fso-litho`（不勾 README/.gitignore/license）→ `git push -u origin main`
 2. **部署**：按 `docs/04_DEPLOYMENT.md` 执行 G5~G7（Vercel Root=frontend；Railway Root=仓库根）
 3. **联调验收**：线上 `/scheduling-test` 点「运行求解」拿到结果（docs/04 §7 清单）
-4. （可选优化档）step3 光罩就绪约束、SimPy 仿真移植、RUNS 持久化
+4. （优化档）SemiconFab 仿真移植 → step3 光罩就绪约束 → RUNS 持久化
 
 ---
 
