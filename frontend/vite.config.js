@@ -34,6 +34,11 @@ function gtxDevUrls() {
           const fp = pathResolve(TWIN_DIR, rel)
           if (fp.startsWith(TWIN_DIR) && existsSync(fp) && statSync(fp).isFile()) return serveFile(fp)
         }
+        // twin.html 的相对资源（无斜杠 URL 下解析到根）：/js/* 也来自孪生目录
+        if (url.startsWith('/js/')) {
+          const fp = pathResolve(TWIN_DIR, decodeURIComponent(url.slice(1)))
+          if (fp.startsWith(TWIN_DIR) && existsSync(fp) && statSync(fp).isFile()) return serveFile(fp)
+        }
         for (const f of ['gtx-catalog.json', 'gtx-layout-map.json']) {
           if (url === `/${f}`) return serveFile(pathResolve(TWIN_DIR, f))
         }

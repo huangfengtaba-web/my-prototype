@@ -149,3 +149,13 @@ fork 目录一字节未动（改动全在 semiconfab-gtx 副本）；pytest 23/2
 4. **收工前**：更新本文件「当前阶段 / 已完成 / 未完成 / 下一步动作」四项
 5. **禁止**：改 `docs/specs/` 与 `_DESIGN_SPEC.md`；拆 9 页原型内联样式；删 PM 气泡
 6. **回归底线**：`pytest tests/ -q` 必须 23 passed；step2/step3 必须 Optimal；`npm run build` 必须过
+
+### 10-30 补丁：干净 URL 资源断链修复
+
+- 现象：/twin-control 等无斜杠路由下，页面内相对路径（./script.js、./style.css、../_shared/shell.css）
+  解析到站点根而 404，布局塌成 300x150 的 iframe 兜底尺寸，脚本不执行。
+- 修复：6 个智能页的 script/style/壳层引用全部改根绝对路径（/src/pages/...）；
+  scheduling-test 内联导航改根路径；dev 中间件与 vercel.json 补 /js/*（孪生 i18n 脚本）映射；
+  孪生 iframe 加 sandbox（allow-scripts allow-same-origin），隔离孪生页对父窗口的影响。
+- 实测：sider 13 项+样式生效、iframe 730x576、映射 frozen 6/6、信号灯 6/6、
+  equipmentStateMap IMM03/IMM04=Busy（急货 LOT-A01@IMM03 10:00 点位）、Lot 面板实时更新。

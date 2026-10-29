@@ -7,8 +7,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GTX FSO Litho · 数字孪生 Digital Twin</title>
-<link rel="stylesheet" href="../_shared/shell.css">
-<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="/src/pages/_shared/shell.css">
+<link rel="stylesheet" href="/src/pages/twin-control/style.css">
 </head>
 <body>
 <div class="app">
@@ -35,7 +35,7 @@
         <span id="twinState" class="run-state"></span>
       </div>
       <div class="twin-main">
-        <iframe id="twinFrame" src="/twin?catalog=gtx-catalog.json" title="3D Digital Twin" allow="fullscreen"></iframe>
+        <iframe id="twinFrame" src="/twin?catalog=gtx-catalog.json" title="3D Digital Twin" allow="fullscreen" sandbox="allow-scripts allow-same-origin allow-downloads allow-popups"></iframe>
         <div class="lot-panel">
           <h3>Lot 状态面板 <span class="q" data-cm="当前回放时刻正在机台上加工的 Lot（由时间轴事件流推导，200ms 刷新）。">?</span></h3>
           <div id="lotList"><div class="empty">加载排程后展示</div></div>
@@ -45,6 +45,6 @@
   </div>
 </div>
 <div id="tt" class="tt"></div>
-<script type="module" src="./script.js"></script>
+<script type="module" src="/src/pages/twin-control/script.js"></script>
 </body>
 </html>

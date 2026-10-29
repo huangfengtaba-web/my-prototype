@@ -7,6 +7,8 @@
     { "source": "/twin/:path*", "destination": "/vendor-twin/:path*" },
     { "source": "/gtx-layout-map.json", "destination": "/vendor-twin/gtx-layout-map.json" },
     { "source": "/gtx-catalog.json", "destination": "/vendor-twin/gtx-catalog.json" },
+    { "source": "/js/:path*", "destination": "/vendor-twin/js/:path*" },
+    { "source": "/src/pages/_shared/:path*", "destination": "/src/pages/_shared/:path*" },
     { "source": "/prototypes/:path*", "destination": "/prototypes/:path*" },
     { "source": "/simulation", "destination": "/src/pages/simulation" },
     { "source": "/ai-agent", "destination": "/src/pages/ai-agent" },
