@@ -1,0 +1,50 @@
+<!doctype html>
+<!-- GTX FSO Litho · 数字孪生控制页 twin-control · v1 · 2026-10-29
+     iframe 载入 /twin（SemiconFab 3D 洁净室），父页通过同源 gtxTwinApi 驱动排程时间轴回放。
+     不改 twin.html 的 UI；控件走根路径 /twin。 -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GTX FSO Litho · 数字孪生 Digital Twin</title>
+<link rel="stylesheet" href="../_shared/shell.css">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sider" id="sider"></aside>
+  <div class="main">
+    <header class="header">
+      <div class="crumb">Scheduling Result / <b>数字孪生 Digital Twin</b></div>
+      <div class="right"><span id="clock" class="clock"></span>
+        <button id="cmBtn" class="btn sm">💬 评论模式</button></div>
+    </header>
+    <div class="content twin-wrap">
+      <div class="ctrl">
+        <button id="loadBtn" class="btn primary big">⟳ 加载排程</button>
+        <button id="playBtn" class="btn big" disabled>▶ 播放</button>
+        <span class="q" data-cm="加载排程：后端跑一次六步 MILP（约 2~5s），把 run_summary 转成秒级事件流注入 3D 孪生。机台灯 SEMI E10 四色，IMM01~06 冻结映射（gtx-layout-map.json）。">?</span>
+        <input id="seek" type="range" min="0" max="100" value="0" step="1" disabled>
+        <span id="tlabel">00:00 / 00:00</span>
+        <select id="speed" class="inp" disabled>
+          <option value="0.5">0.5x</option>
+          <option value="1" selected>1x</option>
+          <option value="2">2x</option>
+          <option value="4">4x</option>
+        </select>
+        <span id="twinState" class="run-state"></span>
+      </div>
+      <div class="twin-main">
+        <iframe id="twinFrame" src="/twin?catalog=gtx-catalog.json" title="3D Digital Twin" allow="fullscreen"></iframe>
+        <div class="lot-panel">
+          <h3>Lot 状态面板 <span class="q" data-cm="当前回放时刻正在机台上加工的 Lot（由时间轴事件流推导，200ms 刷新）。">?</span></h3>
+          <div id="lotList"><div class="empty">加载排程后展示</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tt" class="tt"></div>
+<script type="module" src="./script.js"></script>
+</body>
+</html>

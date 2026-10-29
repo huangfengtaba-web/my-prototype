@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en" class="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>404 — Page Not Found | SemiconFab.org</title>
+    <meta
+      name="description"
+      content="The requested page or resource could not be found on SemiconFab.org."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate icon" href="/favicon.ico" />
+    <!-- Unified Design System Theme -->
+    <link rel="stylesheet" href="css/semicon-theme.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+      };
+    </script>
+    <style>
+      :root {
+        --bg-page: #f8fafc;
+        --text-main: #0f172a;
+        --text-muted: #475569;
+      }
+      html.dark,
+      html.dark body {
+        background-color: #090d16 !important;
+        color: #f8fafc !important;
+      }
+    </style>
+  </head>
+  <body
+    class="sc-themed min-h-screen flex flex-col justify-between antialiased"
+    style="background-color: var(--sc-bg-base); color: var(--sc-text-main);"
+  >
+    <!-- Unified Header Mount -->
+    <div id="sc-header-mount"></div>
+
+    <main
+      class="flex-1 max-w-3xl mx-auto px-6 py-20 flex flex-col items-center justify-center text-center"
+    >
+      <div
+        class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 mb-6"
+      >
+        <span>STATUS 404</span>
+        <span class="text-slate-400">·</span>
+        <span>RESOURCE NOT FOUND</span>
+      </div>
+
+      <h1
+        class="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4"
+        style="color: var(--sc-text-main);"
+      >
+        Page Not Found
+      </h1>
+      <p class="text-base sm:text-lg mb-8 max-w-lg" style="color: var(--sc-text-muted);">
+        The resource you requested does not exist or has been moved in the
+        purely static SemiconFab architecture.
+      </p>
+
+      <div class="flex flex-wrap items-center justify-center gap-3">
+        <a
+          href="/"
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-sm transition-colors shadow-lg shadow-cyan-500/20"
+        >
+          Return Home
+        </a>
+        <a
+          href="/twin"
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-sm transition-colors border border-slate-700"
+        >
+          Explore 3D Twin
+        </a>
+        <a
+          href="/benchmark"
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-sm transition-colors border border-slate-700"
+        >
+          MIMAC-2026 Benchmark
+        </a>
+      </div>
+    </main>
+
+    <!-- Unified Footer Mount -->
+    <div id="sc-footer-mount"></div>
+
+    <!-- Unified Site Navigation Script -->
+    <script src="js/site-nav.js"></script>
+  </body>
+</html>

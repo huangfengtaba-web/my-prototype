@@ -6,7 +6,31 @@
 > - 收工前必须更新本文件与 [`STATUS.md`](STATUS.md)
 > - 状态图例：`[x]` 已完成 / `[ ]` 未完成 / `❌` 阻塞
 
-最后更新：2026-10-29 04:10（Zcode 第二轮：全量工程化 + AI 能力完成）
+最后更新：2026-10-29 05:30（Zcode 第三轮：真融合改造完成，工单 22 条 + 验收表 15 项全绿）
+
+---
+
+## I. 真融合改造（2026-10-29 第三轮，按 ZCODE_TASKS.md 执行，验收汇总表 15/15 全绿）
+
+- [x] I1 P0 修致命坑：vercel.json 兜底 rewrite 删除（无扩展名目的地+cleanUrls，grep=0）；
+      index.html KPI 硬编码改真实数据（失败显示 —/后端未连接，绝不回落假数字）；入口卡 8→12；.env.example 补 7 变量
+- [x] I2 P1 3D 孪生时间轴回放：vendor/semiconfab-gtx 副本（fork 一字节未动）；
+      mimacMid 冻结（gtx-layout-map.json，值=真实 TG01_LITHO_01..06）；gtx-catalog.json 精选 6 台 L1 光刻机
+      （默认目录只有 4 台 L1，draft 无信号灯 → 用 ?catalog= 参数加载，6/6 resolved 实测通过）；
+      window.gtxTwinApi v1.0（契约逐字实现，IAB 实测 timeSec 推进 + eqp 状态机）；/api/twin/timeline
+      （41 事件升序）；twin-control 控制页（加载排程→机台亮灭→进度条拖动→Lot 面板实时更新，IAB 实测通过）
+- [x] I3 P3 WPS 文档生成：wps_worker 单线程队列 COM（60s 超时→taskkill 重试→python-docx/pptx 降级）；
+      五种渲染器（docx/pdf/xlsx/pptx/template）；绕过 harness 三坑（Visible 不可设/SaveAs2 缺失/KWPP kill 竞态）；
+      4 产物真实生成（12.4K/83.7K/12.1K/77K）；/api/doc 3 接口 render→status→file 全通；docs/07_DOCGEN.md
+- [x] I4 P2 Dify 线上接入：dify_client（httpx，未配 Key 不抛异常）；dify/dsl 3 个导入骨架
+      （无 Key 字样、含 API_PUBLIC_BASE）；workflow.py 降级为本地 fallback + run_with_fallback 统一入口
+      （未配 Key 实测 mode=local_fallback 且 steps 全 done）；/api/workflow/* 加 mode/dify_configured；
+      ai-workflow 页 v2（模式徽章 + dify_configured 标签 + 真实节点级事件流）；frontend 无 DIFY_KEY 字样
+- [x] I5 P4 reports 页 + 全站导航 13 项（shell.js 根路径）；T4-3 验收 14 路径（含 /twin-control）全 200
+- [x] I6 收尾：STATUS/CHECKLIST/ZCODE_TASKS 回写；pytest 23/23；npm run build 通过
+- [x] I7 T5-2：remote origin 改指 my-prototype（旧 gtx-fso-litho 留 origin-gtx），分支 feat/gtx-fab-fusion 推送
+- 已知限制：`reticle_move` 事件未驱动 OHT（缺弧长参数，gtxMoveOht 已暴露待接）；
+  WPS COM 在 uvicorn 进程内偶发挂起（命令行中文参数所致；worker 超时+降级兜底，UTF-8 调用 5s 出件）
 
 ---
 

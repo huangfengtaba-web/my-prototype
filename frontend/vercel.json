@@ -1,9 +1,17 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "cleanUrls": true,
   "rewrites": [
-    { "source": "/prototypes/:path", "destination": "/prototypes/:path" },
-    { "source": "/scheduling-test", "destination": "/src/pages/scheduling-test/index.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/twin", "destination": "/vendor-twin/twin.html" },
+    { "source": "/twin/:path*", "destination": "/vendor-twin/:path*" },
+    { "source": "/gtx-layout-map.json", "destination": "/vendor-twin/gtx-layout-map.json" },
+    { "source": "/gtx-catalog.json", "destination": "/vendor-twin/gtx-catalog.json" },
+    { "source": "/prototypes/:path*", "destination": "/prototypes/:path*" },
+    { "source": "/simulation", "destination": "/src/pages/simulation" },
+    { "source": "/ai-agent", "destination": "/src/pages/ai-agent" },
+    { "source": "/ai-workflow", "destination": "/src/pages/ai-workflow" },
+    { "source": "/scheduling-test", "destination": "/src/pages/scheduling-test" },
+    { "source": "/reports", "destination": "/src/pages/reports" }
   ]
 }

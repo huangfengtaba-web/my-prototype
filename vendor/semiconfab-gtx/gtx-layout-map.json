@@ -1,0 +1,9 @@
+{
+  "_comment": "GTX 机台 ID -> 孪生场景设备 ID（catalog 默认按 bay 内排序自增 TG01_LITHO_xx，冻结后不随渲染顺序变化）。注意：值是孪生侧的真实默认 ID 前缀 TG01_LITHO（见 CATEGORY_BAYS.mimacTg），不是字面 LIT_xx。",
+  "IMM01": "TG01_LITHO_01",
+  "IMM02": "TG01_LITHO_02",
+  "IMM03": "TG01_LITHO_03",
+  "IMM04": "TG01_LITHO_04",
+  "IMM05": "TG01_LITHO_05",
+  "IMM06": "TG01_LITHO_06"
+}

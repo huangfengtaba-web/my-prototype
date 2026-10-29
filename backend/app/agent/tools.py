@@ -52,12 +52,14 @@ def tool_run_sim(case=None, seed=42, breakdown=True):
 
 def tool_run_workflow(template_id="daily-scheduling", case=None):
     params = dict(case=case) if case else {}
-    return _summarize_workflow(workflow.run_workflow_sync(template_id, params or None))
+    return _summarize_workflow(workflow.run_with_fallback(template_id, params or None))
 
 
 def tool_list_workflows():
-    return {"templates": workflow.list_templates(),
-            "recent_runs": [{k: r[k] for k in ("wf_id", "template", "status")}
+    return {"templates": workflow.list_templates()["templates"],
+            "recent_runs": [{k: r[k] for k in ("wf_id", "template", "status", "mode")}
+                            if "mode" in r else
+                            {k: r[k] for k in ("wf_id", "template", "status")}
                             for r in list(workflow.WORKFLOWS.values())[-5:]]}
 
 

@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
-"""GTX FSO Litho · 工作流引擎（AI 能力之一）。
+"""GTX FSO Litho · 工作流引擎（本地 fallback 底座，Dify 线上编排见 ai/dify_client）。
 
-把「数据校验 → 求解 → 仿真 → 对比 → 报告」编排成可命名、可追踪、可复用的工作流：
-    - 模板（TEMPLATES）：预置步骤序列，参数化 case
+注意：本模块**不是 Dify**——它是 Dify 不可用/未配置时的本地降级执行器。
+统一入口 run_with_fallback：优先线上 Dify，失败/未配置自动落回本地步骤执行。
+
+    - 模板（TEMPLATES）：模板元数据 + 本地步骤序列 + 对应 Dify App（dify_key）
     - 运行记录（WORKFLOWS）：内存字典，每步有状态/耗时/输出摘要（服务重启清空）
-    - 执行：后台线程异步跑（前端轮询状态）；也提供同步入口供测试与 Agent 直接调用
+    - 执行：后台线程异步跑（前端轮询状态）；run_workflow_sync 供测试与 Agent 直接调用
 
 扩展新工作流：在 TEMPLATES 里加条目即可，步骤函数签名统一为 step(ctx, params) -> dict。
 """
@@ -19,6 +21,11 @@ from backend.solver.mock_data import LOTS, MACHINES, RETICLES
 
 WORKFLOWS: dict = {}          # wf_id -> record
 _LOCK = threading.Lock()
+
+
+def _norm_tid(template_id: str) -> str:
+    """模板 ID 归一化：'daily_scheduling' 与 'daily-scheduling' 等价。"""
+    return (template_id or "").strip().replace("_", "-").lower()
 
 
 # ---------------------------------------------------------------------
@@ -133,6 +140,7 @@ TEMPLATES = {
         "desc": "生产日常排程主链路：先校验数据一致性，跑六步 MILP 得到计划，"
                 "再做执行态仿真验证计划稳健性，最后出 Markdown 报告。",
         "params": {"case": None, "seed": 42, "breakdown": True},
+        "dify_key": "daily_scheduling",
         "steps": [("validate", "数据校验", step_validate_data),
                   ("solve", "六步 MILP 求解", step_solve),
                   ("simulate", "执行态仿真", step_simulate),
@@ -143,6 +151,7 @@ TEMPLATES = {
         "desc": "并行视角下的 What-if 分析：对 3 个 scenario 各跑一次求解，"
                 "对比 MakeSpan 与急货开工时间，输出对比表。",
         "params": {"cases": ["default", "urgent-A01", "reticle-delay"]},
+        "dify_key": "scenario_compare",
         "steps": [("solve_all", "多场景求解", _step_solve_all),
                   ("compare", "结果对比", step_compare),
                   ("report", "生成报告", step_report)],
@@ -198,40 +207,73 @@ def _brief(out, _depth=0):
 
 def run_workflow(template_id, params=None):
     """异步启动工作流（后台线程），返回运行记录。未知模板抛 KeyError。"""
-    if template_id not in TEMPLATES:
+    tid = _norm_tid(template_id)
+    if tid not in TEMPLATES:
         raise KeyError(f"未知模板 {template_id}，可用：{', '.join(TEMPLATES)}")
     wf_id = uuid.uuid4().hex[:8]
     with _LOCK:
-        WORKFLOWS[wf_id] = {"wf_id": wf_id, "template": template_id,
-                            "template_name": TEMPLATES[template_id]["name"],
+        WORKFLOWS[wf_id] = {"wf_id": wf_id, "template": tid,
+                            "template_name": TEMPLATES[tid]["name"],
                             "status": "pending", "params": params or {},
                             "steps": [], "error": None,
                             "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
                             "finished_at": None}
-    threading.Thread(target=_execute, args=(wf_id, template_id, params),
+    threading.Thread(target=_execute, args=(wf_id, tid, params),
                      daemon=True, name=f"wf-{wf_id}").start()
     return WORKFLOWS[wf_id]
 
 
 def run_workflow_sync(template_id, params=None):
     """同步执行（测试与 Agent 用）：直接复用 _execute，返回完成后的记录。"""
-    if template_id not in TEMPLATES:
+    tid = _norm_tid(template_id)
+    if tid not in TEMPLATES:
         raise KeyError(f"未知模板 {template_id}，可用：{', '.join(TEMPLATES)}")
     wf_id = uuid.uuid4().hex[:8]
     with _LOCK:
-        WORKFLOWS[wf_id] = {"wf_id": wf_id, "template": template_id,
-                            "template_name": TEMPLATES[template_id]["name"],
+        WORKFLOWS[wf_id] = {"wf_id": wf_id, "template": tid,
+                            "template_name": TEMPLATES[tid]["name"],
                             "status": "pending", "params": params or {},
                             "steps": [], "error": None,
                             "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
                             "finished_at": None}
-    _execute(wf_id, template_id, params)
+    _execute(wf_id, tid, params)
     return WORKFLOWS[wf_id]
 
 
+def run_with_fallback(template_id: str, params: dict | None = None) -> dict:
+    """统一入口：优先走线上 Dify；不可用/失败则降级本地执行（HTTP 仍 200）。"""
+    from backend.app.ai import dify_client
+
+    tid = _norm_tid(template_id)
+    tpl = TEMPLATES.get(tid) or {}
+    wf_key = tpl.get("dify_key")
+
+    if wf_key and dify_client.configured(wf_key):
+        try:
+            res = dify_client.run_workflow(wf_key, params or {})
+            res["template_id"] = tid
+            return res
+        except dify_client.DifyUnavailable as e:
+            local = run_workflow_sync(tid, params)
+            local["mode"] = "local_fallback"
+            local["fallback_reason"] = str(e)
+            return local
+
+    local = run_workflow_sync(tid, params)
+    local["mode"] = "local_fallback"
+    local["fallback_reason"] = "Dify 未配置"
+    return local
+
+
 def list_templates():
-    return [{"id": k, "name": v["name"], "desc": v["desc"], "params": v["params"]}
-            for k, v in TEMPLATES.items()]
+    from backend.app.ai import dify_client
+
+    return {"templates": [
+        {"id": k, "name": v["name"], "desc": v["desc"], "params": v["params"],
+         "dify_key": v.get("dify_key"),
+         "dify_configured": dify_client.configured(v.get("dify_key", ""))}
+        for k, v in TEMPLATES.items()
+    ]}
 
 
 def cases():

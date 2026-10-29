@@ -1,0 +1,68 @@
+# Dify DSL 骨架 · 智能问答 Chatflow（仅供线上 Dify「导入 DSL」使用，不含任何 Key）
+# 节点链：开始 → 知识库检索（排程规则/工艺文档/API 说明）→ LLM → 结束
+# 导入后需在 Dify 知识库上传 docs/specs/*.md 与 docs/03_ALGORITHM_DEMO.md，并在节点里绑定。
+app:
+  mode: advanced-chat
+  name: gtx-qa-chatflow
+  version: 0.1.5
+kind: app
+version: 0.1.5
+workflow:
+  graph:
+    nodes:
+      - id: start
+        type: start
+        position: { x: 60, y: 220 }
+        data:
+          title: 开始
+          variables:
+            - variable: query
+              label: 用户问题
+              type: text-input
+              required: true
+              max_length: 512
+      - id: retrieval
+        type: knowledge-retrieval
+        position: { x: 360, y: 220 }
+        data:
+          title: 排程知识库检索
+          dataset_ids: []          # 导入后绑定你的知识库
+          retrieval_mode: single
+          multiple_retrieval_config:
+            top_k: 4
+            score_threshold: 0.5
+          query_variable_selector: [start, query]
+      - id: answer
+        type: llm
+        position: { x: 700, y: 220 }
+        data:
+          title: 依据知识库回答
+          model:
+            provider: openai_api_compatible
+            name: gpt-4o-mini
+            mode: chat
+          prompt_template:
+            - role: system
+              text: >-
+                你是 GTX 光刻排程系统的问答助手。只依据检索到的知识库片段回答；
+                检索不到就直说不知道并指引查阅 docs/ 目录。中文回答，给出依据出处文件名。
+            - role: user
+              text: "问题：{{#start.query#}}\n\n知识片段：{{#retrieval.result#}}"
+          vision: { enabled: false }
+      - id: end
+        type: end
+        position: { x: 1020, y: 220 }
+        data:
+          title: 结束
+          outputs:
+            - variable: answer
+              value_selector: [answer, text]
+    edges:
+      - { source: start, target: retrieval }
+      - { source: retrieval, target: answer }
+      - { source: answer, target: end }
+  environment_variables:
+    - variable: API_PUBLIC_BASE
+      value: ""
+      description: 如需回查本地数据接口则填内网穿透地址，纯 RAG 可留空
+  features: {}

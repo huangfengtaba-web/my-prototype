@@ -1,0 +1,81 @@
+# Dify DSL 骨架 · 场景对比工作流（仅供线上 Dify「导入 DSL」使用，不含任何 Key）
+# 节点链：开始 → 并行 HTTP ×2（基线 / 急货）→ LLM 差异分析 → 结束
+app:
+  mode: workflow
+  name: gtx-scenario-compare
+  version: 0.1.5
+kind: app
+version: 0.1.5
+workflow:
+  graph:
+    nodes:
+      - id: start
+        type: start
+        position: { x: 60, y: 220 }
+        data:
+          title: 开始
+          variables: []
+      - id: call-baseline
+        type: http-request
+        position: { x: 360, y: 120 }
+        data:
+          title: 求解基线
+          method: post
+          url: "{{#env.API_PUBLIC_BASE#}}/api/solve/run"
+          authorization: { type: no-auth }
+          headers:
+            - { key: Content-Type, value: application/json }
+          body:
+            type: json
+            data: '{"case": null}'
+          timeout: &timeout 30
+      - id: call-urgent
+        type: http-request
+        position: { x: 360, y: 320 }
+        data:
+          title: 求解急货场景
+          method: post
+          url: "{{#env.API_PUBLIC_BASE#}}/api/solve/run"
+          authorization: { type: no-auth }
+          headers:
+            - { key: Content-Type, value: application/json }
+          body:
+            type: json
+            data: '{"case": "urgent-A01"}'
+          timeout: *timeout
+      - id: diff-llm
+        type: llm
+        position: { x: 700, y: 220 }
+        data:
+          title: 差异分析
+          model:
+            provider: openai_api_compatible
+            name: gpt-4o-mini
+            mode: chat
+          prompt_template:
+            - role: system
+              text: >-
+                对比两次六步 MILP 排程结果：基线 vs 急货插单（urgent-A01）。
+                输出差异表（MakeSpan / 急货 LOT-A01 开工 / 受推移的 Lot）与一句话结论。
+            - role: user
+              text: "基线：{{#call-baseline.body#}}\n\n急货：{{#call-urgent.body#}}"
+          vision: { enabled: false }
+      - id: end
+        type: end
+        position: { x: 1020, y: 220 }
+        data:
+          title: 结束
+          outputs:
+            - variable: comparison
+              value_selector: [diff-llm, text]
+    edges:
+      - { source: start, target: call-baseline }
+      - { source: start, target: call-urgent }
+      - { source: call-baseline, target: diff-llm }
+      - { source: call-urgent, target: diff-llm }
+      - { source: diff-llm, target: end }
+  environment_variables:
+    - variable: API_PUBLIC_BASE
+      value: ""
+      description: 内网穿透地址（cloudflared tunnel --url http://localhost:8000）
+  features: {}

@@ -6,7 +6,7 @@
   "description": "GTX FSO Litho 前端：9 页原型 + 求解演示页（原生 JS，不引入 React/Vue）",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/copy-twin.mjs",
     "preview": "vite preview"
   },
   "devDependencies": {

@@ -4,19 +4,22 @@
 //   import { mountShell } from '../_shared/shell.js'
 //   mountShell('scheduling-test')   // 传当前页 key 高亮
 const NAV = [
-  ['原型（mock 数据）', [
-    ['../../index.html', '总览 Dashboard', 'index'],
-    ['../../prototypes/config_zone.html', '数据配置区', ''],
-    ['../../prototypes/model_zone.html', '模型管理区', ''],
-    ['../../prototypes/result_litho.html', '结果 · Litho 排程', ''],
-    ['../../prototypes/result_reticle.html', '结果 · Reticle 排程', ''],
-    ['../../prototypes/log_zone.html', '日志区', ''],
+  ['系统导航', [
+    ['/', '系统总览', 'index'],
+    ['/prototypes/data_zone.html', '数据接入', ''],
+    ['/prototypes/config_zone.html', '数据配置', ''],
+    ['/prototypes/model_zone.html', '模型管理', ''],
+    ['/prototypes/result_litho.html', 'Litho 排程', ''],
+    ['/prototypes/result_reticle.html', 'Reticle 排程', ''],
+    ['/prototypes/log_zone.html', '系统日志', ''],
   ]],
   ['智能应用（真后端）', [
-    ['../scheduling-test/index.html', '求解演示', 'scheduling-test'],
-    ['../simulation/index.html', '仿真验证', 'simulation'],
-    ['../ai-workflow/index.html', 'AI 工作流', 'ai-workflow'],
-    ['../ai-agent/index.html', 'AI 助手', 'ai-agent'],
+    ['/simulation', '仿真验证', 'simulation'],
+    ['/twin', '数字孪生', 'twin'],
+    ['/scheduling-test', '求解演示', 'scheduling-test'],
+    ['/ai-agent', 'AI 助手', 'ai-agent'],
+    ['/ai-workflow', 'AI 工作流', 'ai-workflow'],
+    ['/reports', '报告生成', 'reports'],
   ]],
 ]
 

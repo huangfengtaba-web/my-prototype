@@ -8,18 +8,33 @@
 ## 当前阶段
 
 ```
-阶段：全量工程化档 · 排程+仿真+AI 能力全部完成（pytest 23/23，13 页构建通过）
-进度：███████████  95%（仅剩 push + 部署，需用户账号）
-阻塞：GitHub/Vercel/Railway 凭据（用户侧）
-下一步：git push → Vercel/Railway 部署 → 线上验收（或直接进入功能迭代）
+阶段：真融合改造完成 · 3D 孪生回放 + Dify 线上工作流 + WPS 文档生成（工单 22 条全勾，验收表 15/15）
+进度：███████████  98%
+阻塞：无（分支已推 GitHub）
+下一步：用户线上 Dify 建 3 个工作流导入 dify/dsl/ 填 Key；Vercel/Railway 部署 feat 分支验收
 ```
 
 | 项 | 值 |
 |---|---|
-| 当前阶段 | **全量工程化档完成**（A~F、H 档全勾，G 档剩远端操作） |
-| 本阶段负责人 | Zcode（初版+AI 能力，2026-10-29）→ 下一 Agent（部署/迭代） |
-| 最近更新 | 2026-10-29 04:10 |
-| 阻塞项 | push 需用户建 GitHub 仓库；部署需 Vercel/Railway 账号 |
+| 当前阶段 | **真融合档完成**（P0~P4 全过；origin 已改指 my-prototype，分支 feat/gtx-fab-fusion） |
+| 本阶段负责人 | Zcode（三轮：MVP→全量+AI→真融合，2026-10-29）→ WorkBuddy 验收 |
+| 最近更新 | 2026-10-29 05:30 |
+| 阻塞项 | 无 |
+
+### 第三轮（真融合，05:30）★ 最新
+
+| # | 事项 | 产物 |
+|---|---|---|
+| 1 | vercel.json 吞页修复 + KPI 真数据 + 入口卡 12 张 + .env.example | P0 |
+| 2 | **3D 孪生回放**：mimacMid 冻结 + gtxTwinApi v1.0 + /api/twin/timeline + twin-control 页 | P1 |
+| 3 | **WPS 文档生成**：单 worker COM + 5 渲染器 + /api/doc 3 接口 + 4 产物真实产出 | P3 |
+| 4 | **Dify 线上工作流**：dify_client + 3 DSL 骨架 + run_with_fallback 降级链 + 模式徽章页 | P2 |
+| 5 | reports 页 + 13 项全站导航（14 路径全 200） | P4 |
+| 6 | 工单偏差 7 条记录在 ZCODE_TASKS.md「执行记录」 | 文档 |
+
+**关键事实**：孪生映射 6/6 实测通过；4 种文档真实生成；Dify 未配 Key 时 local_fallback 200；
+fork 目录一字节未动（改动全在 semiconfab-gtx 副本）；pytest 23/23；build 通过。
+新页面路由（根路径）：/twin /twin-control /simulation /scheduling-test /ai-agent /ai-workflow /reports。
 
 ---
 
@@ -64,8 +79,9 @@
 
 | 优先级 | 事项 | 应产出 | 依赖 |
 |---|---|---|---|
-| **P2** | push 到 GitHub | `git push -u origin main`（docs/01 §1、§6） | 用户先建空仓库 `huangfengtaba-web/gtx-fso-litho`；走代理 10808 |
-| **P2** | 部署上线 | Vercel（frontend/）+ Railway/Render（仓库根） | 用户授权，配置文件已备齐（docs/04） |
+| **P2** | 部署上线 | Vercel（frontend/，连 feat/gtx-fab-fusion 分支）+ Railway/Render（仓库根） | 用户授权，配置文件已备齐（docs/04） |
+| **P2** | 线上 Dify 就绪 | 用户在自家 Dify 导入 dify/dsl/ 三个骨架 → .env 填 DIFY_BASE/Key/API_PUBLIC_BASE | 用户线上操作（docs/09 §P2-4） |
+| P2（可选） | OHT 光罩搬送可视化 | timeline 的 reticle_move 驱动 gtxMoveOht（需把 Stocker/机台位转轨道弧长） | 小改动 |
 | P1（迭代档） | RUNS/WORKFLOWS/SESSIONS 持久化 | 三个内存注册表落 SQLite/JSON（重启不丢） | 按需 |
 | P1（迭代档） | 仿真参数页上可调 | MTBF/MTTR/返工率从 DEFAULT_PARAMS 暴露到 /api/sim/run body | 小改动 |
 | P1（迭代档） | 大规模数据 | mock_data 换宽表真实数据（docs/specs/06_宽表数据对接） | 客户数据 |

@@ -1,0 +1,79 @@
+# Dify DSL 骨架 · 日计划排程工作流（仅供线上 Dify「导入 DSL」使用，不含任何 Key）
+# 导入后：把 HTTP 节点的 {{API_PUBLIC_BASE}} 换成你的内网穿透地址，并填好模型。
+# 节点链：开始 → HTTP(POST /api/solve/run) → LLM 中文解读 → 结束
+app:
+  mode: workflow
+  name: gtx-daily-scheduling
+  version: 0.1.5
+kind: app
+version: 0.1.5
+workflow:
+  graph:
+    nodes:
+      - id: start
+        type: start
+        position: { x: 60, y: 200 }
+        data:
+          title: 开始
+          variables:
+            - variable: case
+              label: 场景用例名
+              type: text-input
+              required: false
+              max_length: 48
+              default: ""
+      - id: call-solve
+        type: http-request
+        position: { x: 380, y: 200 }
+        data:
+          title: 调本地六步 MILP
+          method: post
+          url: "{{#env.API_PUBLIC_BASE#}}/api/solve/run"
+          authorization:
+            type: no-auth
+          headers:
+            - key: Content-Type
+              value: application/json
+          params: []
+          body:
+            type: json
+            data: '{"case": "{{#start.case#}}"}'
+          timeout: &timeout 30
+      - id: explain
+        type: llm
+        position: { x: 700, y: 200 }
+        data:
+          title: 结果中文解读
+          model:
+            provider: openai_api_compatible
+            name: gpt-4o-mini
+            mode: chat
+          prompt_template:
+            - role: system
+              text: >-
+                你是光刻排程助手。把六步 MILP 结果摘要成 200 字以内的中文说明，
+                必须包含：MILP 状态、急货 LOT-A01 开工时间、MakeSpan、注意事项。
+            - role: user
+              text: "{{#call-solve.body#}}"
+          vision:
+            enabled: false
+      - id: end
+        type: end
+        position: { x: 1020, y: 200 }
+        data:
+          title: 结束
+          outputs:
+            - variable: explanation
+              value_selector: [explain, text]
+            - variable: run_id
+              type: template-code
+              value: "{{#call-solve.body#}}"
+    edges:
+      - { source: start, target: call-solve }
+      - { source: call-solve, target: explain }
+      - { source: explain, target: end }
+  environment_variables:
+    - variable: API_PUBLIC_BASE
+      value: ""
+      description: 内网穿透地址（cloudflared tunnel --url http://localhost:8000）
+  features: {}

@@ -1,0 +1,72 @@
+<!doctype html>
+<!-- GTX FSO Litho · 报告生成页 reports · v1 · 2026-10-29
+     调 /api/doc/render（WPS COM 后端）生成 docx/xlsx/pptx，轮询状态后给下载链接。
+     DOCGEN_ENABLED=0 时后端返回 503，页面显示降级提示。 -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GTX FSO Litho · 报告生成 Reports</title>
+<link rel="stylesheet" href="../_shared/shell.css">
+<style>
+.doc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.doc-card{border:1px solid var(--colorBorder);border-radius:var(--radiusLG);padding:16px;display:flex;
+  flex-direction:column;gap:8px;background:#fff}
+.doc-card .di{font-size:28px}
+.doc-card .dt2{font-weight:600;font-size:14px}
+.doc-card .dd{font-size:12px;color:var(--colorTextSecondary);flex:1;line-height:1.6}
+.job-row{display:flex;align-items:center;gap:8px;font-size:12px;margin-top:6px}
+.job-row a{color:var(--colorPrimary)}
+.notice{margin-top:12px;font-size:12px;padding:8px 12px;border-radius:var(--radius);
+  background:var(--warningBg);border:1px solid var(--warningBorder);color:var(--colorTextSecondary);display:none}
+.notice.show{display:block}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sider" id="sider"></aside>
+  <div class="main">
+    <header class="header">
+      <div class="crumb">Scheduling Result / <b>报告生成 Reports</b></div>
+      <div class="right"><span id="clock" class="clock"></span>
+        <button id="cmBtn" class="btn sm">💬 评论模式</button></div>
+    </header>
+    <div class="content">
+      <div class="card">
+        <div class="card-h">
+          <div><div class="t">WPS 文档生成</div>
+            <div class="sub">基于最近一次求解结果（backend/solver/output/run_summary.json），服务端 WPS COM 渲染</div></div>
+          <span class="q" data-cm="文档生成仅本地 Windows 可用（WPS COM）。云端把 .env 的 DOCGEN_ENABLED 设 0，接口返回 503，页面提示降级。">?</span>
+        </div>
+        <div class="doc-grid" id="docGrid">
+          <div class="doc-card">
+            <div class="di">📄</div>
+            <div class="dt2">排程报告 <span class="muted">docx</span></div>
+            <div class="dd">六步结果汇总：MILP 状态、急货故事线、Barc 放货窗口、光罩五态</div>
+            <button class="btn primary" data-kind="docx" data-name="排程报告">生成报告</button>
+            <div class="job-row" data-row="docx"></div>
+          </div>
+          <div class="doc-card">
+            <div class="di">📊</div>
+            <div class="dt2">排程明细 <span class="muted">xlsx</span></div>
+            <div class="dd">三个 sheet：Lot 排程 / 机台负载 / 光罩状态，可直接透视</div>
+            <button class="btn primary" data-kind="xlsx" data-name="排程明细">生成明细</button>
+            <div class="job-row" data-row="xlsx"></div>
+          </div>
+          <div class="doc-card">
+            <div class="di">📽</div>
+            <div class="dt2">排程汇报 <span class="muted">pptx</span></div>
+            <div class="dd">汇报版幻灯片：KPI、甘特截图位、场景对比结论</div>
+            <button class="btn primary" data-kind="pptx" data-name="排程汇报">生成汇报</button>
+            <div class="job-row" data-row="pptx"></div>
+          </div>
+        </div>
+        <div class="notice" id="notice"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tt" class="tt"></div>
+<script type="module" src="./script.js"></script>
+</body>
+</html>

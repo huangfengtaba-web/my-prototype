@@ -1,0 +1,632 @@
+[
+ {
+  "record_id": "3acd7b05-e6e8-5312-bb5b-045e7dd3074b",
+  "vendor": "Canon",
+  "model": "FPA-5550iZ2",
+  "category": "lithography",
+  "conformance_level": "L1",
+  "completeness_pct": 100.0,
+  "tier_summary": {
+   "inferred": 4,
+   "vendor_confirmed": 5
+  },
+  "missing_fields": [],
+  "prefill_url": "/add-equipment?vendor=Canon&model=FPA-5550iZ2",
+  "record": {
+   "schema_version": "1.0",
+   "record_id": "3acd7b05-e6e8-5312-bb5b-045e7dd3074b",
+   "conformance_level": "L1",
+   "record_status": "draft",
+   "submitted_by": "csv-migration v1.0",
+   "submitted_at": "2026-10-11",
+   "updated_at": "2026-10-11",
+   "identity": {
+    "vendor": {
+     "value": "Canon",
+     "provenance": {
+      "tier": "vendor_confirmed",
+      "source": "https://www.canon-europe.com/business/products/industrial-products/semiconductor/fpa-5550iz2/"
+     }
+    },
+    "model": {
+     "value": "FPA-5550iZ2",
+     "provenance": {
+      "tier": "vendor_confirmed",
+      "source": "https://www.canon-europe.com/business/products/industrial-products/semiconductor/fpa-5550iz2/"
+     }
+    },
+    "category": {
+     "value": "lithography",
+     "provenance": {
+      "tier": "inferred",
+      "source": "segment mapping v1.0"
+     }
+    },
+    "wafer_sizes_mm": {
+     "value": [
+      200,
+      300
+     ],
+     "provenance": {
+      "tier": "vendor_confirmed",
+      "source": "https://www.canon-europe.com/business/products/industrial-products/semiconductor/fpa-5550iz2/"
+     }
+    },
+    "node_applicability": {
+     "value": "mature (>=350nm)",
+     "provenance": {
+      "tier": "vendor_confirmed",
+      "source": "https://www.canon-europe.com/business/products/industrial-products/semiconductor/fpa-5550iz2/"
+     }
+    }
+   },
+   "physical": {
+    "width_mm": {
+     "value": 2300,
+     "unit": "mm",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://www.canon-europe.com/business/products/industrial-products/semiconductor/fpa-5550iz2/"
+     }
+    },
+    "depth_mm": {
+     "value": 3660,
+     "unit": "mm",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://www.canon-europe.com/business/products/industrial-products/semiconductor/fpa-5550iz2/"
+     }
+    },
+    "height_mm": {
+     "value": 3000,
+     "unit": "mm",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://www.canon-europe.com/business/products/industrial-products/semiconductor/fpa-5550iz2/"
+     }
+    }
+   },
+   "process_capability": {
+    "capabilities": [
+     {
+      "process": "Lithography",
+      "detail": {
+       "value": "i-line 365nm stepper; resolution <=280nm; >=230 wph (300mm); SMO <=15nm, MMO <=20nm",
+       "provenance": {
+        "tier": "vendor_confirmed",
+        "source": "https://www.canon-europe.com/business/products/industrial-products/semiconductor/fpa-5550iz2/"
+       }
+      }
+     }
+    ]
+   },
+   "notes": "[source note] Logic/memory/CIS front-end; 2019 official brochure data"
+  }
+ },
+ {
+  "record_id": "e3021724-ec73-534e-be7c-ba3374f4ddb8",
+  "vendor": "Canon",
+  "model": "FPA-6300ES6a",
+  "category": "lithography",
+  "conformance_level": "L1",
+  "completeness_pct": 100.0,
+  "tier_summary": {
+   "community_corroborated": 4,
+   "inferred": 5
+  },
+  "missing_fields": [],
+  "prefill_url": "/add-equipment?vendor=Canon&model=FPA-6300ES6a",
+  "record": {
+   "schema_version": "1.0",
+   "record_id": "e3021724-ec73-534e-be7c-ba3374f4ddb8",
+   "conformance_level": "L1",
+   "record_status": "draft",
+   "submitted_by": "csv-migration v1.0",
+   "submitted_at": "2026-10-11",
+   "updated_at": "2026-10-11",
+   "identity": {
+    "vendor": {
+     "value": "Canon",
+     "provenance": {
+      "tier": "community_corroborated",
+      "source": "https://manuals.plus/m/a2014d2fcd3416eb49e853909c00a27a382056170f760f3092978a81996852b7.pdf"
+     }
+    },
+    "model": {
+     "value": "FPA-6300ES6a",
+     "provenance": {
+      "tier": "community_corroborated",
+      "source": "https://manuals.plus/m/a2014d2fcd3416eb49e853909c00a27a382056170f760f3092978a81996852b7.pdf"
+     }
+    },
+    "category": {
+     "value": "lithography",
+     "provenance": {
+      "tier": "inferred",
+      "source": "segment mapping v1.0"
+     }
+    },
+    "wafer_sizes_mm": {
+     "value": [
+      200,
+      300
+     ],
+     "provenance": {
+      "tier": "community_corroborated",
+      "source": "https://manuals.plus/m/a2014d2fcd3416eb49e853909c00a27a382056170f760f3092978a81996852b7.pdf"
+     }
+    },
+    "node_applicability": {
+     "value": "mature (>=90nm) (inferred)",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://manuals.plus/m/a2014d2fcd3416eb49e853909c00a27a382056170f760f3092978a81996852b7.pdf"
+     }
+    }
+   },
+   "physical": {
+    "width_mm": {
+     "value": 2300,
+     "unit": "mm",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://manuals.plus/m/a2014d2fcd3416eb49e853909c00a27a382056170f760f3092978a81996852b7.pdf"
+     }
+    },
+    "depth_mm": {
+     "value": 5200,
+     "unit": "mm",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://manuals.plus/m/a2014d2fcd3416eb49e853909c00a27a382056170f760f3092978a81996852b7.pdf"
+     }
+    },
+    "height_mm": {
+     "value": 2900,
+     "unit": "mm",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://manuals.plus/m/a2014d2fcd3416eb49e853909c00a27a382056170f760f3092978a81996852b7.pdf"
+     }
+    }
+   },
+   "process_capability": {
+    "capabilities": [
+     {
+      "process": "Lithography",
+      "detail": {
+       "value": "KrF 248nm scanner; resolution <=90nm; >=260 wph (300mm, optional); SMO <=3nm, MMO <=5nm; NA 0.50-0.86",
+       "provenance": {
+        "tier": "community_corroborated",
+        "source": "https://manuals.plus/m/a2014d2fcd3416eb49e853909c00a27a382056170f760f3092978a81996852b7.pdf"
+       }
+      }
+     }
+    ]
+   },
+   "notes": "[source note] DRAM/Flash/logic volume; launched 2012; Canon brochure via manuals.plus"
+  }
+ },
+ {
+  "record_id": "fc2170cf-ce41-599f-82a5-d3e3676bcd65",
+  "vendor": "Canon",
+  "model": "FPA-1200NZ2C",
+  "category": "lithography",
+  "conformance_level": "L1",
+  "completeness_pct": 100.0,
+  "tier_summary": {
+   "inferred": 4,
+   "vendor_confirmed": 5
+  },
+  "missing_fields": [],
+  "prefill_url": "/add-equipment?vendor=Canon&model=FPA-1200NZ2C",
+  "record": {
+   "schema_version": "1.0",
+   "record_id": "fc2170cf-ce41-599f-82a5-d3e3676bcd65",
+   "conformance_level": "L1",
+   "record_status": "draft",
+   "submitted_by": "csv-migration v1.0",
+   "submitted_at": "2026-10-11",
+   "updated_at": "2026-10-11",
+   "identity": {
+    "vendor": {
+     "value": "Canon",
+     "provenance": {
+      "tier": "vendor_confirmed",
+      "source": "https://www.usa.canon.com/shop/catalog/product/view/id/197641/s/fpa-1200nz2c-nanoimprint-stepper/category/50717/"
+     }
+    },
+    "model": {
+     "value": "FPA-1200NZ2C",
+     "provenance": {
+      "tier": "vendor_confirmed",
+      "source": "https://www.usa.canon.com/shop/catalog/product/view/id/197641/s/fpa-1200nz2c-nanoimprint-stepper/category/50717/"
+     }
+    },
+    "category": {
+     "value": "lithography",
+     "provenance": {
+      "tier": "inferred",
+      "source": "segment mapping v1.0"
+     }
+    },
+    "wafer_sizes_mm": {
+     "value": [
+      300
+     ],
+     "provenance": {
+      "tier": "vendor_confirmed",
+      "source": "https://www.usa.canon.com/shop/catalog/product/view/id/197641/s/fpa-1200nz2c-nanoimprint-stepper/category/50717/"
+     }
+    },
+    "node_applicability": {
+     "value": "5nm (nanoimprint)",
+     "provenance": {
+      "tier": "vendor_confirmed",
+      "source": "https://www.usa.canon.com/shop/catalog/product/view/id/197641/s/fpa-1200nz2c-nanoimprint-stepper/category/50717/"
+     }
+    }
+   },
+   "physical": {
+    "width_mm": {
+     "value": 2700,
+     "unit": "mm",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://www.usa.canon.com/shop/catalog/product/view/id/197641/s/fpa-1200nz2c-nanoimprint-stepper/category/50717/"
+     }
+    },
+    "depth_mm": {
+     "value": 6600,
+     "unit": "mm",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://www.usa.canon.com/shop/catalog/product/view/id/197641/s/fpa-1200nz2c-nanoimprint-stepper/category/50717/"
+     }
+    },
+    "height_mm": {
+     "value": 2830,
+     "unit": "mm",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://www.usa.canon.com/shop/catalog/product/view/id/197641/s/fpa-1200nz2c-nanoimprint-stepper/category/50717/"
+     }
+    }
+   },
+   "process_capability": {
+    "capabilities": [
+     {
+      "process": "Lithography",
+      "detail": {
+       "value": "Nanoimprint (NIL, non-optical); resolution <=15nm (14nm L/S demonstrated, 10nm target); >=80 wph (4-station); overlay <=4nm; field 26x33mm",
+       "provenance": {
+        "tier": "vendor_confirmed",
+        "source": "https://www.usa.canon.com/shop/catalog/product/view/id/197641/s/fpa-1200nz2c-nanoimprint-stepper/category/50717/"
+       }
+      }
+     }
+    ]
+   },
+   "notes": "[source note] Targets 5nm/2nm nodes; launched Oct 2023; dimensions from official product page"
+  }
+ },
+ {
+  "record_id": "9f2dd614-22fd-5568-baff-5ef0473bf17d",
+  "vendor": "ASML",
+  "model": "PAS 5500/60",
+  "category": "lithography",
+  "conformance_level": "L1",
+  "completeness_pct": 100.0,
+  "tier_summary": {
+   "community_corroborated": 5,
+   "inferred": 5
+  },
+  "missing_fields": [],
+  "prefill_url": "/add-equipment?vendor=ASML&model=PAS%205500/60",
+  "record": {
+   "schema_version": "1.0",
+   "record_id": "9f2dd614-22fd-5568-baff-5ef0473bf17d",
+   "conformance_level": "L1",
+   "record_status": "draft",
+   "submitted_by": "csv-migration v1.0",
+   "submitted_at": "2026-10-11",
+   "updated_at": "2026-10-11",
+   "identity": {
+    "vendor": {
+     "value": "ASML",
+     "provenance": {
+      "tier": "community_corroborated",
+      "source": "https://snfexpt.stanford.edu/equipment/asml"
+     }
+    },
+    "model": {
+     "value": "PAS 5500/60",
+     "provenance": {
+      "tier": "community_corroborated",
+      "source": "https://snfexpt.stanford.edu/equipment/asml"
+     }
+    },
+    "category": {
+     "value": "lithography",
+     "provenance": {
+      "tier": "inferred",
+      "source": "segment mapping v1.0"
+     }
+    },
+    "wafer_sizes_mm": {
+     "value": [
+      200
+     ],
+     "provenance": {
+      "tier": "community_corroborated",
+      "source": "https://snfexpt.stanford.edu/equipment/asml"
+     }
+    },
+    "node_applicability": {
+     "value": "0.35um-0.5um",
+     "provenance": {
+      "tier": "community_corroborated",
+      "source": "https://snfexpt.stanford.edu/equipment/asml"
+     }
+    }
+   },
+   "physical": {
+    "width_mm": {
+     "value": 1450,
+     "unit": "mm",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://snfexpt.stanford.edu/equipment/asml"
+     }
+    },
+    "depth_mm": {
+     "value": 2400,
+     "unit": "mm",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://snfexpt.stanford.edu/equipment/asml"
+     }
+    },
+    "height_mm": {
+     "value": 2300,
+     "unit": "mm",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://snfexpt.stanford.edu/equipment/asml"
+     }
+    },
+    "weight_kg": {
+     "value": 3200.0,
+     "unit": "kg",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://snfexpt.stanford.edu/equipment/asml"
+     }
+    }
+   },
+   "process_capability": {
+    "capabilities": [
+     {
+      "process": "Lithography",
+      "detail": {
+       "value": "i-line 365nm stepper, NA 0.54, 5x reduction; resolution <= 0.45um; SMO overlay <= 90nm (3-sigma); 55 wph",
+       "provenance": {
+        "tier": "community_corroborated",
+        "source": "https://snfexpt.stanford.edu/equipment/asml"
+       }
+      }
+     }
+    ]
+   },
+   "notes": "[source note] Stanford Nanofabrication Facility (SNF) documented SOP and Teledyne MEMS production stepper; mature workhorse"
+  }
+ },
+ {
+  "record_id": "c327b57f-9e72-50d5-87a3-0986242ffb86",
+  "vendor": "ASML",
+  "model": "TWINSCAN NXT:2050i",
+  "category": "lithography",
+  "conformance_level": "L1",
+  "completeness_pct": 62.5,
+  "tier_summary": {
+   "inferred": 1,
+   "vendor_confirmed": 5
+  },
+  "missing_fields": [],
+  "prefill_url": "/add-equipment?vendor=ASML&model=TWINSCAN%20NXT%3A2050i",
+  "record": {
+   "schema_version": "1.0",
+   "record_id": "c327b57f-9e72-50d5-87a3-0986242ffb86",
+   "conformance_level": "L1",
+   "record_status": "draft",
+   "submitted_by": "csv-migration v1.0",
+   "submitted_at": "2026-10-11",
+   "updated_at": "2026-10-11",
+   "identity": {
+    "vendor": {
+     "value": "ASML",
+     "provenance": {
+      "tier": "vendor_confirmed",
+      "source": "https://www.asml.com/en/products/duv-lithography-systems/twinscan-nxt2050i"
+     }
+    },
+    "model": {
+     "value": "TWINSCAN NXT:2050i",
+     "provenance": {
+      "tier": "vendor_confirmed",
+      "source": "https://www.asml.com/en/products/duv-lithography-systems/twinscan-nxt2050i"
+     }
+    },
+    "category": {
+     "value": "lithography",
+     "provenance": {
+      "tier": "inferred",
+      "source": "segment mapping v1.0"
+     }
+    },
+    "wafer_sizes_mm": {
+     "value": [
+      300
+     ],
+     "provenance": {
+      "tier": "vendor_confirmed",
+      "source": "https://www.asml.com/en/products/duv-lithography-systems/twinscan-nxt2050i"
+     }
+    },
+    "node_applicability": {
+     "value": "7nm-28nm",
+     "provenance": {
+      "tier": "vendor_confirmed",
+      "source": "https://www.asml.com/en/products/duv-lithography-systems/twinscan-nxt2050i"
+     }
+    }
+   },
+   "physical": {
+    "width_mm": {
+     "value": 2300,
+     "unit": "mm",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://www.canon-europe.com/business/products/industrial-products/semiconductor/fpa-5550iz2/"
+     }
+    },
+    "depth_mm": {
+     "value": 3660,
+     "unit": "mm",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://www.canon-europe.com/business/products/industrial-products/semiconductor/fpa-5550iz2/"
+     }
+    },
+    "height_mm": {
+     "value": 3000,
+     "unit": "mm",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://www.canon-europe.com/business/products/industrial-products/semiconductor/fpa-5550iz2/"
+     }
+    }
+   },
+   "process_capability": {
+    "capabilities": [
+     {
+      "process": "Lithography",
+      "detail": {
+       "value": "ArF immersion 193nm, NA 1.35; resolution 38nm(dipole)/40nm(C-quad); 295 wph; dual stage",
+       "provenance": {
+        "tier": "vendor_confirmed",
+        "source": "https://www.asml.com/en/products/duv-lithography-systems/twinscan-nxt2050i"
+       }
+      }
+     }
+    ]
+   },
+   "notes": "[source note] 7nm-28nm logic/DRAM workhorse; NXT4 platform"
+  },
+  "_gtx_note": "physical dims curated for GTX twin runtime (was draft)"
+ },
+ {
+  "record_id": "80de0311-3bee-589e-be9e-c6e58527668c",
+  "vendor": "ASML",
+  "model": "TWINSCAN NXT:2000i",
+  "category": "lithography",
+  "conformance_level": "L1",
+  "completeness_pct": 62.5,
+  "tier_summary": {
+   "community_corroborated": 4,
+   "inferred": 2
+  },
+  "missing_fields": [],
+  "prefill_url": "/add-equipment?vendor=ASML&model=TWINSCAN%20NXT%3A2000i",
+  "record": {
+   "schema_version": "1.0",
+   "record_id": "80de0311-3bee-589e-be9e-c6e58527668c",
+   "conformance_level": "L1",
+   "record_status": "draft",
+   "submitted_by": "csv-migration v1.0",
+   "submitted_at": "2026-10-11",
+   "updated_at": "2026-10-11",
+   "identity": {
+    "vendor": {
+     "value": "ASML",
+     "provenance": {
+      "tier": "community_corroborated",
+      "source": "https://www.environmental-expert.com/products/model-twinscan-nxt-2000i-duv-lithography-916538"
+     }
+    },
+    "model": {
+     "value": "TWINSCAN NXT:2000i",
+     "provenance": {
+      "tier": "community_corroborated",
+      "source": "https://www.environmental-expert.com/products/model-twinscan-nxt-2000i-duv-lithography-916538"
+     }
+    },
+    "category": {
+     "value": "lithography",
+     "provenance": {
+      "tier": "inferred",
+      "source": "segment mapping v1.0"
+     }
+    },
+    "wafer_sizes_mm": {
+     "value": [
+      300
+     ],
+     "provenance": {
+      "tier": "community_corroborated",
+      "source": "https://www.environmental-expert.com/products/model-twinscan-nxt-2000i-duv-lithography-916538"
+     }
+    },
+    "node_applicability": {
+     "value": "7nm-28nm (inferred)",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://www.environmental-expert.com/products/model-twinscan-nxt-2000i-duv-lithography-916538"
+     }
+    }
+   },
+   "physical": {
+    "width_mm": {
+     "value": 2300,
+     "unit": "mm",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://www.canon-europe.com/business/products/industrial-products/semiconductor/fpa-5550iz2/"
+     }
+    },
+    "depth_mm": {
+     "value": 3660,
+     "unit": "mm",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://www.canon-europe.com/business/products/industrial-products/semiconductor/fpa-5550iz2/"
+     }
+    },
+    "height_mm": {
+     "value": 3000,
+     "unit": "mm",
+     "provenance": {
+      "tier": "inferred",
+      "source": "https://www.canon-europe.com/business/products/industrial-products/semiconductor/fpa-5550iz2/"
+     }
+    }
+   },
+   "process_capability": {
+    "capabilities": [
+     {
+      "process": "Lithography",
+      "detail": {
+       "value": "ArF immersion 193nm, NA 1.35; resolution 38-40nm; matched-machine overlay 2.5nm; champion 4600 wafers/day",
+       "provenance": {
+        "tier": "community_corroborated",
+        "source": "https://www.environmental-expert.com/products/model-twinscan-nxt-2000i-duv-lithography-916538"
+       }
+      }
+     }
+    ]
+   },
+   "notes": "[source note] Standard wph not published by ASML; data from ASML content mirror"
+  },
+  "_gtx_note": "physical dims curated for GTX twin runtime (was draft)"
+ }
+]

@@ -97,19 +97,27 @@ def sim_run(req: SimRequest):
 
 # ---------------------------------------------------------------- 工作流
 class WorkflowRunRequest(BaseModel):
-    template: str                # TEMPLATES 键
+    template: str | None = None       # 原契约字段（连字符 ID）
+    template_id: str | None = None    # T2-4 兼容字段（下划线 ID），二选一
     params: dict | None = None
 
 
 @app.get("/api/workflow/templates")
 def workflow_templates():
-    return {"templates": workflow.list_templates()}
+    return workflow.list_templates()
 
 
 @app.post("/api/workflow/run")
 def workflow_run(req: WorkflowRunRequest):
+    """优先线上 Dify，未配置/不可达自动 local_fallback（响应含 mode，HTTP 恒 200）。
+
+    本地模式保留原 record 字段（wf_id/steps/...），可继续用 status 接口轮询。
+    """
+    tid = req.template or req.template_id
+    if not tid:
+        raise HTTPException(400, detail="template / template_id 二选一必填")
     try:
-        return workflow.run_workflow(req.template, req.params)
+        return workflow.run_with_fallback(tid, req.params)
     except KeyError as e:
         raise HTTPException(404, detail=str(e))
 
@@ -144,3 +152,22 @@ def agent_chat(req: AgentChatRequest):
     if not req.message.strip():
         raise HTTPException(400, detail="消息不能为空")
     return agent.chat(req.message, req.session_id)
+
+
+# ---------------------------------------------------------------- 3D 孪生时间轴
+from backend.app.twin_timeline import build_timeline  # noqa: E402
+
+
+@app.get("/api/twin/timeline/{run_id}")
+def twin_timeline(run_id: str):
+    """把某次求解结果转成 3D 孪生时间轴事件流。"""
+    rec = solver_runner.get_result(run_id)
+    if not rec:
+        raise HTTPException(404, detail=f"run_id 不存在或已过期: {run_id}")
+    return build_timeline(rec.get("summary") or {}, run_id=run_id)
+
+
+# ---------------------------------------------------------------- WPS 文档生成
+from backend.app.docgen import api as docgen_api  # noqa: E402
+
+app.include_router(docgen_api.router)

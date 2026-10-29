@@ -169,23 +169,23 @@ body.cmt-on .q{display:inline-block}
       <div class="kpis">
         <a class="kpi" href="prototypes/result_litho.html">
           <div class="l">在线机台<span class="q" data-cm="在线机台 :: IMM01~IMM08 共 8 台浸没式（Immersion）Scanner；另有 BARC01~06、IRIS01~02 独立检测、STK01~03 Stocker，详见结果页与 Eqp Group。">?</span></div>
-          <div class="v">8<small>台</small></div>
-          <div class="d">IMM01~IMM08 · Immersion · 全部 Idle/Run</div>
+          <div class="v" id="kEqp">—<small>台</small></div>
+          <div class="d" id="kEqpD">加载中…</div>
         </a>
         <a class="kpi" href="prototypes/result_litho.html">
           <div class="l">待排 Lot</div>
-          <div class="v">120<small>批</small></div>
-          <div class="d">5001A / 5002A / 3006A · 25 片/批</div>
+          <div class="v" id="kLot">—<small>批</small></div>
+          <div class="d" id="kLotD">加载中…</div>
         </a>
         <a class="kpi" href="prototypes/result_reticle.html">
           <div class="l">在库 Reticle</div>
-          <div class="v">156<small>枚</small></div>
-          <div class="d">RT-0001~RT-0156 · Maskroom/Stocker/机内</div>
+          <div class="v" id="kRet">—<small>枚</small></div>
+          <div class="d" id="kRetD">加载中…</div>
         </a>
         <a class="kpi" href="prototypes/result_litho.html">
           <div class="l">QTMS 超水位<span class="q" data-cm="QTMS 超水位 :: 当站 WIP 超过 QTMS 水位上限的管控点共 3 处，在 Scanner Schedule-Chart 上以红框/角标标记（RFP 2.1.3）。">?</span></div>
-          <div class="v" style="color:var(--colorError)">3<small>处</small></div>
-          <div class="d">RCP_B@IMM03 · RCP_D@IMM05 · RCP_C@IMM07</div>
+          <div class="v" id="kQtms" style="color:var(--colorError)">—<small>处</small></div>
+          <div class="d" id="kQtmsD">加载中…</div>
         </a>
       </div>
 
@@ -268,6 +268,34 @@ body.cmt-on .q{display:inline-block}
             <div class="me">System Overview</div>
             <div class="md">4 KPI · 功能架构图 · 模块入口 · 13 条 RFP 覆盖矩阵 · 交付物索引</div>
             <div class="go">当前页</div>
+          </a>
+          <a class="mod" href="/twin">
+            <div class="mi">🏭</div>
+            <div class="mt">数字孪生</div>
+            <div class="me">Digital Twin</div>
+            <div class="md">SemiconFab 3D 洁净室 · 六步排程时间轴回放 · 光罩搬送与机台占用</div>
+            <div class="go">进入 ›</div>
+          </a>
+          <a class="mod" href="/scheduling-test">
+            <div class="mi">▶</div>
+            <div class="mt">求解演示</div>
+            <div class="me">Solver Playground</div>
+            <div class="md">选 Scenario → 调 CBC 求解器 → 实时看六步输出与甘特</div>
+            <div class="go">进入 ›</div>
+          </a>
+          <a class="mod" href="/simulation">
+            <div class="mi">🔀</div>
+            <div class="mt">仿真验证</div>
+            <div class="me">Simulation</div>
+            <div class="md">计划 vs 实际 · 机台故障 MTBF/MTTR · 光罩接力 · 良率返工扰动</div>
+            <div class="go">进入 ›</div>
+          </a>
+          <a class="mod" href="/ai-workflow">
+            <div class="mi">🧠</div>
+            <div class="mt">AI 工作流</div>
+            <div class="me">Dify Workflow</div>
+            <div class="md">日计划排程 / 场景对比 / 智能问答 · 线上 Dify 编排 + 本地降级</div>
+            <div class="go">进入 ›</div>
           </a>
         </div>
       </div>
@@ -527,6 +555,45 @@ document.getElementById('rfpCSV').addEventListener('click',function(){
   dl('rfp_coverage_matrix.csv',csv);toast('已导出 rfp_coverage_matrix.csv');
 });
 renderArch();renderRfp();
+
+/* KPI 真实数据填充（替代硬编码） */
+(function () {
+  var API = window.__API_BASE__ || 'http://127.0.0.1:8000';
+  function txt(id, s) { var e = document.getElementById(id); if (e) e.textContent = s; }
+  function val(id, n, u) {
+    var e = document.getElementById(id);
+    if (e) e.innerHTML = (n == null ? '—' : n) + '<small>' + u + '</small>';
+  }
+  fetch(API + '/api/mock/data')
+    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function (d) {
+      var eqps = Object.keys(d.machines || {});
+      var lots = d.lots || [];
+      var rets = Object.keys(d.reticles || {});
+      var over = lots.filter(function (l) { return l.qtms_over; });
+
+      val('kEqp', eqps.length, '台');
+      txt('kEqpD', eqps.join(' · ') + ' · 浸没式 Scanner');
+
+      val('kLot', lots.length, '批');
+      var prods = Array.from(new Set(lots.map(function (l) { return l.product; })));
+      txt('kLotD', prods.join(' / ') + ' · 25 片/批');
+
+      val('kRet', rets.length, '枚');
+      txt('kRetD', rets.join(' · '));
+
+      val('kQtms', over.length, '处');
+      txt('kQtmsD', over.length
+        ? over.map(function (l) { return (l.reticle || '-') + '@' + (l.assign || '待分配'); }).join(' · ')
+        : '当前无超水位');
+    })
+    .catch(function () {
+      ['kEqp', 'kLot', 'kRet', 'kQtms'].forEach(function (id) {
+        var e = document.getElementById(id); if (e) e.innerHTML = '—';
+      });
+      ['kEqpD', 'kLotD', 'kRetD', 'kQtmsD'].forEach(function (id) { txt(id, '后端未连接'); });
+    });
+})();
 </script>
 </body>
 </html>

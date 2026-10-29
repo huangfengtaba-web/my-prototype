@@ -1,9 +1,23 @@
-// AI 工作流页逻辑：选模板 → POST /api/workflow/run → 轮询 status → 时间线 + 报告
+// AI 工作流页 v2：真实执行链路
+// - 本地降级：POST /api/workflow/run 返回完整 record（mode=local_fallback，steps 含真实秒级耗时）
+// - Dify 线上：返回 mode=dify + workflow_run_id/elapsed/total_steps/outputs
 import { API_BASE, $, mountShell, statusTag } from '../_shared/shell.js'
 
 mountShell('ai-workflow')
 
-const state = { templates: [], current: null, timer: null, wfId: null }
+const state = { templates: [], current: null }
+
+function setBadge(mode, reason) {
+  const el = $('#modeBadge')
+  if (mode === 'dify') {
+    el.textContent = 'Dify 线上'
+    el.className = 'mode-badge dify'
+  } else {
+    el.textContent = '本地降级'
+    el.className = 'mode-badge local_fallback'
+    if (reason) el.title = reason
+  }
+}
 
 async function init() {
   try {
@@ -21,7 +35,9 @@ async function init() {
   }
   $('#tplGrid').innerHTML = state.templates.map((t, i) => `
     <div class="tpl ${i === 0 ? 'on' : ''}" data-id="${t.id}">
-      <div class="t-name">${t.name}</div>
+      <div class="t-name">${t.name}
+        <span class="dify-tag ${t.dify_configured ? 'on' : 'off'}">
+          ${t.dify_configured ? 'Dify 已配置' : 'Dify 未配置'}</span></div>
       <div class="t-desc">${t.desc}</div>
       <div class="t-params">参数：${JSON.stringify(t.params)}</div>
     </div>`).join('')
@@ -41,49 +57,50 @@ async function runWorkflow() {
   if (state.current === 'daily-scheduling' && $('#caseSel').value) params.case = $('#caseSel').value
   if (state.current === 'daily-scheduling') params.seed = Number($('#seed').value) || 42
   $('#runBtn').disabled = true
-  $('#runState').textContent = '启动中…'
+  $('#runState').textContent = '执行中…（本地模式：真实求解+仿真，约 3~5s）'
   $('#runState').className = 'run-state'
-  clearInterval(state.timer)
   try {
     const res = await fetch(`${API_BASE}/api/workflow/run`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ template: state.current, params }),
+      body: JSON.stringify({ template_id: state.current, params }),
     })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.json()).detail || ''}`)
     const wf = await res.json()
-    state.wfId = wf.wf_id
-    $('#runState').textContent = `运行中 wf_id=${wf.wf_id}`
-    poll()                                            // 立即刷一次
-    state.timer = setInterval(poll, 1200)
+    setBadge(wf.mode, wf.fallback_reason)
+    render(wf)
+    $('#runState').textContent = `结束：${wf.status || wf.mode}`
+    $('#runState').className = 'run-state ' + (wf.status === 'failed' ? 'err' : 'ok')
   } catch (err) {
-    $('#runState').textContent = `启动失败：${err.message}`
+    $('#runState').textContent = `失败：${err.message}`
     $('#runState').className = 'run-state err'
+  } finally {
     $('#runBtn').disabled = false
   }
 }
 
-async function poll() {
-  try {
-    const res = await fetch(`${API_BASE}/api/workflow/status/${state.wfId}`)
-    const wf = await res.json()
-    render(wf)
-    if (wf.status === 'done' || wf.status === 'failed') {
-      clearInterval(state.timer)
-      $('#runBtn').disabled = false
-      $('#runState').textContent = `结束：${wf.status}${wf.error ? '（' + wf.error + '）' : ''}`
-      $('#runState').className = 'run-state ' + (wf.status === 'done' ? 'ok' : 'err')
-    }
-  } catch { /* 轮询失败下次再试 */ }
-}
-
+// 本地模式：真实步骤时间线（名称/状态/秒级耗时/输出）
+// Dify 模式：workflow_run_id / elapsed / total_steps / outputs 元数据
 function render(wf) {
-  $('#wfMeta').textContent = `${wf.template_name} · wf_id=${wf.wf_id} · 状态 ${wf.status}`
+  $('#wfMeta').textContent = wf.mode === 'dify'
+    ? `${wf.template_id || ''} · mode=dify · run=${wf.workflow_run_id || '-'} · ${wf.elapsed || '-'}s · 节点 ${wf.total_steps ?? '-'}`
+    : `${wf.template_name || ''} · wf_id=${wf.wf_id} · mode=local_fallback`
+
+  if (wf.mode === 'dify') {
+    $('#steps').innerHTML = `
+      <div class="step done"><div class="s-dot"></div><div>
+        <div class="s-name">Dify 工作流执行完成 <span class="tag success">${wf.status || 'finished'}</span> · ${wf.elapsed || '-'}s</div>
+        <div class="s-out">${JSON.stringify(wf.outputs || {}, null, 1)}</div></div></div>`
+    $('#report').textContent = JSON.stringify(wf.outputs || {}, null, 1)
+    $('#reportCard').style.display = ''
+    return
+  }
+
   $('#steps').innerHTML = (wf.steps || []).map((s) => `
     <div class="step ${s.status}">
-      <div class="s-rail"><div class="s-dot"></div></div>
-      <div class="s-main">
+      <div class="s-dot"></div>
+      <div>
         <div class="s-name">${s.name}
-          ${statusTag(s.status)} ${s.seconds != null ? `· ${s.seconds}s` : ''} ${s.started_at}</div>
+          ${statusTag(s.status)} ${s.seconds != null ? `· ${s.seconds}s` : ''} ${s.started_at || ''}</div>
         ${s.output ? `<div class="s-out">${JSON.stringify(s.output, null, 1)}</div>` : ''}
         ${s.error ? `<div class="s-out s-err">${s.error}</div>` : ''}
       </div>
