@@ -6,20 +6,27 @@
 const NAV = [
   ['系统导航', [
     ['/', '系统总览', 'index'],
+    ['/litho-schedule', 'Litho 排程', 'litho-schedule'],
+    ['/reticle-schedule', 'Reticle 排程', 'reticle-schedule'],
     ['/prototypes/data_zone.html', '数据接入', ''],
     ['/prototypes/config_zone.html', '数据配置', ''],
     ['/prototypes/model_zone.html', '模型管理', ''],
-    ['/prototypes/result_litho.html', 'Litho 排程', ''],
-    ['/prototypes/result_reticle.html', 'Reticle 排程', ''],
     ['/prototypes/log_zone.html', '系统日志', ''],
   ]],
   ['智能应用（真后端）', [
     ['/simulation', '仿真验证', 'simulation'],
-    ['/twin', '数字孪生', 'twin'],
+    ['/twin-control', '数字孪生回放', 'twin-control'],
+    ['/twin', '数字孪生（原始场景）', 'twin'],
     ['/scheduling-test', '求解演示', 'scheduling-test'],
     ['/ai-agent', 'AI 助手', 'ai-agent'],
     ['/ai-workflow', 'AI 工作流', 'ai-workflow'],
     ['/reports', '报告生成', 'reports'],
+  ]],
+  ['原型参考（mock 数据，设计基线）', [
+    ['/prototypes/result_litho.html', 'Litho 排程（原型）', ''],
+    ['/prototypes/result_reticle.html', 'Reticle 排程（原型）', ''],
+    ['/prototypes/equip_temp_layer_config.html', '温层配置（原型）', ''],
+    ['/prototypes/stacking_bond_ui_v6.html', 'EQP Loading（原型）', ''],
   ]],
 ]
 
@@ -72,4 +79,28 @@ export function toMin(hm) {
 
 export function fmtMin(m) {
   return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(Math.round(m % 60)).padStart(2, '0')}`
+}
+
+// 通用单轨甘特：rows=[{name, segs:[{s,e,label,color,tip}]}]（s/e 单位分钟），返回 HTML
+export function seqGantt(rows, opts = {}) {
+  const pts = rows.flatMap((r) => r.segs.flatMap((g) => [g.s, g.e])).filter((v) => v != null)
+  if (!pts.length) return '<div class="empty">无数据</div>'
+  const t0 = Math.min(...pts), t1 = Math.max(...pts), span = Math.max(t1 - t0, 1)
+  let html = `<div class="gantt"><div class="g-ruler">`
+  const step = opts.hourStep || 60
+  for (let m = Math.ceil(t0 / step) * step; m <= t1; m += step)
+    html += `<span style="left:${((m - t0) / span) * 100}%">${fmtMin(m)}</span>`
+  html += `</div>`
+  for (const row of rows) {
+    html += `<div class="g-row"><div class="g-name">${row.name}</div><div class="g-track">`
+    for (const g of row.segs) {
+      const left = ((g.s - t0) / span) * 100
+      const width = Math.max(((g.e - g.s) / span) * 100, 0.8)
+      const color = g.color ? `background:${g.color};` : ''
+      html += `<div class="g-seg" style="left:${left}%;width:${width}%;${color}"
+        title="${g.tip || g.label || ''}">${g.label || ''}</div>`
+    }
+    html += `</div></div>`
+  }
+  return html + `</div>`
 }

@@ -14,6 +14,8 @@
     { "source": "/ai-agent", "destination": "/src/pages/ai-agent" },
     { "source": "/ai-workflow", "destination": "/src/pages/ai-workflow" },
     { "source": "/scheduling-test", "destination": "/src/pages/scheduling-test" },
-    { "source": "/reports", "destination": "/src/pages/reports" }
+    { "source": "/reports", "destination": "/src/pages/reports" },
+    { "source": "/litho-schedule", "destination": "/src/pages/litho-schedule" },
+    { "source": "/reticle-schedule", "destination": "/src/pages/reticle-schedule" }
   ]
 }

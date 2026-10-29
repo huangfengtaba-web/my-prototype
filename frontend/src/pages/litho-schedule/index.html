@@ -1,0 +1,77 @@
+<!doctype html>
+<!-- GTX FSO Litho · Litho 排程结果页 litho-schedule · v1 · 2026-10-30
+     真数据：后端六步 MILP 求解结果（run_summary）驱动 Scanner Schedule 甘特与明细。
+     区别于 prototypes/result_litho.html（静态 mock 原型，设计基线保留在"原型参考"组）。 -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GTX FSO Litho · Litho 排程结果（真数据）</title>
+<link rel="stylesheet" href="/src/pages/_shared/shell.css">
+<style>
+.batchbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.batchbar .run-meta{font-size:12px;color:var(--colorTextSecondary)}
+.steps-line{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.stepchip{font-size:12px;border:1px solid var(--colorBorderSecondary);border-radius:var(--radiusSM);
+  padding:4px 8px;background:#FAFAFA}
+.stepchip b{margin-right:4px}
+.stepchip .st{margin-left:6px}
+.gantt .g-seg{font-size:10px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sider" id="sider"></aside>
+  <div class="main">
+    <header class="header">
+      <div class="crumb">Scheduling Result / <b>Litho 排程（真数据）</b></div>
+      <div class="right"><span id="clock" class="clock"></span>
+        <button id="cmBtn" class="btn sm">💬 评论模式</button></div>
+    </header>
+    <div class="content">
+      <div class="card">
+        <div class="card-h">
+          <div><div class="t">Scanner Schedule · 六步 MILP 求解结果</div>
+            <div class="sub">数据源：backend 六步算法链真实输出（非 mock）；行=机台，条=Lot 加工区间</div></div>
+          <span class="q" data-cm="批次选择器列出本服务启动以来的全部求解运行；「重新求解」会以当前选中 Scenario 再跑一次六步 MILP（子进程隔离）。原型版静态页面已移至左侧「原型参考」组。">?</span>
+        </div>
+        <div class="batchbar">
+          <label class="lab">运行批次</label>
+          <select id="runSel" class="inp narrow"><option value="">加载中…</option></select>
+          <select id="caseSel" class="inp" style="width:150px"><option value="">Scenario: 基线</option></select>
+          <button id="resolveBtn" class="btn">⟳ 重新求解</button>
+          <a class="btn sm" href="/twin-control">在 3D 孪生中回放 →</a>
+          <span id="runMeta" class="run-meta"></span>
+        </div>
+        <div class="steps-line" id="stepsLine"></div>
+      </div>
+
+      <div class="kpis cols-4" id="kpis">
+        <div class="kpi"><div class="k-l">MILP（②预组批 / ③细排程）</div><div class="k-v" id="kMilp">—</div></div>
+        <div class="kpi"><div class="k-l">MakeSpan（最后完工）</div><div class="k-v" id="kSpan">—</div></div>
+        <div class="kpi"><div class="k-l">排产 Lot</div><div class="k-v" id="kLots">—</div></div>
+        <div class="kpi"><div class="k-l">急货 LOT-A01 上机</div><div class="k-v" id="kUrgent">—</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><div class="t">Scanner Schedule 甘特（按机台）</div>
+          <div class="legend"><span class="li"><i style="background:var(--colorPrimary)"></i>Process</span>
+            <span class="li"><i style="background:var(--colorError)"></i>PRI1 急货</span></div></div>
+        <div class="scrollx"><div id="gantt"><div class="empty">选择运行批次后展示</div></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><div class="t">Lot 明细（含 BARC 放货窗口）</div>
+          <div class="right"><button id="csvBtn" class="btn sm">导出 CSV</button></div></div>
+        <div class="tscroll"><table class="dt" id="tbl">
+          <thead><tr><th>LotId</th><th>Eqp</th><th>Eqp Group</th><th>Reticle</th><th>Priority</th>
+            <th>Temp</th><th>Start</th><th>End</th><th>BARC ER</th><th>BARC LR</th><th>后处理说明</th></tr></thead>
+          <tbody></tbody></table></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tt" class="tt"></div>
+<script type="module" src="/src/pages/litho-schedule/script.js"></script>
+</body>
+</html>

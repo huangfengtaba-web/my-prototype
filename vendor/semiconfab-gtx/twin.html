@@ -14769,6 +14769,7 @@
             }
           }
         });
+        if (GTX_MOVES.length) _gtxApplyMoves(GTX_TIME); // 光罩搬送：OHT 弧长插值
         GTX_STATE_CACHE = { t: GTX_TIME, eqp: eqpState, reticle: retState };
         return GTX_STATE_CACHE;
       }
@@ -15518,6 +15519,88 @@
           v.s = a.from + (a.to - a.from) * k;
           if (k >= 1) delete v._gtxAnim;
         });
+      }
+
+      // ===== GTX: 光罩搬送回放（AMHS 弧长插值，确定性由 GTX_TIME 驱动）=====
+      let GTX_MOVES = []; // {veh, reticle, to, s0, s1, t0, t1}
+      let GTX_AMHS_TAKEOVER = false;
+
+      function _gtxPlaceVehicle(v) {
+        // 与原生 updateAmhsSimulation 同款位姿公式（接管后由 gtx 负责摆放）
+        const u = v.s / v.loopLength;
+        v.curve.getPointAt(u, _amhsTempPos);
+        v.curve.getTangentAt(u, _amhsTempTangent);
+        v.group.position.copy(_amhsTempPos);
+        v.group.position.y = 0;
+        v.group.quaternion.setFromUnitVectors(_amhsVecUnitX, _amhsTempTangent);
+      }
+
+      function _gtxPrepareMoves(timeline) {
+        // 光刻站点：两条环线各一个（bay === "lithography"）
+        const lithoStations = [];
+        [AMHS_STATIONS_LOOP1, AMHS_STATIONS_LOOP2].forEach((stations, i) => {
+          const st = stations.find((s) => s.bay === "lithography");
+          if (st) lithoStations.push({ loopId: st.loopId ?? i + 1, s: st.s, id: st.id });
+        });
+        GTX_MOVES = (timeline.events || [])
+          .filter((e) => e.type === "reticle_move")
+          .map((e, i) => {
+            const st = lithoStations[i % Math.max(lithoStations.length, 1)] ||
+              lithoStations[0];
+            if (!st) return null;
+            const pool = ohtVehicles.filter((v) => v.loopId === st.loopId);
+            const veh = pool[i % Math.max(pool.length, 1)] || pool[0];
+            if (!veh) return null;
+            // Stocker 站 = 同环线上离光刻站弧长距离最大的站点（视觉对侧）
+            const stations =
+              st.loopId === 1 ? AMHS_STATIONS_LOOP1 : AMHS_STATIONS_LOOP2;
+            const loopLen = veh.loopLength;
+            let stocker = stations[0];
+            let best = -1;
+            for (const s of stations) {
+              const dRaw = Math.abs(s.s - st.s);
+              const d = Math.min(dRaw, loopLen - dRaw);
+              if (d > best) {
+                best = d;
+                stocker = s;
+              }
+            }
+            return {
+              veh,
+              reticle: e.target,
+              to: e.to,
+              s0: stocker.s,
+              s1: st.s,
+              t0: e.t,
+              t1: e.t + 240, // 出发(s-300)→装载(s-60)，行程 240s，与时间轴契约一致
+            };
+          })
+          .filter(Boolean);
+        console.log("[gtxTwin] reticle moves bound:", GTX_MOVES.length);
+        return GTX_MOVES;
+      }
+
+      function _gtxApplyMoves(nowSec) {
+        for (const m of GTX_MOVES) {
+          const v = m.veh;
+          if (nowSec <= m.t0) {
+            v.s = m.s0;
+            v.state = "IDLE";
+          } else if (nowSec < m.t1) {
+            v.s = m.s0 + (m.s1 - m.s0) * ((nowSec - m.t0) / (m.t1 - m.t0));
+            v.state = "TO_PICKUP";
+          } else {
+            v.s = m.s1;
+            v.state = "LOADING";
+          }
+          if (typeof setVehicleLedColor === "function" && v.lightBar) {
+            setVehicleLedColor(
+              v,
+              v.state === "TO_PICKUP" ? 0x38bdf8 : 0x10b981
+            );
+          }
+          _gtxPlaceVehicle(v);
+        }
       }
 
       function setVehicleLedColor(veh, hex) {
@@ -18846,6 +18929,7 @@
       // 需求驱动 AMHS 闭环交通仿真逻辑 (AMHS Closed-Loop Simulation)
       function updateAmhsSimulation(dt) {
         if (!ohtVehicles || ohtVehicles.length === 0) return;
+        if (GTX_AMHS_TAKEOVER) return; // GTX: 排程回放接管 AMHS，停用原生任务发生器
         const clampedDt = Math.min(0.1, Math.max(0.001, dt));
         amhsSimTime += clampedDt;
 
@@ -22703,6 +22787,9 @@
             }
             timeline.events.sort((a, b) => a.t - b.t);
             GTX_TIMELINE = timeline;
+            GTX_AMHS_TAKEOVER = true; // 排程回放接管 AMHS（原生任务发生器停用）
+            _gtxPrepareMoves(timeline);
+            ohtVehicles.forEach(_gtxPlaceVehicle);
             gtxSeekTo(0);
             console.log(
               "[gtxTwin] schedule loaded:",

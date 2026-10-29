@@ -37,7 +37,9 @@
       <div class="twin-main">
         <iframe id="twinFrame" src="/twin?catalog=gtx-catalog.json" title="3D Digital Twin" allow="fullscreen" sandbox="allow-scripts allow-same-origin allow-downloads allow-popups"></iframe>
         <div class="lot-panel">
-          <h3>Lot 状态面板 <span class="q" data-cm="当前回放时刻正在机台上加工的 Lot（由时间轴事件流推导，200ms 刷新）。">?</span></h3>
+          <h3>光罩搬送面板 <span class="q" data-cm="OHT 小车按时间轴搬运光罩（Stocker → 目标机台），与 3D 场景中小车位置联动；蓝色=搬送中，绿色=到位。对应时间轴 reticle_move / reticle_state 事件。">?</span></h3>
+          <div id="moveList"><div class="empty">加载排程后展示</div></div>
+          <h3 style="margin-top:14px">Lot 状态面板 <span class="q" data-cm="当前回放时刻正在机台上加工的 Lot（由时间轴事件流推导，200ms 刷新）。">?</span></h3>
           <div id="lotList"><div class="empty">加载排程后展示</div></div>
         </div>
       </div>

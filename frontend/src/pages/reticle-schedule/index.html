@@ -1,0 +1,67 @@
+<!doctype html>
+<!-- GTX FSO Litho · Reticle 排程结果页 reticle-schedule · v1 · 2026-10-30
+     真数据：从六步 MILP 结果推导每枚光罩的 Stocker→Transport→装载/检测→Process 五态时间轴。
+     五态配色遵循 docs/_DESIGN_SPEC.md §3（与原型 result_reticle.html 一致）。
+     搬送语义与 /api/twin/timeline 契约相同：出发 start-300min、装载 start-60min。 -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GTX FSO Litho · Reticle 排程结果（真数据）</title>
+<link rel="stylesheet" href="/src/pages/_shared/shell.css">
+<style>
+.batchbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.batchbar .run-meta{font-size:12px;color:var(--colorTextSecondary)}
+.legend .li i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sider" id="sider"></aside>
+  <div class="main">
+    <header class="header">
+      <div class="crumb">Scheduling Result / <b>Reticle 排程（真数据）</b></div>
+      <div class="right"><span id="clock" class="clock"></span>
+        <button id="cmBtn" class="btn sm">💬 评论模式</button></div>
+    </header>
+    <div class="content">
+      <div class="card">
+        <div class="card-h">
+          <div><div class="t">Reticle Schedule · 光罩五态时间轴（按光罩）</div>
+            <div class="sub">由六步 MILP 排程结果推导：Stocker 储位 → Transport 搬送（AMHS）→ 装载/检测 → Process 加工；
+              语义与 3D 孪生回放（/api/twin/timeline）完全一致</div></div>
+          <span class="q" data-cm="五态色板出自设计规范：Process #2D6CDF / Inspection #F5921B / StarLight #8B5CF6 / Stocker #9CA3AF / Transport #10B981。外部 IRIS 光罩（RT-0101）的就绪链路 = IRIS 20min + 搬送 10min + 装载 5min。">?</span>
+        </div>
+        <div class="batchbar">
+          <label class="lab">运行批次</label>
+          <select id="runSel" class="inp narrow"><option value="">加载中…</option></select>
+          <a class="btn sm" href="/twin-control">在 3D 孪生中回放搬送 →</a>
+          <span id="runMeta" class="run-meta"></span>
+        </div>
+        <div class="legend" style="margin-top:10px">
+          <span class="li"><i style="background:#9CA3AF"></i>Stocker</span>
+          <span class="li"><i style="background:#10B981"></i>Transport（搬送）</span>
+          <span class="li"><i style="background:#F5921B"></i>Inspection/装载</span>
+          <span class="li"><i style="background:#2D6CDF"></i>Process</span>
+          <span class="li"><i style="background:#8B5CF6"></i>StarLight</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><div class="t">Reticle 五态甘特（按光罩）</div></div>
+        <div class="scrollx"><div id="gantt"><div class="empty">选择运行批次后展示</div></div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><div class="t">Reticle 明细（六步 step6 光罩五态推演结果）</div></div>
+        <div class="tscroll"><table class="dt" id="tbl">
+          <thead><tr><th>ReticleId</th><th>当前状态</th><th>就绪时间</th><th>关联 Lot（加工区间）</th><th>备注</th></tr></thead>
+          <tbody></tbody></table></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tt" class="tt"></div>
+<script type="module" src="/src/pages/reticle-schedule/script.js"></script>
+</body>
+</html>

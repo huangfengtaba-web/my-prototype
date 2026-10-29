@@ -66,7 +66,25 @@ function startLoop() {
     if (!state.dragging) $('#seek').value = st.timeSec
     $('#tlabel').textContent = `${fmt(st.timeSec)} / ${fmt(state.duration)}`
     renderLots(st.timeSec)
+    renderMoves(st.timeSec)
   }, 200)
+}
+
+// 光罩搬送面板：now 落在某次搬送行程 [t0,t1) 内 → 搬送中（蓝）；已完成 → 到位（绿）
+function renderMoves(now) {
+  if (!state.timeline) return
+  const moves = state.timeline.events.filter((e) => e.type === 'reticle_move')
+  if (!moves.length) return
+  const rows = moves.map((m) => {
+    const t1 = m.t + 240 // 与孪生侧行程时长一致：出发(s-300)→装载(s-60)
+    let cls = 'default', label = '待出发'
+    if (now >= t1) { cls = 'success'; label = '已到位' }
+    else if (now >= m.t) { cls = 'processing'; label = '搬送中' }
+    return `<div class="lot-row">
+      <b>${m.target}</b> <span class="tag ${cls}">${label}</span><br>
+      <span class="muted">${m.vehicle} · ${m.from} → ${m.to} · 供 ${m.lot || '-'} · ${fmt(m.t)}~${fmt(t1)}</span></div>`
+  })
+  $('#moveList').innerHTML = rows.join('')
 }
 
 // 当前时刻在机加工的 Lot：Busy 事件区间 [s,e) 覆盖 now

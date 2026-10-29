@@ -48,7 +48,9 @@ function gtxDevUrls() {
           '/ai-workflow': '/src/pages/ai-workflow/index.html',
           '/scheduling-test': '/src/pages/scheduling-test/index.html',
           '/reports': '/src/pages/reports/index.html',
-          '/twin-control': '/src/pages/twin-control/index.html'
+          '/twin-control': '/src/pages/twin-control/index.html',
+          '/litho-schedule': '/src/pages/litho-schedule/index.html',
+          '/reticle-schedule': '/src/pages/reticle-schedule/index.html'
         }
         if (cleanMap[url]) req.url = cleanMap[url]
         next()
@@ -84,7 +86,9 @@ export default defineConfig({
         workflowPage:  r('src/pages/ai-workflow/index.html'),
         agentPage:     r('src/pages/ai-agent/index.html'),
         twinControl:   r('src/pages/twin-control/index.html'),
-        reportsPage:   r('src/pages/reports/index.html')
+        reportsPage:   r('src/pages/reports/index.html'),
+        lithoSched:    r('src/pages/litho-schedule/index.html'),
+        reticleSched:  r('src/pages/reticle-schedule/index.html')
       }
     }
   }

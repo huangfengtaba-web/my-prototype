@@ -106,3 +106,20 @@ def run_solve(case=None):
 
 def get_result(run_id):
     return RUNS.get(run_id)
+
+
+def list_runs(limit=20):
+    """最近求解批次摘要（新结果页的运行批次选择器用，最新在前）。"""
+    out = []
+    for r in sorted(RUNS.values(), key=lambda x: x.get("started_at", ""), reverse=True)[:limit]:
+        s = r.get("summary") or {}
+        out.append({
+            "run_id": r["run_id"],
+            "case": r.get("case"),
+            "status": r.get("status"),
+            "started_at": r.get("started_at"),
+            "milp": s.get("milp_status"),
+            "batch": (s.get("run") or {}).get("batch"),
+            "lots": len(s.get("schedule") or []),
+        })
+    return out

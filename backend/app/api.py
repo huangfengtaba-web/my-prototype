@@ -84,6 +84,12 @@ def solve_result(run_id: str):
     return record
 
 
+@app.get("/api/solve/list")
+def solve_list(limit: int = 20):
+    """最近求解批次摘要（运行批次选择器）。"""
+    return {"runs": solver_runner.list_runs(limit)}
+
+
 # ---------------------------------------------------------------- 仿真
 @app.post("/api/sim/run")
 def sim_run(req: SimRequest):
