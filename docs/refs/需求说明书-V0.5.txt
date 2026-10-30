@@ -1,0 +1,732 @@
+GTX FSO项目
+Litho Scheduling需求说明书
+版本<0.5>
+上海朋熙半导体股份有限公司
+2026年8月
+版本历史
+签字确认
+1简介
+文档内容为GTX Litho Scheduling项目相关功能和方案的说明。
+需求综述
+随着先进制程持续演进，Immersion光刻机已成为12寸晶圆厂Litho区域最关键、也是成本最高的瓶颈资源之一。Immersion机台单台投资高、Recipe切换复杂、对 Reticle、温层、QTime 等约束极为敏感，传统人工排程已无法满足高混合、高密度生产的精细化要求。同时，FAB 智能化与 APS（Advanced Planning and Scheduling）系统的普及，使得基于模型驱动的动态排程成为行业主流方向。
+需求痛点
+BARC与 Immersion之间缺乏协同：放货未充分参考下游 Reticle 计划与机台负载情况，易出现BARC加工后堆积或Immersion等料的情况。如果BARC放货协同不足，可能产生over short Qtime及Reticle频繁搬运的状况；
+QTime风险管控被动：主要靠人工盯单与事后补救，缺少对BARC的控货策略，无法系统性规避 Over QTime；
+Reticle调度粗放：未充分考虑Reticle可用窗口、IRIS间隔、Star Light 维护等动态约束，存在Hold后Failed、紧急Reticle难以及时Load等问题；
+机台负载不均与产能浪费：缺少Loading Balance，机台忙闲不均的情况较为普遍；
+Stacking Bond平衡缺失：绑定首站未根据下游Immersion的Remaining Layer Stacking WIP 的生产周期进行均衡派工，导致部分机台绑定量过载。
+解决方案目标
+通过引入Litho Scheduling排程系统，从而动态地管控产线上对于Litho区域派工的逻辑，从而综合考虑多类复杂场景如：BARC-Immersion协同、QTime风险管控、Reticle Train Size优化调度、机台负载平衡、Stacking Bond产能分配等。规则管控条件下派工只能对条件进行排序，无法组合考虑不同的条件优先级，而Scheduling运筹规划算法可以同时考虑多种条件，从中找出最优解；
+不同于RTD只能基于到站Lot进行排序，Litho Scheduling可以纳入Coming WIP结合到站Lot综合考虑，能够同时考虑上下游的拉货需求、未来长周期的Layer产能规划等，在时间维度更长的派工决策中选择最优解。
+名词术语
+Litho Scheduling相关的RFP清单
+扩大排程范围需要考虑的内容项
+排程扩充机台范围：ArF、KrF、I-Line，需要给出机台数量；
+扩充后Flow中站点数量占比与Lot数量增长情况；
+基于典型5002A、5001A、3006A等几个上量产品的Flow与WIP判断，产品中Immersion Layer占比大约70%，KrF Layer占比约26%，I-Line Layer占比4%。
+Group Loading计算方式如下：单线Flow Layer Count * Flow WIP总量，累加后统计整体的Group Loading比重为：
+Immersion : KrF : I-Line = 3641K : 1524K : 168K。
+ArF、KrF、I-Line是否支持在机台内做IRIS？时间是否有变动？
+A：IRIS按照产线要求尽量在外面做。考虑用户Key值还是系统自行计算。
+APC信息对于扩充机型是否有变化？
+A：和Immersion一样。
+机台的信息获取是否有变化，RunPath内容是否有区别？
+A：基本不变，Immersion比KrF和I-Line多一点APC的相关内容。
+StackingBond、Doma等前置需求是否有变化？
+A：只有Immersion有。
+Litho Scheduling总体规划配置
+排程管控站点定义
+Litho Scheduling直接控制的站点是Immersion站点，基于Immersion当站、上游12~24小时内会到站的Coming Lot进行排程。其中，Immersion上游BARC站点用于联动上下游，会提供上游放货时间区间，不作为直接控制站点。
+排程管控时间区间
+Immersion排程时间是未来12~24小时，因此排程只考虑Immersion当站及12~24小时内会到Immersion站点的Coming Lot。
+排程WIP类别配置
+WIP基础状态分类
+系统获取机台及Lot数据后，将Lot的状态转换为报表和计算所需的四种状态：Running（正在加工）、Reserved（已被机台预约）、Queue（队列等待）、Hold（异常扣留）。
+Production Lots范围
+MES Product Flow包含范围
+系统管控的Production Lot所在的MES Product Flow，即Litho Scheduling需要关注的Product范围。
+Production Lot包含范围
+Lot Type：PI、PB、PC、PE、PR、EF、ES、TF、BK、PA；
+Monitor：Monitor Lot视为Production Lot处理，排程会考虑Monitor失效OverDue的约束（MRCS）。
+Monitor项目确认：
+需要考虑哪些类型的Monitor：MON_P、MON_DOWN、Daily_MON？
+A：都要考虑。
+Monitor是时间间隔发生/Shift班别发生/随货发生？
+A：计时，By不同的胶种类和厚度来分配做Monitor。
+异常情况处理：有Monitor Plan，但无Monitor Lot，包含哪些场景？未到Monitor时间？还是Monitor片未备前值？在这种情况下，算法是设计假Lot占位，还是不需要管？
+A：没有控片/缺片，统一理解成没有备好。不需要做假Monitor Lot占位置。
+Lot Fab Priority
+等级包含：1、2、3、4、5、6、7、8、9；
+Lot Internal Priority默认全部，作用于全部的Fab Priority。
+排程Fix Lot逻辑
+Fix Lot业务逻辑
+Fix Lot逻辑必要性：
+固定Lot排序，防止排程结果频繁变更导致报表结果变更，无法有效监控指标，增大产线不稳定性；
+防止已Reserve的Lot状态出现波动。如果排程时Lot1-EQP1对应，在计算过程中若Lot1已Reserve到EQP1，则此时Lot不应该更换派工机台，以免出现账料不一致的情况；
+已有的Queue Lot插队到派工排序序列中首个Lot的情况。
+Fix Lot打破的场景：
+突然出现的Lot（HoldRelease，Bullet，Skip）；
+Lot的到站时间出现了大幅波动：升等、Run Card等；
+Lot的RunPath通路断线：机台Constraint，APC、RMS等系统派工拒止；
+人为干预场景：Manual Reserve、Lot Hold、Queue等。
+Fix Lot冻结方案：
+数据同步与计算处理有多少延迟就至少冻结多少时间（参考值：5Min）；
+用户可配置更长的Fix时间/更多的Lot个数，如30 Min / 5 Lot。
+Fix Lot实现方式
+Fix Lot在算法中的实现方式如下：
+识别在EQP由排序需求的Lot List，如[Lot1, Lot2, Lot3]。
+如果需要固定某些Lot的排序，则对于Lot List内部两两Lot构成的Pair，建立优先级约束，实现Fix冻结：
+...
+考虑到Lot List中的Lot可能在两次运算间隔时间内发生到站时间波动，导致Lot到达排程EQP的时间往后推延，因此约束只针对以下情况成立：
+否则，若，仍约束，会导致Lot2与Lot3的排程时间往后推延，EQP在Lot1开始加工之前IDLE。
+排程Lot与机台管理
+Lot优先级设计
+进行Lot优先级分档，分档后逐步分批次将待派工Lot加入算法模型排程。
+场景：Key Stage、Key Lot、同温层、Urgent QTime Lot等不同的属性（详细条件需要参考具体排程优先级配置表），均转换为排程优先级。
+Lot相关属性
+Lot所属产品、所在站点，加工状态；
+Lot Arrive Time计算：计算Lot到达目标站点的时间。
+上游站点到Immersion站点的总Cycle Time：Immersion上游每一站的Cycle Time之和；
+Lot在上游站点时，计算Lot到达Immersion站点的时间考虑两种类型：
+Lot Remain Qtime计算：如果Lot带有QTime信息，需要计算Lot Remain Qtime。
+Run Path相关信息
+根据Lot、Eqp等计算每个Lot的RunPath，Lot-Eqp-Recipe关系；
+场景：Normal Lot RunPath，普通Lot上机通路；
+场景：Pirun Lot RunPath，指定机台和上机时间段；
+场景：Doma机台，特殊RunPath；
+场景：APC检查维度，转化为RunPath；
+场景：Stacking Bond逻辑，垂直限定转换为RunPath。
+机台基本信息
+可用机台信息、用户配置机台信息等。
+机台没有配置NTB（Near Tool Buffer），只有OHB（Storage+Buffer）。
+Buffer上货后，会有额外的Rule决定Buffer储位Lot上机顺序，因此会发生变动，影响到排程的结果指标计算，排程视为FIFO逻辑进行处理。
+1，2，3，4，5 [First, Second,Third]
+ReserveLotList：lot1,lot2,lot3
+ReserveLot打分，Scheduling考虑打分顺序决定插队逻辑，是否考虑Scheduling代替RTD进行打分提供排序逻辑？
+内部需要讨论需不需要给出打分排序。
+Doma机台关联处理
+晶圆工序中的特定工段需要使用Doma（Dose Mapper）系统配置进行卡控，实现上游Immersion EQP捆绑下游Etch Chamber进行派工，对于绑定Doma的Etch机台及Chamber，其上游的Immersion站点放货必须考虑下游的Loading，否则会导致下游Doma Etch Chamber堆货/缺货。
+Doma工段Immersion机台派工时，会选定一条Doma Recipe对下游的Doma Etch Chamber进行绑定，当Lot到Etch当站时，Doma逻辑会卡控该Lot只能派工该Chamber。且Doma条件派工要求必须校验Immersion和Etch Chamber的两端机台可用性，当端点机台可用且中间RunPath未断线时才可派工。
+需要考虑的Doma卡控因素包含如下：
+排程优先级管理
+需要纳入排程优先级考虑的各类Lot、EQP、Reticle属性：
+排程系统将上述各类Lot、EQP、Reticle、上下游需求等属性转换为排程优先级属性，从而统一化管理整体排货需求，并平衡各项指标。
+Lot Priority 分类
+对每个lot每个打分项进行priority打分，lot的priority由打分项最高的priority确定。
+APC Pilot 打分：
+Apc pilot的打分依赖于 APC Group中其他lot的情况（e.x. 如果 pilot比apc group中其他lot更晚到达pi的机台，则其他apc lot 由于apc卡控无法run 货）
+对给定Apc Group
+兄弟lot所在优先级
+兄弟Lot Remaining Qt
+对于Pilot, 其分数为
+* 100
+其中 = 1
+排程配置属性
+用户配置属性：
+QTMS水位管理联动逻辑
+Litho Scheduling与QTMS结合的方案中，将每一个过BARC站点与Immersion站点的Loop的水位接入到Immersion的排程系统中，Immersion排程基于当站Lot及Coming Lot进行排程。
+Litho Scheduling在排程后会校验QTMS计算的放货水位，对于每个Loop的放货量进行校准，如果在排程后，有Lot超出了QTMS规划的水位，则在排程Gantt图中进行标记显示。
+Scheduling系统校验以下超QTMS水位的Lot属性：
+对于排程后超出QTMS水位标准的Lot，排程系统会在报表系统中标记展示出来，做出卡控处理。
+BARC-Immersion联动方案
+关联RFP
+需求描述
+需求痛点
+BARC需要管控产生的Short QTime。如果BARC提前放货，会导致Immersion站点Over QTime，因此BARC站点需要在合适的时间区间进行放货；
+人工控制/规则控制派工无法有效知悉下游瓶颈Immersion机台的Reticle派工计划，仅依据BARC当站的排序无法联动上下游，导致错过最佳BARC下货时机，因此需要基于下游Immersion的Reticle行程，调整BARC的派工顺序；
+在手动管控/规则管控条件下，无法有效解决下游Immersion机台的Layer Hungry问题，放货不平衡导致下游Immersion机台极端缺货，出现产能损失，影响Cycle Time。
+解决方案目标
+Immersion的排程结果需要提供给BARC机台派工，基于QTime与产能的控制逻辑，限制住BARC机台的Lot的上下货时间区间范围，以控制上游的BARC机台排货；
+同时，在Lot排程范围内，如果确定已无通路、无产能或存在其他因素限制等条件导致下游不可用，排程模块应该过标记此类Lot，且控制BARC派工任务跳过此类Lot。
+需求规格
+上游管控输出信息
+Immersion排程之后，需要输出给BARC机台以下控制信息以调整上游WIP：
+所处在Immersion站点的排程Coming Lot List，BARC站点只考虑在Immersion排程范围内的Lot，若BARC站点Lot在Immersion排程范围外（包括：Immersion排程内不可上机的Lot、排程时限范围内未考虑的Lot），则不考虑在BARC放货；
+Immersion当站机台的Hungry程度，包括不同维度：Layer、Product、Plan、Stage等，指导上游BARC放货；
+Immersion排程结果中，对于上游BARC Coming Lot的QTime需要限制放货区间：[BARC_Release_StartTime, BARC_Release_EndTime]，从而实现对BARC和Immersion上下游的QTime管理联控；
+Immersion排程Lot需要考虑是否超过QTMS的管控水位，如果超过了QTMS的管控水位，则排程Lot需要做卡控处理。
+Immersion排程后，对在BARC站点的Coming Lot，如果在Immersion站点有同Reticle上机要求，则在BARC站点预组Batch进行管控放货（小众Product为单通路的情况下不需要对BARC放货组批）。
+区间计算逻辑
+Litho Scheduling对Immersion排程后，对于BARC站点的Lot的上货时间区间管控逻辑见下图：
+其中，BARC_Release_StartTime计算如下：
+其中，表示Scheduling为Coming Lot规划的上机时间，表示在Immersion前道BARC站点的Process Time，表示在BARC站点开始的QTime。最小临界时间满足：如果BARC提前放货，会在Immersion站点消耗完BARC站点产生的QTime。
+BARC_Release_EndTime计算如下：
+其中，表示Coming Lot不能晚于该时间点派工，否则不满足Scheduling对于Immersion的排货需求。由于排程中包含不Over QTime的约束，因此BARC站点带有QTime的情况下，EndTime不会晚于BARC OverQTime，因此已包含上述情况，仅使用作为最晚放货时间点限制。
+举例：
+StartTime
+BARC站点Start QTime 6Hrs，如果BARC站点的PT为0.5Hrs，Immersion当站排程为该Lot规划的上机时间为10Hrs后，则：
+即，如果BARC早于该时间点放货，则会导致在Immersion站点OverQTime。
+EndTime
+BARC站点Start QTime 6Hrs，无Remain QTime，如果BARC站点的PT为0.5Hrs，Immersion当站排程为该Lot规划的上机时间为4Hrs后，则：
+即，如果BARC晚于该时间点放货，则会导致在Immersion站点延误上机。
+Immersion站点排货本身会考虑QTime约束，因此排程规划时间不会在Immersion当站OverQTime。
+Reticle排程算法
+关联RFP
+需求描述
+需求痛点
+产线手动/规则派工条件下需要同时关注下游缺货、当站Reticle规划、上游拉货、上下游QTime管控等多种场景，且WIP排程需要额外考虑垂直限定的影响，在Reticle只有单版的情况下，会出现机台抢Reticle的情况，导致派工目标多样导致难以平衡。
+到站Lot的Reticle绑定关系复杂，产线派工依赖于多个系统的校验结果，包括Constraint、APC、Stacking、Doma等逻辑，不同的卡控逻辑提高了派工业务的复杂度。
+解决方案目标
+算法整体基于Lot-Reticle预组批算法将WIP分配至机台，考虑不同机台的Loading平衡与Reticle Train Size需求，实现光罩少切换与机台负载平衡；
+Reticle推演会精准校验Reticle在IRIS、StarLight等状态的累积信息，预判在未来进行特殊动作的时间点，为Reticle的特殊动作提供计划时间点，从而精准模拟出Immersion的排产结果；
+Lot-Reticle的绑定关系卡控条件复杂多样，Scheduling系统会将当站及Coming Lot的Reticle综合绑定逻辑一起校验，从而明确Lot与Reticle上机通路。
+需求规格
+Reticle信息处理
+IRIS/STAR-Light信息获取
+数据前处理模块需要计算IRIS（Integrated Reticle Inspection System）、StarLight的处理逻辑，提供尽可能准确的Reticle处理需求，需要支持至少以下类型：
+By片数累计导致的IRIS；
+By时间累计导致的IRIS；
+By EQP-Reticle切换导致的IRIS；
+By时间累计导致的StarLight；
+By片数累计导致的StarLight。
+如果机台有IRIS Scan的能力，就在本机做IRIS；如果机台没有IRIS Scan的能力，则到其他机台做IRIS。
+Reticle预组批算法
+Reticle预组批算法：
+约束：Reticle匹配约束，Reticle指派唯一约束，机台负载上限约束
+目标：Reticle 被使用的EQP数最少，机台的load尽可能均衡
+预组批算法设计
+预组批算法输入：
+Lot所属Step信息；
+EQP状态信息；
+Reticle信息。
+预组批算法变量：
+Lot Step分配归属哪个机台；
+Reticle被哪个机台使用；
+所有机台的MaxLoad（机台分配Lot负载最大值）;
+所有机台的MinLoad（机台分配Lot负载最小值）。
+预组批算法约束：
+每个Lot的Step只能分配一个EQP；
+Step分配给EQP，则对应的Reticle分配给该EQP；
+Load表示为该EQP上待加工的Wafer数量；
+MaxLoad为所有EQP的Load最大值，MinLoad为最小值。
+预组批算法目标：
+Reticle被使用的机台数量最少；
+EQP Load Balance。
+优先级高的Lot优先选机台
+Reticle位置与状态推演
+排程Reticle储位管理
+细排程算法考虑当站WIP与Coming WIP，以及RunPath信息的规划，判定这些Lot最终对应的机台，通过校验这些Lot是否紧急，并计算Lot是否需要预留Reticle储位，在何时预留Reticle储位。
+储位预留考虑如下条件：
+用户配置的Reticle水位上限；
+机台Reticle最大储位数量；
+当前Reticle储位占用数量；
+普通Lot排程需要占用的Reticle储位数量；
+紧急Lot排程需要占用的Reticle储位数量和装载时间。
+排程算法会尽可能错开每一个紧急Lot占用Reticle储位的时间，避免多个紧急Lot扎堆占用Reticle储位，同时提高Key Lots的Reticle Train Size从而最大化Reticle储位的利用效率。
+Reticle状态推演
+根据Litho区域Reticle限制，进一步细化补充Lot排程结果间的Reticle指令和动作，并据此调整Lot排程结果。
+通过仿真推演生成光罩管理计划，并补充IRIS、StarLight等动作逻辑。
+需求痛点
+Reticle在生产过程中会出现多种动作：搬运、InUse、StarLight、IRIS等，后处理位置推演需要合理规划并预测准确位置用于指导生产计划；
+Reticle的状态异常或规划计算不准确会导致误判，如计片不准确导致判断额外IRIS/StarLight动作，导致浪费Reticle使用效率，降低Reticle Train Size。
+解决方案目标
+系统基于排程算法的结果，对于Reticle在不同排货时段的占用情况进行模拟，从而计算出每个Reticle在未来的产能占用情况；
+系统会精准校验Reticle在IRIS、StarLight等状态的累积信息，预判在未来进行特殊动作的时间点，为Reticle的特殊动作提供计划时间点，从而精准模拟出Immersion的排产结果；
+Reticle管理输出会与SDR系统联动，当排程规划需要提前搬入搬出Reticle时，会在指定的时间点触发任务事件搬送Reticle。
+Reticle推演输入输出
+推演输入信息
+预处理信息：Lot、EQP、Reticle基本信息
+算法输出结果：包括 Lot在EQP上的执行信息，以及加工顺序
+后处理信息：Reticle切换信息，Reticle计片/计时信息
+推演逻辑
+通过事件管理器，进行推演模拟；
+初始事件根据Lot的排程结果生成；
+在不修改Lot排程顺序的情况下，推演预测Reticle的IRIS、StarLight的计片/计时信息，并补充Reticle特殊动作指令；
+根据各指令的耗时情况，以及机台/Reticle的不可用时间段，调整Lot排程的执行时间，优化排程结果。
+推演输出
+推演结束后，将经过调整的Lot信息以及补充的Reticle相关动作指令生成输出报表展示。
+排程输出结果会与SDR系统联动，输出信息包含Reticle的搬入与搬出，动作指令的执行信息等。
+联动SDR系统Reticle管理
+Litho Scheduling排程系统在管理Reticle时，需要考虑Stocker的位置分布与储位量，基于Immersion机台用户配置的Reticle存储水位管理上限，使得排程Lot对应的Reticle始终有空余Reticle可用，且精确移出不在排程范围内的Reticle，实现高效的Reticle储位管理。
+Reticle归属划分
+Reticle管理基于其归属进行划分管理范围，即Immersion站点排程系统管理所属Reticle，其余机组Reticle由对应的派工系统管理（RTD）。
+对于Flow中指定的站点Reticle，如Immersion站点绑定的Recipe对应Reticle可以明确其归属，但是需要考虑特殊情况，如Monitor、试验线、RunCard等可能会导致Reticle交叉使用导致管理区域模糊，对于此类场景，需要进行特殊处理。
+在Immersion排程任务中，其指令优先级高于KrF、I-Line等机台，使用Reticle的顺序提前，直至Reticle不在Immersion排程范围内，从而移出管控区间。
+Reticle动作路径
+Reticle动作路径：
+排程系统会管控Immersion用到的所有Reticle，包含机台内部Load In Reticle以及外部Reticle，记录数据并主动触发导入、导出动作。
+Reticle联动搬送
+对于Reticle在排程过程中的各类原因搬送（Load In/Out、IRIS、StarLight、Purge等），需要排程系统在特定时间提供搬送指令给SDR系统控制Reticle移动。
+为实现精准管控Reticle，需要预估搬送时间并提前下达Reticle搬送指令，分为以下两种方案：
+方案一（部分机台Pirun阶段/Reticle交叉阶段）：
+Scheduling排程提供Reticle搬送时间区间：
+[Reticle搬送最早开始时间T1，Reticle搬送到达最晚时间T2]
+排程系统提供时间区间与搬送Reticle List（预搬送指令表），由SDR系统获取后规划具体的搬送时间点，在合适的时间范围内平衡Reticle Trans任务的密集度与搬送时效。
+方案二（全量Scanner上线接管阶段）：
+Scheduling排程后处理模块自主规划发送搬送指令的时间点，需要排程系统预估搬送时间与Reticle特殊动作时间，在即将派工的时间段内触发搬送（如提前1~3小时，可选配置，且小于吹N2 Purge的周期时间），SDR系统收到搬送指令时即刻开始搬送，从而管控Reticle周转运作。
+Reticle管理动作场景
+Litho Scheduling管理Reticle考虑的动作场景如下：
+对于Reticle主动搬出的场景，考虑如下类型：
+当Reticle储位接近上限时，或当站有大量的紧急Lot需要占用Reticle储位时，不常用Reticle或短期没有WIP的Reticle需要被移出Immersion机台，用于提供空储位。
+主动搬入/搬出Reticle场景示例：
+Litho Scheduling系统输出给SDR系统进行Reticle管理需要的数据项：
+Lot细排程算法
+约束：QTime，Lot加工唯一性，Reticle储位预留、APC Info、Reticle匹配等；
+目标：完工时间最短，Lot优先级违反最低，Recipe切换时间最短，Reticle Train Size最大化、Chuck Sequence Follow等。
+关联RFP
+需求描述
+需求痛点
+不同的特殊Lot条件会提高优先级，但是人工计算/规则计算难以规划Immersion机台内部的Reticle储位，可能会导致Reticle储位占满，导致紧急Lot无法第一时间上机；
+派工时必须考虑温层关系的切换导致的机台IDLE与产能损失，必须优先同温层Lot派工规避产能浪费；
+Chuck信息是影响派工的细粒度复杂因素，人工难以考虑周全，因此需要系统对Chuck数据纳入考虑，从而提高机台Unit的利用率；
+当站Lot派工无法校验未来的APC系统卡控，也无法准确预计PirunLot的到站时间，导致降低了派工效率。
+Doma的Immersion-Etch Chamber绑定逻辑导致Etch的Chamber产能影响着Immersion的派工，不合理的Immersion派工会导致下游Etch堆货或者Etch Chamber Hungry。
+解决方案目标
+上下游WIP排程：细排程算法会在Lot-Reticle预组批条件下综合考虑多种条件，包括：上下游拉货需求、机台温层转换、Chuck信息关联度等，使得在复杂因素综合作用下，机台产能与效率最大化、上下游排货风险最小化；
+Reticle储位预留：排程算法会规划Immersion机台内部的Reticle储位使用，在Key Lot到站上机前预留Reticle储位，从而为紧急Lot上机提供条件；
+温层控制：算法会Follow Lot上机的同温层要求，将同温层的WIP消耗完再进行温层转换，尽可能降低Reticle与温层的切换次数。温层切换的具体管控逻辑：同Recipe > 同温层 > 升温层 > 降温层；
+Chuck信息校验：排程算法基于Chuck奇偶片逻辑，让前后顺序上机的Lot满足Chuck绑定信息的奇偶片要求，即上一个Lot的最后一片衔接下一个Lot的第一片分别使用不同的Chuck，使得两个Chuck工件台满Run；
+大小片控制：在同Reticle条件下，算法尽可能满足连续M批Lot大于N片的逻辑设定，从而使得机台的IDLE率进一步降低。
+Scheduling系统会校验Coming Lot的APC卡控条件，基于Normal、RunCard、Single等不同的Lot类型对应的检查卡控逻辑获取到未来的APC系统卡控逻辑；同时，算法会额外判断APC系统的OOD属性，基于计片和计时的逻辑校验，提前拉货尽量避免OOD；
+基于MES系统输出的Pirun Lot标识，Scheduling系统会规划Pirun Lot提前上机，从而提高Pirun效率。
+Scheduling排程对Immersion排程派工会考虑下游Etch-Chamber的产能情况，通过Doma关联绑定来确定下游Etch Chamber的堆货/缺货情况，在排程优先级中规划下游拉货顺序，最终在排程派工中实现下游的Loading Balance。
+需求规格
+细排程算法模型
+Base Model
+Index：
+Task:
+EQP:
+Reticle:
+对使用Reticle的Task集合：
+变量：
+Task（Step）分配给哪个机台:
+Task（Step）分配在机台上的时间变量:
+当变量生效：
+EQP不可用时间（包含Reserve Lot占用时间）:
+Reticle Down时间
+Qtime软约束惩罚项：
+常量：
+Task 在机台上的Duration时间
+约束：
+Task(Step)只能分配给一个机台:
+如Task未被分配给这一机台， 为0：
+start_time + duration = end_time (duration可以计算获得)：
+同一机台上Task的时间变量不重合：
+使用同一Reticle的Task时间变量不重合：
+（QTime可设定为软/硬约束，如为软约束，则添加惩罚辅助变量）
+对qt_min 不同Task间大于等于qt_min - qt_buffer：
+对qt_max 不同task间小于等于qt_max + qt_buffer：
+当站Step满足 Remain QTime条件。
+目标：
+MakeSpan:
+QTime Violation:
+Short QTime模型
+base_model (QTime软约束) + qt violation最少。
+出参：对违反qt的lot将其max_qt和min_qt改为违反量。
+Lot细排程
+base_model（QTime硬约束）+ make_span。
+出参:  对每个step分配给哪个机台, start_time, end_time。
+需求规格设计
+QTime管理
+细排程算法将不Over QTime作为算法的硬性约束，Immersion站点排程中的所有Lot都不会在当站Over QTime。
+上下游WIP排程
+上下游WIP统一排程规划体现在Lot的排程优先级中，当站WIP、上游Follow(Coming)、下游Hungry等需求包括：
+当站Lot与Coming Lot的QTime排程优先级；
+下游不同Layer、不同Stage的Hungry优先级。
+Key Lot派工
+Key Lot派工会考虑Key Lot的到站时间，以及当前Immersion的Reticle的储位数量，结合Reticle储位管理逻辑，确保Key Lot上机具备空余Reticle储位，并能够提前Load In Reticle。
+同温层派工
+算法接受预处理提供的温层信息，包括以下类型：
+当前机台温层信息；
+Load Reticle温层信息；
+待排程Lot Recipe对应的Reticle温层信息。
+Chuck利用率满载
+为避免Chuck Idle，进行奇偶片管控，考虑信息如下：
+每一批Lot的首片Chuck绑定信息，一个Lot的尾片对应的Chuck与下一个下一个Lot的首片对应的Chuck应该实现互补。
+大小片控制
+为了防止Immersion机台IDLE，机台需要实现连续上货片数管控：
+连续上货M批Lot，其最小片数和应 > N片（取决于用户配置）
+APC系统卡控逻辑
+Scheduling系统会对Coming Lot校验APC的卡控信息，对于当站Lot，则采用ELR表中的APC校验信息，从而得到所有可派工WIP的APC校验结果。APC系统校验逻辑包含内容：
+Scheduling系统对于OOD的预测逻辑包含以下两种：
+By 片数累计的OOD；
+By时间累计的OOD。
+对于即将OOD的Product、Stage、Layer关联的Lot，Scheduling系统会尽可能在时效范围内加快派工速度，在Immersion当站提前续片/续时来避免OOD；如果已经OOD的Lot，Scheduling系统会阻止派工，从而将OOD的Lot卡控在BARC站点，防止产生QTime Risk。
+Pirun Lot逻辑
+Scheduling系统会基于MES系统输出的Pirun Flag来确定Coming Lot中的Pirun Lot，在派工排序中靠前排序从而加快Pirun Lot的Cycle；或者基于Pirun Lot要求的Pirun时效，规划Pirun Lot的上机时间从而保证Pirun效率。
+Doma控制逻辑
+排程系统综合考虑当站Immersion和下游Etch Chamber的派工可用性，当两端机台均可用且中间RunPath未断线才可派工。系统将下游的Doma Etch Chamber的Loading Balance纳入考虑范围，计算Chamber的各项Loading：Running + Reserved + Doma Bind，将Loading和Cycle条件纳入到排程优先级中参与排程，从而在全局指标中进行平衡派工。
+Stacking Bond产能分配
+关联RFP
+需求描述
+需求痛点
+在先进制程中，Lot需要绑定垂直机限，且工艺流程中Layer较多，如果垂直机限绑定的Lot分布不合理，则会导致相同制程的Layer在多个机台上切换，导致光罩反复搬送降低机台效率，或者不同的产品在Immersion机组堆货影响Cycle Time。
+Wafer下线后首层Photo Layer决定了后续的StackingGroup机台产能规划，但是受制于Layer众多，计算规则复杂，在Lot-EQP多对多的情况下人工/规则计算难以平衡后续每一道Layer的产能规划，导致影响大盘产能。
+解决方案目标
+算法会基于当前层的WIP以及后续站点的Cycle Time计算出当前层的负载，并基于绑定逻辑模拟出未来每一层的负载，平衡未来每层的Loading，并为当前层优选合适的机台进行排程，最终实现产能分配Load Balance。
+需求规格
+数据需求
+Stacking Bond的规划依赖于对应的数据项目进行数据处理与算法开展：
+负载计算规则
+当前负载计算：
+获取当前机台WIP, 根据机台类型以及Recipe估算每个Lot的加工时间。
+未来负载计算：
+目标1：机台未来总负载均衡（全线负载）
+对于WIP，计算其剩余每层对机台的负载如下：
+如已绑定机台，计算方式与当前负载相同。如未绑定机台即free layer，估算负载如下：将Lot的Wafer片数均分到机组中各机台，机台负载为均分后的加工时间，未来总负载为每个WIP的剩余层在机台加工时间相加。
+目标2：机台未来最大负载均衡（峰值负载）
+由于并非所有层都会在同一天加工，因此计算机台负载按天计的最大值。
+估算方案如下：
+对当前WIP，计算其在每层曝光步骤间的Cycle Time；
+由上述估算，确定WIP每层到达时间（按天计）；
+遍历时间轴（以天计)，计算每天每个机台的负载；
+对每个机台，取所有天数的最大负载，作为其未来负载。
+目标3：机台未来每天负载均衡
+其中，为 ,其中 为首层负载，为前述当前WIP在时间t, 机台j的预测负载
+产能规划利用：
+Stacking Bond产能计算系统输出的规划结果，会接入到Litho Scheduling系统中做成软约束，排程系统尽可能不违反约束以实现排程效果与产能分配优化。
+负载分配模型
+模型建立：
+对于每个投放, 获取首层以及剩余层均可用的机台，决策是否在机台加工：。
+对每个Reticle，辅助变量决策是否在此机台加工，其中：
+每个机台的负载 为评价函数的负载加上投放Lot的负载。
+目标为Load Balance + Reticle Train：
+以load balance 目标3为例，目标函数为：
+负载计算示例：
+推演周期：30天
+1. 考虑未来30天每天的预计投片
+2. 基于当前layer，考虑未来30天的产能占用
+3. 假设每个layer CT为两天
+Flow 样例
+Lot样例
+当前负载计算：包含lot0，lot2和lot4的M1部分layers
+E2 负载：
+day 1, day 3, day 9需要加工lot2和lot4，每天负载为50片
+day11 day13 ... day29 只需要加工lot2，负载为25片
+E1 负载：
+day1，day3...day 29需要加工lot0，每天负载为25片
+机台E2未来总负载 为 10 * 25 + 5 * 50 = 500，E1 为 25 * 15 = 375
+目标1未来总负载为500 - 375 = 125片
+机台E2未来最大负载 为 50，E1 为25片
+目标2未来最大负载为 50 -25 = 25片
+每天机台间负载均衡示例：
+Day1最大负载机台为E2 50片，最低为E1 25片，则负载差为 25片。
+Day2 负载差为0... Day 3 负载差为25片，直到day 11 两个机台负载都为25片，负载差为0
+目标3每天机台间负载差值之和为 25 * 5 = 125
+决策优化后的结果
+Lot 1选择绑定 E1，Lot 3选择绑定E3，Lot 5选择绑定E2
+E2 负载：
+day 1, day 3, day 9需要加工lot2和lot4，每天负载为50片
+day11 day13 ... day29 需要加工lot2和lot5负载为50片
+E1 负载：
+day1，day3...day 29需要加工lot0，lot1，每天负载为50片
+优化后：
+目标1未来总负载实现均衡，差值为500 * 15 - 50 * 15 = 0片
+目标2未来最大负载实现均衡为 50 -50 = 0片
+目标3每天机台间负载实现均衡：未来30天两EQP每天的负载差值都为0
+系统输出
+系统基于Stacking Bond Group划分Flow，基于算法给出每一段Stacking Bond Group的计算结果，系统输出包含：
+每台Immersion当前的Loading，系统分配给每台Immersion的WIP量；
+每天的投片的最优机台分配，每个Immersion的Product规划；
+除首层Layer的产能规划以外，算法会给出后续每一个Stacking Bond Group的Lot分配的优选机台；
+系统可以可视化或数据输出的形式给出每个Stacking Bond Group分配到了几个Immersion机台的产能；
+本系统输出长期固定的Layer规划（Stacking Bond结果），结合Scheduling的动态Layer规划（Scheduling结果）一起展示。
+
+### [表格1]
+项目名称 | GTX FSO项目 | GTX FSO项目 | GTX FSO项目
+项目经理 | 李刚 | 文档版本 | 0.5
+阶段 | Requirement | 文档初版日期 | 2026/7/20
+作者 | 崔书红、黄鹏 | 当前版本完成日期 | 2026/8/31
+
+### [表格2]
+版本号 | 版本日期 | 修改者 | 描述
+V0.1 | 2026/07/15 | 崔书红、黄鹏 | 初版
+V0.2 | 2026/08/03 | 黄鹏 | RFP前6条需求
+V0.3 | 2026/08/11 | 黄鹏 | RFP13条需求
+V0.4 | 2026/08/15 | 黄鹏 | FixLot等关键讨论点与排程扩展需求补充
+V0.5 | 2026/08/31 | 黄鹏 | 补充用户配置字段
+ |  |  | 
+
+### [表格3]
+甲方项目经理签字 | 乙方项目经理签字
+
+### [表格4]
+概念/术语、缩写 | 释义
+Immersion | 浸入式光刻机
+Litho Scheduling | Litho区域派工排程
+Fix Lot | 排程系统中固定住的Lot排序以稳定派工
+MakeSpan | 全部Lot加工完成时间消耗
+Reticle | 光刻工艺掩膜光罩
+Reticle Train size | Reticle在切换前平均完成的Wafer加工量
+IRIS | 光刻机内部集成Reticle检查系统
+StarLight | Reticle透射光与反射光扫描系统
+APC | 先进工艺控制系统
+Stacking Bond | 光刻工艺Layer机台绑定
+Chuck | Immersion双工件台，用于夹住Wafer
+Doma | 光刻剂量Mapping系统
+
+### [表格5]
+序号 | RFP | RFP内容 | 交付阶段
+1 | 2.1.1 | BAC 放货需要提前获取下游LITHO的Reticle计划，根据Reticle Assignment结果调整下货顺序 | 阶段一
+2 | 2.1.2 | BAC 需要根据下游LITHO机台不同Layer Hungry程度调整派工优先级 | 阶段一
+3 | 2.1.3 | 当BAC作为LITHO的QTime 安全站点，需要对LITHO控货时，尽量控在BAC | 阶段一
+4 | 2.1.4 | Reticle Assignment基于当前WIP + Follow In + Next Loop Hungry综合排程，保证当站WIP和Follow不出现QTime Risk，同时保证下游Loop需要的WIP稳定供给 | 阶段一
+5 | 2.1.6 | 针对Key Lot、高等级、优先出货的Lot优先调动Reticle，控制机台内部Reticle数量，确保紧急Reticle能够Load | 阶段一
+6 | 2.1.7 | Reticle排程时，前后Reticle需要满足温层关系和STL等检测信息，避免Reticle Hold导致结果Failed和QTime Risk | 阶段一
+7 | 2.1.8 | Reticle需要定期扫Star Light等动作，因此在Reticle排程时，需要实时校验Reticle可用时长和剩余可用片数，当余量不足时，停止下货或控货 | 阶段二
+8 | 2.2.1 | Lot和Reticle的绑定关系，需要参考MES：APC（R2R）、Stacking、Doma Run Path的绑定关系 | 阶段三
+9 | 2.2.2 | WIP排程时，需要检查Chuck信息和大小片对机台的影响，确保Unit满Run，保证机台产能最大化 | 阶段二
+10 | 2.1.5 | 存在Stacking Bond & ReBond的站点，需要在首层或第一个绑定站点根据下游各个机台的Stacking WIP存量进行调整，确保每个机台绑定的WIP Balance | 阶段二
+11 | 2.2.3 | Follow MES APC（R2R）逻辑，按照Feed Back和Feed Forward设定和Data Due Date调整Reticle优先级 | 阶段三
+12 | 2.2.4 | 当存在PiLot时，需要根据Condition Setup选择是否Risk Run；在QTime Loop中下货时，根据Risk Run的设定值，限制同Condition的Lot WIP量 | 阶段二
+13 | 2.2.5 | 实时抓取Doma Run Path Group WIP分布，结合水位管控，调整每个Contest Group下货顺序 | 阶段三
+
+### [表格6]
+序号 | 机台类型 | 机台数量
+1 | Immersion ArF Scanner | 17
+2 | Dry ArF Scanner | 0
+3 | KrF Scanner | 12
+4 | I-Line Scanner | 5
+
+### [表格7]
+序号 | RFP | RFP内容 | 扩充KrF和I-line排程需要考虑需求变化 | 回复与响应
+1 | 2.1.1 | BAC 放货需要提前获取下游LITHO的Reticle计划，根据Reticle Assignment结果调整下货顺序 | KrF与I-Line机组如果上游有BARC站点(Coming Lot)，是否需要同Immersion一致进行上下游联动？ | 需要一致处理，上游QTime不一致
+2 | 2.1.2 | BAC 需要根据下游LITHO机台不同Layer Hungry程度调整派工优先级 | KrF与I-Line机组如果上游有BARC站点(Coming Lot)，是否需要同Immersion一致进行上下游联动？ | 需要一致处理，上游QTime不一致
+3 | 2.1.3 | 当BAC作为LITHO的QTime 安全站点，需要对LITHO控货时，尽量控在BAC | KrF与I-Line机组如果上游有BARC站点(Coming Lot)，是否需要同Immersion一致进行上下游联动？ | 需要一致处理，上游QTime不一致
+4 | 2.1.4 | Reticle Assignment基于当前WIP + Follow In + Next Loop Hungry综合排程，保证当站WIP和Follow不出现QTime Risk，同时保证下游Loop需要的WIP稳定供给 | KrF与I-Line排货是否与Immersion一致？ 在下游Loop拉货需求方面，是否有特殊下游Loop额外需求？ | 一致
+5 | 2.1.6 | 针对Key Lot、高等级、优先出货的Lot优先调动Reticle，控制机台内部Reticle数量，确保紧急Reticle能够Load | KrF与I-Line的Reticle最大储位与储位水位管理配置是否需要单开？ | By Capability/机台配置最大水位和用户管理水位； By机台配置支持模糊匹配
+6 | 2.1.7 | Reticle排程时，前后Reticle需要满足温层关系和STL等检测信息，避免Reticle Hold导致结果Failed和QTime Risk | KrF与I-Line，Immersion的温层配置是否与Immersion一致？配置单开？ | 目前SN的做法是3*3温度矩阵，用户期望做温差形式的，ArF和KrF单开By Capability配置
+7 | 2.1.8 | Reticle需要定期扫Star Light等动作，因此在Reticle排程时，需要实时校验Reticle可用时长和剩余可用片数，当余量不足时，停止下货或控货 | KrF与I-Line，Immersion不同机组的Reticle是否遵循同一张表的IRIS/StarLight配置项？机台内部IRIS能力是否取自同一张配置表？ | 一致
+8 | 2.2.1 | Lot和Reticle的绑定关系，需要参考MES：APC（R2R）、Stacking、Doma Run Path的绑定关系 | KrF与I-Line，Immersion在APC、Stacking、Doma等信息上是否公用数据源共用字段？如果Doma、Stacking逻辑不需要，是直接删除卡控，还是读取额外的配置？ | KrF在逻辑上需要考虑Stacking，不需要考虑Doma； APC对于KrF可能会有特殊配置，在APC中有KrF的StackingBond卡控（和Immersion一致）
+9 | 2.2.2 | WIP排程时，需要检查Chuck信息和大小片对机台的影响，确保Unit满Run，保证机台产能最大化 | KrF与I-Line，Immersion是否将Chuck信息记录在同一张表中共用字段？ 三个机组的大小片配置是否一致（连续三批大于35片）？还是需要单开配置？ | 一致 KrF的大小片需要单开配置，By Capability/EQP进行配置
+10 | 2.1.5 | 存在Stacking Bond & ReBond的站点，需要在首层或第一个绑定站点根据下游各个机台的Stacking WIP存量进行调整，确保每个机台绑定的WIP Balance | KrF与I-Line没有StackingBond需求？ | 只有APC有区别
+11 | 2.2.3 | Follow MES APC（R2R）逻辑，按照Feed Back和Feed Forward设定和Data Due Date调整Reticle优先级 | KrF与I-Line，Immersion的APC卡控逻辑校验条目是否一致？如果缺少某些项目，是否直接删除该卡控条件？ | 一致
+12 | 2.2.4 | 当存在PiLot时，需要根据Condition Setup选择是否Risk Run；在QTime Loop中下货时，根据Risk Run的设定值，限制同Condition的Lot WIP量 | KrF与I-Line，Immersion的PirunLot是否按照统一格式给出？加速上机与同产品卡控要求是否一致？ | 一致
+13 | 2.2.5 | 实时抓取Doma Run Path Group WIP分布，结合水位管控，调整每个Contest Group下货顺序 | KrF与I-Line没有Doma卡控？ | 没有Doma
+
+### [表格8]
+上游状态 | 到站时间计算
+上游Waiting | 总Cycle Time - Lot当站Wait Time
+上游Processing | Lot在后续站点Cycle Time + UnFinishedProcessTime
+
+### [表格9]
+编号 | 数据项目 | 解释/作用
+1 | 机组可用机台List | 判定Available EQP
+2 | Capability机台List | 具备产能条件的机台
+3 | UnFinishedProcessTime | 机台剩余加工时间
+4 | 当前机况信息 | 机台当前状态
+5 | PM计划信息 | 机台PM时间，规划机台不可用时间
+6 | Doma机台关联信息 | Dose Mapper关联的Etch机台绑定信息
+7 | Reticle储位信息 | 标识Reticle最大储位与当前用量
+
+### [表格10]
+编号 | 数据信息 | 补充信息
+ | 卡控站点定义 | Stage：P1-PH、CT-PH等配置
+ | M To N关系 | Immersion-Etch Chamber关联性
+ | EQP Available | 上游Immersion及下游Chamber可用性
+ | Doma Pirun Lot | 只能上机该子批，母批不受管控
+ | Exception Lot | 不需要卡控Doma的Lot
+ | Single Lot | 单独配置卡控
+ | 子母批一致性 | Lot子母批选择同一条Doma Recipe （后派工的Lot Follow先派工的Lot）
+ | Rework重复性 | Rework Lot选择上一次的Doma Recipe (优先走子母批的情况)
+ | SRC人工指定 | 人工指定了的SRC配置需要Follow
+
+### [表格11]
+编号 | 属性大类 | 属性子类 | 属性名称
+ | Lot属性 | 通用属性 | Lot Priority
+ | Lot属性 | 通用属性 | Lot绑定Reticle
+ | Lot属性 | 通用属性 | Lot温层属性
+ | Lot属性 | 通用属性 | Lot Remain QTime
+ | Lot属性 | 通用属性 | 是否Key Lot
+ | Lot属性 | 通用属性 | 是否Key Stage Lot
+ | Lot属性 | 通用属性 | 是否出货Lot
+ | Lot属性 | 通用属性 | 是否Move Target Lot
+ | Lot属性 | 通用属性 | Lot当前站点
+ | Lot属性 | 通用属性 | Lot Type
+ | Lot属性 | 通用属性 | 是否与当前加工同Recipe
+ | Lot属性 | 通用属性 | 是否与当前加工同温层（温区、升降温、温差）
+ | Lot属性 | 通用属性 | 是否Monitor Lot
+ | Lot属性 | 通用属性 | 是否Reticle连批
+ | Lot属性 | 通用属性 | Lot同Stage间隔放货(2小时，可配置)
+ | Lot属性 | 当站属性 | 是否Pirun Lot
+ | Lot属性 | 当站属性 | 是否OverQTime Lot
+ | Lot属性 | 当站属性 | Lot WaitTime
+ | Lot属性 | 当站属性 | Lot Queue插队，需要绑定机台与First排位
+ | Lot属性 | 当站属性 | Module 插队Quota提前排序
+ | Lot属性 | 上游属性 | 上游平均CycleTime
+ | Lot属性 | 上游属性 | 上游所属站点
+ | Lot属性 | 上游属性 | 预计到站时间
+ | Lot属性 | 上游属性 | BARC能否组Batch
+ | Lot属性 | 下游属性 | 下游Hungry Layer
+ | Lot属性 | 下游属性 | Doma Etch绑定机台
+ | Lot属性 | 下游属性 | Doma Etch绑定机台Chamber WIP情况
+ | EQP属性 | - | 机组可用机台List
+ | EQP属性 | - | Capability机台List
+ | EQP属性 | - | UnFinishedProcessTime
+ | EQP属性 | - | 当前机况信息
+ | EQP属性 | - | PM计划信息
+ | EQP属性 | - | Doma机台关联信息
+ | EQP属性 | - | Reticle储位信息
+ | EQP属性 | - | Monitor时效信息
+ | Reticle信息 | - | Reticle绑定Recipe
+ | Reticle信息 | - | Reticle对应温层信息
+ | Reticle信息 | - | Reticle IRIS/StarLight配置信息
+ | Reticle信息 | - | Reticle IRIS/StarLight计片/计时信息
+
+### [表格12]
+Lot Priority | Lot Priority 划分标准
+Priority 1 | Bullet lot
+Priority 1 | apc pilot 得分 80-100
+Priority 1 | Remain qt < 60 min
+Priority 1 | 插队lot due time < 60 min
+Priority 2 | Lot MES priority 1-*
+Priority 2 | Apc pilot 得分 60 - 80
+Priority 3 | Lot MES priority 2-* - 6-*
+Priority 3 | Apc pilot 得分 40 - 60
+Priority 3 | 下游LoadBalance需要的Pull Lot
+Priority 4 | Lot MES priority 7-* - 9-*
+Priority 4 | Apc pilot 得分 20 - 40
+Priority 5 | Apc pilot 得分 0 - 20
+
+### [表格13]
+数据类别 | 数据需求
+LotConfig | 排程Lot类型
+LotConfig | 排程Lot考虑的优先级
+BulletLot类 | 定义NormalBullet和SuperBullet的等级
+BulletLot类 | 普通Bullet最大等待时间
+BulletLot类 | 紧急Bullet提前预留时间
+连续加工类 | 连续加工滑动窗口Lot数量
+连续加工类 | 连续加工滑动窗口Wafer数量
+连续加工类 | 最小Lot数量阈值
+连续加工类 | 最小Lot Wafer数量阈值
+Reticle类 | Reticle的自动搬送耗时
+Reticle类 | Reticle的清洁时间
+Reticle类 | Reticle在Scanner内部IRIS的耗时
+Reticle类 | Reticle在外部机台IRIS的耗时
+Reticle类 | Reticle的StarLight检测耗时
+Reticle类 | Reticle装载到机台的耗时
+Reticle类 | Reticle从机台的导出耗时
+Reticle类 | Reticle搬送的提前通知时间，即Reticle需要搬送，需要提前多久发送通知
+Reticle类 | Scanner内部的Reticle Library存储水位
+放货管理 | Scanner上游BARC站点同Stage放货间隔（避免下游抢光罩）
+放货管理 | 冻结Lot最小个数
+放货管理 | 冻结Lot最小排程时间
+Recipe类 | Reticle切换耗时
+Recipe类 | 温层切换耗时
+其他 | Lot搬送上机台的平均耗时
+
+### [表格14]
+编号 | 属性
+1 | 排程后超过水位的LotList
+2 | 排程后每个Loop超水位的WIP量
+3 | 排程后超水位Lot预计到站/上机台时间
+
+### [表格15]
+序号 | RFP | RFP内容
+1 | 2.1.1 | BAC 放货需要提前获取下游LITHO的Reticle计划，根据Reticle Assignment结果调整下货顺序
+2 | 2.1.2 | BAC 需要根据下游LITHO机台不同Layer Hungry程度调整派工优先级
+3 | 2.1.3 | 当BAC作为LITHO的QTime 安全站点，需要对LITHO控货时，尽量控在BAC
+
+### [表格16]
+序号 | BARC接收属性 | 属性作用
+1 | Immersion排程的BARC ComingLot List | 决定Lot管控范围，BARC站点哪些Lot可以派工
+2 | Immersion当站的Hungry程度，哪些环节呈现缺货状态 | 管控对BARC的拉货需求，展示给用户说明Hungry状态
+3 | BARC_Release_StartTime | BARC控制的Immersion Coming Lot最快放货时间
+4 | BARC_Release_EndTime | BARC控制的Immersion Coming Lot最晚放货时间
+5 | BARC Current Lot Batch ID | Immersion站点的Coming Lot在BARC站点的预组批ID
+
+### [表格17]
+序号 | RFP | RFP内容
+4 | 2.1.4 | Reticle Assignment基于当前WIP + Follow In + Next Loop Hungry综合排程，保证当站WIP和Follow不出现QTime Risk，同时保证下游Loop需要的WIP稳定供给
+7 | 2.1.8 | Reticle需要定期扫Star Light等动作，因此在Reticle排程时，需要实时校验Reticle可用时长和剩余可用片数，当余量不足时，停止下货或控货
+8 | 2.2.1 | Lot和Reticle的绑定关系，需要参考MES：APC（R2R）、Stacking、Doma Run Path的绑定关系
+
+### [表格18]
+数据类别 | 输入信息 | 作用
+预处理信息 | Lot基本信息 | Lot属性
+预处理信息 | EQP基本信息 | 机台属性
+预处理信息 | Reticle基本信息 | 光罩属性
+预处理信息 | Reticle IRIS WaferCount信息 | 光罩IRIS片数配置
+预处理信息 | Reticle StarLight WaferCount信息 | 光罩StarLight片数配置
+预处理信息 | Reticle StarLight WaferCount信息 | 光罩StarLight片数Buffer
+预处理信息 | Reticle StarLight LifeTime信息 | 光罩StarLight时间配置
+算法输出结果 | EQP上的Lot加工顺序 | 排程Lot排序
+后处理信息 | Lot加工Reticle切换信息 | 排程Lot加工切换光罩
+后处理信息 | Reticle WaferCount预测信息 | 排程光罩计片预测
+后处理信息 | Reticle LifeTime预测信息 | 排程光罩计时预测
+
+### [表格19]
+编号 | 触发事件 | 起始位置 | 目标位置
+ | Immersion机台内部IRIS | 不额外搬运 | 不额外搬运
+ | Immersion机台外部IRIS | Immersion | 独立IRIS机台
+ | Reticle搬出 | Immersion | Reticle Stocker
+ | Reticle搬出 | Immersion01 | Immersion02
+ | Reticle搬入 | Reticle Stocker | Immersion
+ | Reticle搬入 | Immersion01 | Immersion02
+ | 机台内触发StarLight | Immersion | 独立StarLight机台
+ | 机台外部触发StarLight | Reticle Stocker | 独立StarLight机台
+ | Reticle吹N2 Purge | Immersion | Stocker
+
+### [表格20]
+编号 | 数据信息
+ | Reticle储位超限（用户配置），需要移出搬送
+ | Reticle不在排程机台，需要提前搬入
+ | Reticle需要进行外部IRIS检查
+ | Reticle需要进行STAR-Light检查
+ | Reticle定期回Stocker N2 Purge
+
+### [表格21]
+编号 | 数据信息
+ | Reticle储位超水位（用户配置），且当站及上游站点没有对应WIP
+ | Reticle储位已满，且当站及上游站点没有对应WIP
+ | Reticle储位超水位（用户配置），已装载Reticle对应WIP在上游，但当站有大量待排程Reticle需要占用储位
+ | Reticle状态超限（IRIS、StarLight计时/计片信息）需要搬出动作
+ | Reticle定期回Stocker N2 Purge
+
+### [表格22]
+编号 | 动作类型 | 动作细节
+ | 提前搬入 | 排程对应Lot在未来2小时后上机IMM01，Reticle01在Stocker01中存储： 计划Reticle01在1小时后开始搬送； 检查Reticle01是否需要IRIS/StarLight; 如果需要IRIS，1小时后搬送到外部IRIS机台，然后搬入IMM01； 如果需要StarLight，则预留StarLight时间，先搬送到StarLight机台，StarLight完成后搬入IMM01
+ | 提前搬入 | 排程对应Lot在未来3小时后上机IMM01，Reticle01在IMM02中存储： 计划Reticle01在2小时后开始搬送； 检查Reticle01是否需要IRIS/StarLight/N2 Purge; 如果需要IRIS/StarLight，则提前搬送到IRIS/StarLight机台，如果需要N2 Purge，则提前搬送到距离IMM01最近的Stocker； 如果不需要特殊动作，提前1小时从IMM02搬送到距离IMM01最近的Stocker，然后从Stocker搬送到IMM01
+ | 使用超限搬出 | IMM01的Reticle储位上限为12，用户配置的Reticle水位上限为10，当前储位为8，未达到水位上限，但内部Reticle01需要做IRIS/StarLight/N2 Purge： 搬送到IRIS机台/StarLight机台/Stocker Purge； 离开IRIS机台/StarLight机台是否是MES下指令？
+ | 超水位 搬出 | IMM01用户配置的Reticle水位上限为10，当前储位为10，达到水位上限，排程中未来2小时需要搬入2个Reticle派工，且已导入Reticle中当站及Coming存在WIP： 基于当前WIP优先级与Coming WIP优先级排序，搜索优先级最低的Reticle进行搬出，搬出优先级如下： 无当站WIP，又无Coming WIP，基于导入时间先后排序； 无当站WIP，但有Coming WIP； 有当站WIP，但无Coming WIP； 有当站WIP，且有Coming WIP； ② 判断是否有其他机台在未来排程需要使用； ③ 如果其他机台IMM02使用，则搬出到距离IMM02最近的Stocker； ④ 如果无其他机台使用，则搬出到默认存储的Stocker
+
+### [表格23]
+编号 | 数据信息
+ | Reticle ID
+ | Reticle当前状态
+ | Reticle搬送指令优先级（1、2、3、4）
+ | Reticle当前位置
+ | Reticle目的地位置
+ | Reticle搬送原因
+ | Reticle派工关联LotList
+ | Reticle所在Pod ID
+ | Reticle预计使用时间
+ | Reticle搬送首要加工Lot
+ | 特殊动作类型：IRIS/StarLight/N2 Purge/None
+
+### [表格24]
+序号 | RFP | RFP内容
+5 | 2.1.6 | 针对Key Lot、高等级、优先出货的Lot优先调动Reticle，控制机台内部Reticle数量，确保紧急Reticle能够Load
+6 | 2.1.7 | Reticle排程时，前后Reticle需要满足温层关系和STL等检测信息，避免Reticle Hold导致结果Failed和QTime Risk
+9 | 2.2.2 | WIP排程时，需要检查Chuck信息和大小片对机台的影响，确保Unit满Run，保证机台产能最大化
+11 | 2.2.3 | Follow MES APC（R2R）逻辑，按照Feed Back和Feed Forward设定和Data Due Date调整Reticle优先级
+12 | 2.2.4 | 当存在PiLot时，需要根据Condition Setup选择是否Risk Run；在QTime Loop中下货时，根据Risk Run的设定值，限制同Condition的Lot WIP量
+13 | 2.2.5 | 实时抓取Doma Run Path Group WIP分布，结合水位管控，调整每个Contest Group下货顺序
+
+### [表格25]
+编号 | 数据类别 | 项目类型
+ | CD-Normal | Normal Lot Critical Dimension信息
+ | OVL-Normal | Normal Lot Overlay信息
+ | CD-Src | Split Run Card Critical Dimension信息
+ | Ovl-Src | Split Run Card Overlay信息
+ | SRC | Split Run Card特殊卡控信息
+ | Single | Single Run Lot特殊卡控信息
+
+### [表格26]
+序号 | RFP | RFP内容
+10 | 2.1.5 | 存在Stacking Bond & ReBond的站点，需要在首层或第一个绑定站点根据下游各个机台的Stacking WIP存量进行调整，确保每个机台绑定的WIP Balance。
+
+### [表格27]
+编号 | 数据项目
+ | 每条Flow 中的Stacking Bond Group定义
+ | 每条Flow中的Free Layer定义
+ | 会影响Stacking Bond关系的特殊事件定义与匹配规则，如RunCard、PE Manual Operation等（未到站配置后到站才生效）
+
+### [表格28]
+ | Wafer Num | Next layer | Arriving Day | Stacking bond
+lot0 | 25 | layer 0 | Day 1 | E1
+lot1 | 25 | layer 0 | Day 1 | 待决策(可选E1,E2)
+lot2 | 25 | layer 5 | Day 1 | E2
+lot3 | 25 | layer 25 | Day 1 | 待决策（可选E3,E4）
+lot4 | 25 | layer 20 | Day 1 | E2，M2 layers待决策
+lot5 | 25 | Layer 0 | Day 11 | 未投片，M1待决策

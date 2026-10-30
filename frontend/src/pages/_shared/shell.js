@@ -11,7 +11,7 @@ const NAV = [
     ['/prototypes/data_zone.html', '数据接入', ''],
     ['/prototypes/config_zone.html', '数据配置', ''],
     ['/prototypes/model_zone.html', '模型管理', ''],
-    ['/prototypes/log_zone.html', '系统日志', ''],
+    ['/logs', '系统日志', 'logs'],
   ]],
   ['智能应用（真后端）', [
     ['/simulation', '仿真验证', 'simulation'],
@@ -26,6 +26,7 @@ const NAV = [
     ['/prototypes/index.html', '系统总览（原型）', ''],
     ['/prototypes/result_litho.html', 'Litho 排程（原型）', ''],
     ['/prototypes/result_reticle.html', 'Reticle 排程（原型）', ''],
+    ['/prototypes/log_zone.html', '系统日志（原型）', ''],
     ['/prototypes/equip_temp_layer_config.html', '温层配置（原型）', ''],
     ['/prototypes/stacking_bond_ui_v6.html', 'EQP Loading（原型）', ''],
   ]],

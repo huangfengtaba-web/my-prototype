@@ -15,6 +15,17 @@ async function init() {
   $('#runSel').addEventListener('change', () => renderRun($('#runSel').value))
   $('#resolveBtn').addEventListener('click', resolveNow)
   $('#csvBtn').addEventListener('click', exportCSV)
+  // Scanner / Barc 双视图切换
+  $('#tabScanner').addEventListener('click', () => switchTab('scanner'))
+  $('#tabBarc').addEventListener('click', () => switchTab('barc'))
+}
+
+function switchTab(which) {
+  const scanner = which === 'scanner'
+  $('#viewScanner').style.display = scanner ? '' : 'none'
+  $('#viewBarc').style.display = scanner ? 'none' : ''
+  $('#tabScanner').className = 'btn sm' + (scanner ? ' primary' : '')
+  $('#tabBarc').className = 'btn sm' + (scanner ? '' : ' primary')
 }
 
 async function refreshRuns(preferId) {
@@ -87,6 +98,7 @@ async function renderRun(runId) {
     })),
   }))
   $('#gantt').innerHTML = rows.length ? seqGantt(rows) : '<div class="empty">无排程</div>'
+  renderBarc(rec, sched)
 
   // 明细表（行可点击 → Lot 全景抽屉）
   $('#tbl tbody').innerHTML = sched.map((r) => `<tr class="row-click" data-lot="${r.lot}">
@@ -97,6 +109,37 @@ async function renderRun(runId) {
     <td>${r.barc_er || '—'}</td><td>${r.barc_lr || '—'}</td><td>${r.post_note || '-'}</td>
   </tr>`).join('')
   $('#tbl tbody').querySelectorAll('tr').forEach((tr) =>
+    tr.addEventListener('click', () => openLotPanorama(rec.run_id, tr.dataset.lot)))
+}
+
+// Barc Schedule 视图（培训手册 P11 字段：Is Release / 窗口 / BatchId / Litho Start / Reason）
+function renderBarc(rec, sched) {
+  const date = (rec.summary?.date || '').replace(/-/g, '')
+  const batchOf = (ret) => `B-${date}-${String(ret || '').slice(-4)}`
+  const rows = [], table = []
+  for (const r of sched) {
+    const released = !!r.start
+    const er = toMin(r.barc_er), lr = toMin(r.barc_lr)
+    const reason = r.post_note && r.post_note !== '-' ? r.post_note
+      : (!r.start ? 'QTMS 超水位，本 Loop 卡控' : '按窗口放货')
+    const segs = []
+    if (er != null && lr != null)
+      segs.push({ s: er, e: lr, label: '放货窗口', color: 'var(--warningBg)',
+        tip: `${r.lot} 窗口 ${r.barc_er}~${r.barc_lr}（Batch ${batchOf(r.reticle)}）` })
+    if (released)
+      segs.push({ s: toMin(r.start), e: toMin(r.end), label: r.lot,
+        color: r.priority === 'PRI1' ? 'var(--colorError)' : 'var(--colorPrimary)',
+        tip: `Litho Start ${r.start} @${r.eqp}` })
+    rows.push({ name: r.lot, segs })
+    table.push(`<tr class="row-click" data-lot="${r.lot}">
+      <td><b>${r.lot}</b></td><td>${batchOf(r.reticle)}</td>
+      <td><span class="tag ${released ? 'success' : 'error'}">${released ? 'Yes' : 'No'}</span></td>
+      <td>${r.barc_er || '—'}</td><td>${r.barc_lr || '—'}</td>
+      <td>${r.start || '—'}</td><td>${r.reticle}</td><td>${reason}</td></tr>`)
+  }
+  $('#barcGantt').innerHTML = seqGantt(rows)
+  $('#barcTbl tbody').innerHTML = table.join('')
+  $('#barcTbl tbody').querySelectorAll('tr').forEach((tr) =>
     tr.addEventListener('click', () => openLotPanorama(rec.run_id, tr.dataset.lot)))
 }
 

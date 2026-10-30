@@ -50,7 +50,8 @@ function gtxDevUrls() {
           '/reports': '/src/pages/reports/index.html',
           '/twin-control': '/src/pages/twin-control/index.html',
           '/litho-schedule': '/src/pages/litho-schedule/index.html',
-          '/reticle-schedule': '/src/pages/reticle-schedule/index.html'
+          '/reticle-schedule': '/src/pages/reticle-schedule/index.html',
+          '/logs': '/src/pages/logs/index.html'
         }
         if (cleanMap[url]) req.url = cleanMap[url]
         next()
@@ -89,7 +90,8 @@ export default defineConfig({
         twinControl:   r('src/pages/twin-control/index.html'),
         reportsPage:   r('src/pages/reports/index.html'),
         lithoSched:    r('src/pages/litho-schedule/index.html'),
-        reticleSched:  r('src/pages/reticle-schedule/index.html')
+        reticleSched:  r('src/pages/reticle-schedule/index.html'),
+        logsPage:      r('src/pages/logs/index.html')
       }
     }
   }

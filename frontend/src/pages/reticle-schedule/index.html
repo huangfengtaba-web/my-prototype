@@ -35,6 +35,8 @@
         <div class="batchbar">
           <label class="lab">运行批次</label>
           <select id="runSel" class="inp narrow"><option value="">加载中…</option></select>
+          <button id="tabSched" class="btn sm primary">Reticle Schedule</button>
+          <button id="tabTrans" class="btn sm">Reticle Transport</button>
           <a class="btn sm" href="/twin-control">在 3D 孪生中回放搬送 →</a>
           <span id="runMeta" class="run-meta"></span>
         </div>
@@ -47,9 +49,19 @@
         </div>
       </div>
 
-      <div class="card">
+      <div class="card" id="viewSched">
         <div class="card-h"><div class="t">Reticle 五态甘特（按光罩）</div></div>
         <div class="scrollx"><div id="gantt"><div class="empty">选择运行批次后展示</div></div></div>
+      </div>
+
+      <div class="card" id="viewTrans" style="display:none">
+        <div class="card-h"><div class="t">Reticle Transport · 搬送记录（真实排程推导）</div>
+          <div class="sub">搬送语义与 3D 孪生回放一致：出发 = Lot 开工前 300min，装载 = 前 60min；
+            字段口径见培训手册 P7（Reticle ID/当前位置/目的地/原因/优先级/Pod/预计使用时间/关联 Lot）</div></div>
+        <div class="tscroll"><table class="dt" id="transTbl">
+          <thead><tr><th>ReticleId</th><th>当前位置</th><th>目的地</th><th>Job Type</th><th>原因（供 Lot）</th>
+            <th>优先级</th><th>Pod</th><th>出发</th><th>预计使用时间</th><th>相关 Lot</th></tr></thead>
+          <tbody></tbody></table></div>
       </div>
 
       <div class="card">

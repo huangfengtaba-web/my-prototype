@@ -1,0 +1,49 @@
+<!doctype html>
+<!-- GTX FSO Litho · 系统日志页 logs · v1 · 2026-10-30
+     真数据 Scheduling Log + Error Management（派生自本服务全部求解运行）。
+     原型版 log_zone 保留在「原型参考」组。 -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GTX FSO Litho · 系统日志（真数据）</title>
+<link rel="stylesheet" href="/src/pages/_shared/shell.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sider" id="sider"></aside>
+  <div class="main">
+    <header class="header">
+      <div class="crumb">System Log / <b>Scheduling Log & Error Management（真数据）</b></div>
+      <div class="right"><span id="clock" class="clock"></span>
+        <button id="cmBtn" class="btn sm">💬 评论模式</button></div>
+    </header>
+    <div class="content">
+      <div class="card">
+        <div class="card-h">
+          <div><div class="t">Scheduling Log · 求解运行日志</div>
+            <div class="sub">本服务启动以来的全部六步 MILP 运行（内存记录，重启清空）；
+              Error/Abnormal 行可跳转 Error Management</div></div>
+          <span class="q" data-cm="状态口径：done=成功；suboptimal=异常（求解非最优，对应 Abnormal）；failed/timeout=错误。错误分类：DATA_ERROR/MODEL_ERROR/UNKNOWN_ERROR，与设计说明书日志章节一致。">?</span>
+        </div>
+        <div class="tscroll"><table class="dt" id="logTbl">
+          <thead><tr><th>Model</th><th>Version</th><th>run_id</th><th>Scenario</th>
+            <th>Status</th><th>开始时间</th><th></th></tr></thead>
+          <tbody></tbody></table></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><div class="t">Error Management · 错误管理</div>
+          <div class="sub">Error Type（DATA_ERROR/MODEL_ERROR/UNKNOWN_ERROR）+ Info/Detail，按时间倒序</div></div>
+        <div class="tscroll"><table class="dt" id="errTbl">
+          <thead><tr><th>run_id</th><th>Error Type</th><th>Error Info</th><th>Detail</th><th>时间</th></tr></thead>
+          <tbody></tbody></table></div>
+        <div class="empty" id="errEmpty" style="display:none">当前无错误记录 ✓</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tt" class="tt"></div>
+<script type="module" src="/src/pages/logs/script.js"></script>
+</body>
+</html>

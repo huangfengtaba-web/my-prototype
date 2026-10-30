@@ -31,9 +31,13 @@
     <div class="content">
       <div class="card">
         <div class="card-h">
-          <div><div class="t">Scanner Schedule · 六步 MILP 求解结果</div>
-            <div class="sub">数据源：backend 六步算法链真实输出（非 mock）；行=机台，条=Lot 加工区间</div></div>
-          <span class="q" data-cm="批次选择器列出本服务启动以来的全部求解运行；「重新求解」会以当前选中 Scenario 再跑一次六步 MILP（子进程隔离）。原型版静态页面已移至左侧「原型参考」组。">?</span>
+          <div><div class="t">排程结果 · 六步 MILP 求解输出</div>
+            <div class="sub">数据源：backend 六步算法链真实输出（非 mock）；视角可切换 Scanner / Barc</div></div>
+          <span class="q" data-cm="批次选择器列出本服务启动以来的全部求解运行；「重新求解」会以当前选中 Scenario 再跑一次六步 MILP（子进程隔离）。Barc Schedule 视图对应培训手册 P11 字段：Is Release/放货窗口/BatchId/Litho Start/Reason。">?</span>
+        </div>
+        <div class="toolbar" style="margin-bottom:10px">
+          <button id="tabScanner" class="btn sm primary">Scanner Schedule</button>
+          <button id="tabBarc" class="btn sm">Barc Schedule</button>
         </div>
         <div class="batchbar">
           <label class="lab">运行批次</label>
@@ -53,11 +57,23 @@
         <div class="kpi"><div class="k-l">急货 LOT-A01 上机</div><div class="k-v" id="kUrgent">—</div></div>
       </div>
 
-      <div class="card">
+      <div class="card" id="viewScanner">
         <div class="card-h"><div class="t">Scanner Schedule 甘特（按机台）</div>
           <div class="legend"><span class="li"><i style="background:var(--colorPrimary)"></i>Process</span>
             <span class="li"><i style="background:var(--colorError)"></i>PRI1 急货</span></div></div>
         <div class="scrollx"><div id="gantt"><div class="empty">选择运行批次后展示</div></div></div>
+      </div>
+
+      <div class="card" id="viewBarc" style="display:none">
+        <div class="card-h"><div class="t">Barc Schedule · 放货窗口（按 Lot）</div>
+          <div class="legend"><span class="li"><i style="background:var(--warningBg);border:1px solid var(--warningBorder)"></i>可放货窗口 [ER, LR]</span>
+            <span class="li"><i style="background:var(--colorPrimary)"></i>Litho Start</span>
+            <span class="li"><i style="background:var(--colorError)"></i>不可放货（QTMS）</span></div></div>
+        <div class="scrollx"><div id="barcGantt"><div class="empty">选择运行批次后展示</div></div></div>
+        <div class="tscroll" style="margin-top:10px"><table class="dt" id="barcTbl">
+          <thead><tr><th>LotId</th><th>BatchId</th><th>Is Release</th><th>Earliest Release</th>
+            <th>Latest Release</th><th>Litho Start</th><th>Reticle</th><th>Reason</th></tr></thead>
+          <tbody></tbody></table></div>
       </div>
 
       <div class="card">

@@ -99,6 +99,32 @@ def solve_lot(run_id: str, lot_id: str):
     return lot_panorama(run_id, lot_id)
 
 
+@app.get("/api/logs")
+def logs():
+    """Scheduling Log + Error Management（真数据，派生自本服务全部求解运行）。
+
+    错误分类口径（docs/specs 日志设计）：DATA_ERROR（数据校验类）/
+    MODEL_ERROR（求解超时/非最优）/ UNKNOWN_ERROR（其余失败）。
+    """
+    schedulings, errors = [], []
+    for r in solver_runner.list_runs(50):
+        schedulings.append({
+            "model": "Litho_Main", "version": "V1.3", "run_id": r["run_id"],
+            "case": r.get("case"), "status": r["status"],
+            "start": r.get("started_at"), "end": r.get("started_at"),
+        })
+        if r["status"] in ("failed", "timeout", "suboptimal"):
+            error_type = {"timeout": "MODEL_ERROR", "suboptimal": "MODEL_ERROR",
+                          "failed": "UNKNOWN_ERROR"}.get(r["status"], "UNKNOWN_ERROR")
+            errors.append({
+                "run_id": r["run_id"], "error_type": error_type,
+                "error_info": f"求解状态 {r['status']}（case={r.get('case') or '基线'}）",
+                "detail": (r.get("detail") or r.get("status"))[:300],
+                "time": r.get("started_at"),
+            })
+    return {"schedulings": schedulings, "errors": errors}
+
+
 # ---------------------------------------------------------------- 仿真
 @app.post("/api/sim/run")
 def sim_run(req: SimRequest):

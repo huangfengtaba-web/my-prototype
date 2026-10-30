@@ -13,6 +13,16 @@ async function init() {
     $('#runSel').innerHTML = '<option value="">后端不可达</option>'
   }
   $('#runSel').addEventListener('change', () => renderRun($('#runSel').value))
+  $('#tabSched').addEventListener('click', () => switchTab('sched'))
+  $('#tabTrans').addEventListener('click', () => switchTab('trans'))
+}
+
+function switchTab(which) {
+  const sched = which === 'sched'
+  $('#viewSched').style.display = sched ? '' : 'none'
+  $('#viewTrans').style.display = sched ? 'none' : ''
+  $('#tabSched').className = 'btn sm' + (sched ? ' primary' : '')
+  $('#tabTrans').className = 'btn sm' + (sched ? '' : ' primary')
 }
 
 async function refreshRuns(preferId) {
@@ -66,12 +76,43 @@ async function renderRun(runId) {
         tip: `${ret} 本 Loop 无需求 · ${m.note || ''}` }] })
   }
   $('#gantt').innerHTML = rows.length ? seqGantt(rows) : '<div class="empty">无数据</div>'
+  renderTransport(rec.run_id, rec.summary || {})
 
   $('#tbl tbody').innerHTML = Object.entries(retMeta).map(([ret, m]) => {
     const lots = (byRet[ret] || []).map((l) => `${l.lot}@${l.eqp} ${l.start}~${l.end}`).join('；') || '—'
     return `<tr><td><b>${ret}</b></td><td>${m.status || '-'}</td><td>${m.ready || '-'}</td>
       <td>${lots}</td><td>${m.note || '-'}</td></tr>`
   }).join('')
+}
+
+// Reticle Transport：时间轴搬送事件 + 排程结果 → 培训手册 P7 字段口径的搬送记录
+async function renderTransport(runId, summary) {
+  const tbody = $('#transTbl tbody')
+  tbody.innerHTML = '<tr><td colspan="10" style="color:var(--colorTextQuaternary)">加载中…</td></tr>'
+  try {
+    const tl = await (await fetch(`${API_BASE}/api/twin/timeline/${runId}`)).json()
+    const lotBy = {}
+    for (const r of summary.schedule || []) lotBy[`${r.reticle}|${r.eqp}`] = r
+    const rows = (tl.events || []).filter((e) => e.type === 'reticle_move').map((m) => {
+      const served = lotBy[`${m.target}|${m.to}`]
+      const t1 = m.t + 240
+      return `<tr>
+        <td><b>${m.target}</b></td><td>${m.from}</td><td>${m.to}</td>
+        <td><span class="tag processing">Load in</span></td>
+        <td>供 ${served?.lot || '-'} 加工</td>
+        <td>${served?.priority || '—'}</td>
+        <td>POD-${m.target}</td>
+        <td>${fmtT(m.t)}</td><td>${served?.start || '—'}</td><td>${served?.lot || '—'}</td></tr>`
+    })
+    tbody.innerHTML = rows.join('') || '<tr><td colspan="10">本批次无搬送记录</td></tr>'
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="10" style="color:var(--colorError)">时间轴加载失败：${e.message}</td></tr>`
+  }
+}
+
+function fmtT(sec) {
+  sec = Math.max(0, Math.floor(sec))
+  return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`
 }
 
 init()

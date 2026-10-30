@@ -17,6 +17,7 @@
     { "source": "/scheduling-test", "destination": "/src/pages/scheduling-test" },
     { "source": "/reports", "destination": "/src/pages/reports" },
     { "source": "/litho-schedule", "destination": "/src/pages/litho-schedule" },
-    { "source": "/reticle-schedule", "destination": "/src/pages/reticle-schedule" }
+    { "source": "/reticle-schedule", "destination": "/src/pages/reticle-schedule" },
+    { "source": "/logs", "destination": "/src/pages/logs" },
   ]
 }

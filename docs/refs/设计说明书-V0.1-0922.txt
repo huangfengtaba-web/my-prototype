@@ -1,0 +1,1183 @@
+GTX FSO项目
+Litho Scheduling设计说明书
+版本<0.1>
+上海朋熙半导体股份有限公司
+2026年8月
+版本历史
+签字确认
+1简介
+文档内容为GTX Litho Scheduling项目设计方案的说明。
+项目背景
+随着先进制程持续演进，Immersion光刻机已成为12寸晶圆厂Litho区域最关键、也是成本最高的瓶颈资源之一。Immersion机台单台投资高、Recipe切换复杂、对 Reticle、温层、QTime 等约束极为敏感，传统人工排程已无法满足高混合、高密度生产的精细化要求。同时，FAB 智能化与 APS（Advanced Planning and Scheduling）系统的普及，使得基于模型驱动的动态排程成为行业主流方向。
+文档目的
+IT项目设计文档是项目成功的关键保障，具有以下重要性：
+明确方向与共识
+设计文档清晰阐述项目目标、范围、技术方案及权衡决策，确保团队成员对项目的理解一致，避免因沟通偏差导致的返工或方向错误。
+提前发现问题
+在编码前通过文档评审，可尽早发现设计缺陷、技术风险或需求冲突，降低后期修改成本，实现“设计左移”，提高项目效率。
+知识传承与协作
+作为团队共享的知识资产，设计文档帮助新成员快速了解项目背景、架构和实现逻辑，促进跨团队协作，减少信息孤岛。
+支持维护与迭代
+项目后期，设计文档是维护和升级的重要参考，帮助开发者理解系统结构，快速定位问题，支持功能扩展和性能优化。
+合规与审计依据
+对于涉及安全、隐私等合规要求的项目，设计文档是证明项目符合规范的重要依据，便于审计和监管。总之，设计文档不仅是项目初期的规划工具，更是贯穿项目全生命周期的导航图，对保障项目质量、效率和可持续性至关重要。
+名词术语
+参考资料
+《GTX FSO项目需求说明书-Litho》
+BARC-Immersion联动方案
+关联RFP
+预处理设计
+算法设计
+算法概述与流程
+根据Scanner的排程结果进行BARC机台派工，基于QTime与产能的控制逻辑，限制住BARC机台的Lot的上下货时间区间范围，以控制上游的BARC机台排货。同时，在Lots排程范围内，如果确定已无通路、无产能或存在其他因素限制等条件导致下游不可用，排程模块应该过标记此类Lot，且控制BARC派工任务跳过此类Lot：
+算法具体方案
+3	.3.2.1 Barc放货lot清单
+BARC放货只考虑在Scanner排程范围内的lot，并排除如下lot:
+已在其product flow上最后一道BARC加工或者已加工完
+scanner当站
+3.3.2.2  BARC最早最晚放货时间BARCReleaseTime
+3.3.2.3.1 Lot维度
+记表示Scheduling为Coming Lot规划的scanner上机时间
+给定，由 4.2.2节7中RemainQt计算，记为, 。
+Case 1. job prepare状态，且current step在barc step (当站放货时间)
+则其满足
+因此
+=
+=
+Case 2
+running状态，且current step在 barc站，则放货step为下一道BARC step，考虑放货时间：
+,  计算同Case 1
+Case 3 Current step 在barc step上游 （第一站barc放货时间）
+令 到第一站预计需要的时间（通过cycle Time计算）
+,  计算同Case 1
+3.3.2.3.2 Batch维度
+组BATCH考虑将已在BARC站点与BARC上游站点分开，BATCH_ID = RETICLE ID + RELEASSE STEP ID + LOT ID, LOT ID为这一BATCH的代表元
+Case 1. 当前已在BARC站点，对同一RETICLEID， 同一STEPID （lot的BARC放货step）：
+Step 1. 记working lot为  （初始化为同一RETICLE ID， 同一STEP ID的第一个lot）， remain lot为还未被归入任何BATCH的lot集合 （初始化为同一RETICLEID， 同一STEPID的所有lot）
+Step2. 遍历remain lot，若
+，
+则将其放入
+若遍历结束，到 step3
+Step3. 更新remain lot为 remain lot - 当前batch, working lot为remain lot的list第一个，回到step 2
+Case 2. 在BARC站点上游，对同一RETICLEID， 同一STEPID （lot的BARC放货step）：同Case 1逻辑
+算法输出字段明细
+后处理设计
+主要将上述算法输出结果入库
+数据库设计
+API接口设计
+无
+UI设计
+Barc Schedule
+功能说明：展示Barc放货时间信息，包括LotId、BatchId、ProductId、Recipe、Step、Seq、Is Release、Earliest Release、Latest Release、Litho Eqp、Litho Capability Litho Start、Reason信息。
+Reticle排程算法
+关联RFP
+预处理设计
+功能流程图
+整体流程逻辑
+通过待排lot的eqp关联对应的reticle。主要逻辑位于 com.pxsemi.fso.model.data.fso.ReticleData。它加载全部 Reticle 的基础配置（source_reticle_info）、动态状态（source_reticle_status）、IRIS 支持机台关系（source_eqp_reticle_relation）以及计划停机时段（source_reticle_scheduled_down），为每个 Reticle 生成一个 ReticleData 对象，供调度算法在 Reticle 搬运 / IRIS / StarLight 等逻辑中使用。
+对应算法前处理需要数据处理来源如下：
+算法设计
+3.3.1 算法概述与流程
+算法整体基于Lot-Reticle预组批算法将WIP分配至机台，考虑不同机台的Loading平衡与Reticle Train Size需求，实现光罩少切换与机台负载平衡(QTime Risk会在细排程考虑）。对于上游的控货、下游机台的Hungry等多种条件，会转换为排程优先级条件参与排程逻辑计算。
+下游Hungry优先级转换：
+Lot预组批：
+3.3.2 算法建模与求解
+3.3.2.1 Lot Step 机台分配模型
+Index
+task：
+eqp：
+reticle：
+使用 reticle  的 task 集合：
+常量
+每个 task 的 wafer 片数：
+变量
+task（step）分配给哪个机台：
+reticle 是否被该机台使用（辅助变量）：
+机台负载（辅助变量）：
+最小、最大机台负载：
+约束
+task（step）只能分配给一个机台：
+若 task 被分配给某个机台，则 reticle 被该机台使用：
+机台负载为所有 task 在该机台上的负载之和：
+最小、最大机台负载刻画：
+目标
+reticle train size 最少（所有 reticle 被使用的机台数最少）：
+负载均衡（最大机台负载 - 最小机台负载）：
+3.3.2.2出参
+对于有 reticle 的 step，其 step 分配机台被固定：
+后处理设计
+Reticle组批模型出参会直接给到细排程模型作为输入
+数据库设计
+API接口设计
+UI设计
+排程结果展示具体见4.7.3
+Lot细排程算法
+约束：QTime，Lot加工唯一性，Reticle储位预留、APC Info、Reticle匹配等；
+目标：完工时间最短，Lot优先级违反最低，Recipe切换时间最短，Reticle Train Size最大化、Chuck Sequence Follow等。
+关联RFP
+预处理设计
+功能流程图
+整体流程逻辑
+一、对于待排lot的筛选逻辑位于 com.pxsemi.fso.model.data.fso.LotData 。它负责从数据源获取原始 Lot 数据,经过流程匹配、能力过滤、范围限制、工艺信息填充、QTime 计算等多层处理后,返回可供排程算法可使用的 Lot 数据。目前对于待排程 Lot 是先通过 capability 确定对应的 flow,在通过配置信息的 maxStep 限制 flow 的 step 信息,当 Lot 的arrivalTime < maxTime 即为待排程 Lot。
+代码流程如下
+调用 dataInfoMapper.getProductFlowSources() 获取全量的 flow 信息。数据来源表 source_product_flow (ProductFlowSource)
+加载原始 Lot 数据：查询source_lot并且排除当前站中状态为 hold 或者 done 状态的 lot
+通过 product + productVersion + plan + planVersion (四字段联合)匹配source_product_flow信息。并通过config_item_variable (VARIABLE, VARIABLE_VALUE)的配置进行flow限制
+到达这一步的lot即为待排lot。后续将计算待排lot的qtime信息和flow信息
+fillLotFlowInfo() 查询lot所在flow的信息
+LotFlow 对象构建 (从当前站到完工) 遍历产品流程中 stepIndex >= 当前 stepIndex 的所有节点，每个节点构建一个 LotFlow：
+fillQtimeInfo() 是根据根据 ProductFlowSource 中定义的 QTime 规则，计算 Lot 的 QTime 约束信息(当前只考虑job out-> job in type,其余type可做相应约化：如job in -> job in，则为QTimeLimit - processTime)：
+由于只排scanner站点，因此只计算scanner站点的remainQt。下面计算针对max RemainQt, min RemainQt的计算只需在每个step进行min操作处替换为max操作。
+先考虑非Rework flow上的lot
+Step 1. 找到scanner站点，找到所有对应qtime,并过滤掉Start型的qtime
+Step 2. 根据qtime类型，计算每条qtime对应的remainQt:
+i) 当qtime为end型：
+Case 1. current step > QTimeStartStep, 则remainQt = QTimeLimit - (current time - qtimeStartTime)
+Case 2. current step < QTimeStartStep, 遍历Qtime
+对任意站点， 这里 ，获取所有以 为QTimeEnd的所有 (若没有，则为0)，令  。
+现在计算到站完成时间
+考虑当站状态，若lot处于running状态，
+若lot处于job prepare 状态，
+因此，
+对此QTimeInfo, 其
+Case 3. current step = QTimeStartStep
+若lot处于running状态，约化到case 1, 当为 job prepare状态，约化到case 2。
+ii) 当qtime为mid型：
+令
+其中 默认为0。
+然后使用作为QTimeLimit, 如Step2.2计算remainQt。
+Step 3. 对所有上述计算的remainQt取min，为这一scanner step的remainQt。
+然后考虑rework flow上的lot:
+如果 ，计算参照上述情况
+如果 ，即
+对于 return step 到 rework end step，计算参考非rework中current step < QTimeStartStep中complete time计算， 计算。
+当 return step <= QStart Step,
+这里， 默认为 1
+当 return step > QStart Step,
+这里， 默认为 0
+注：对于current step在barc站前，只考虑 Case 1的QTime
+二、得到待排的lot信息后处理lot对应的step信息。主要逻辑位于com.pxsemi.tso model. data fso.StepData。根据待排产Lot数据，结合机台能力(Capability)、机台运行状态(Running Info)和 Lot的Wafer数量，为每个Lot生成对应的Step 站点数据，并计算每个可加工机台的可用时间(Available Time，秒)。
+获取待排程的lot
+根据这些lot的capability查询SOURCE_EQP_INFO表数据
+查询机台的运行状态（source_eqp_running_info）和对应的pt信息（FSO_PROCESS_TIME）
+计算机台的可用时间。如果机台没有running状态或者已经预约的lot信息，代表机台立即可用source_eqp_running_info表里面只存储running和prepare状态的lot。
+running: SOURCE_EQP_RUNNING_INFO.REMAIN_PCS* FSO_PROCESS_TIME.WAFER_PROCESS_TIME
+prepare: source_lot.wafeCount*FSO_PROCESS_TIME.WAFER_PROCESS_TI
+将eqp上每一种状态的lot的预估运行时间累加。
+机台可用时间计算规则：
+计算完lot对应可用机台的信息后进行后续的eqp数据处理主要逻辑位于com.pxsemi.fso.model.data.fso.EquipmentData。它根据目标Capability 过滤出参与排程的机台集合，并关联机台状态(source_eqp_status)，chamber信息(source_eqp_chamber_status)，已经运行中/预约的Lot机台(source_eqp_running_info)以及机台支持的Recipe(source_eqp_recipe)，为每个机台生成一个EquipmentData对象，供调度算法在分配任务时使用。
+算法设计
+4.3.1 算法概述与流程
+Lot细排程模型：细排程模型会按优先级顺序以及在优先级下划分的chunk依次求解（上游的控货、下游机台的Hungry会影响优先级),（chunk size = min（此优先级下的lot数量 - 已划分的chunk size总和，50),
+以Lot-Reticle预组批的结果为输入，决策机台加工顺序与时间（决策约束包含温层切换等）流程如下：
+4.3.2 算法建模与求解参数：
+4.3.2.1 Lot细排程
+Index
+task：
+eqp：
+reticle：
+使用 reticle  的 task 集合：
+变量
+task（step）分配给哪个机台：
+task（step）分配在机台上的时间变量：
+当  时，变量生效。
+eqp 不可用时间（包含 running, reserve lot 占用时间）：
+reticle down 时间：
+、 在  上的先后顺序：。
+代表 。
+常量
+task  在机台  上的 duration 时间：
+：recipe 转温矩阵
+约束
+task（step）只能分配给一个机台：
+如 task 未被分配给该机台，duration 为 0：
+start time + duration = end time（duration 可以计算获得）：
+同一机台上 task 的时间变量不重合：
+使用同一 reticle 的 task 时间变量不重合：
+QTime 约束
+对 ，不同 task 间大于等于 ：
+对 ，不同 task 间小于等于 ：
+remaining qt min：
+remaining qt max：
+Recipe Change 条件
+若满足：
+则：
+目标
+makespan：
+4.3.2.2算法后处理：
+在细排程模型基础上添加如下变量与约束，并更改目标:
+变量
+机台  的结束加工时间：
+约束
+机台  的 makespan 不小于该机台任一 task 的结束时间：
+目标
+所有机台 makespan 之和：
+4.3.2.3出参：
+后处理设计
+数据库设计
+API接口设计
+UI设计
+数据配置Config
+Lot Control
+功能说明：控制Lot数据，作为Litho排程的Lot过滤条件，符合条件的Lot进入排程，不符合Lot不考虑。
+位置位于Model Control - Production Config - Lot Control（最前）
+编辑模式：
+查看模式：
+Lot Type：
+Priority：
+数据举例：
+Lot Type：PI、PB、PC、PE、PR、EF、ES、TF、BK、PA；
+Lot Fab Priority：1、2、3、4、5、6、7、8、9；
+日志：由History入口进入
+Lot Type记录Lot Type
+Priority记录Priority、Internal Priority
+Priority Config
+功能说明：用于将原始优先级数据映射为Bullet和Normal类型，用于甘特图UI展示，展示为Lot标签或用于Lot分类。
+Classify：下拉框，数据来自字典配置接口，Bullet（Normal Bullet，Super Bullet）、Normal，可修改字典配置。
+Priority、Internal Priority：下拉数据范围来源于客户优先级数据范围；
+其中Priority单选，必选；Internal Priority多选，非必选，为空默认全部。
+Transport Config
+功能说明：Reticle搬送耗时配置，提供eqp-stocker-maskroom三者间耗时配置以及Lot-Eqp搬送耗时配置
+查看模式：
+编辑模式：
+通过矩阵形式配置，开始搬送位置为Eqp、Stocker，搬至Eqp、Stocker，以及Lot搬送到机台的时间。
+空提示：Please Input
+数值输入限制：
+仅支持数值，最大支持两位小数，0.01-999
+Temperature Config
+Temperature Config 有两个页面：
+Recipe-Eqp-Temperature/ Capability-Temperature Change Cost Time
+Recipe-Eqp-Temperature页面有三栏可输入：
+Recipe/Eqp/Temperature
+可支持Csv导入
+Capability-Temperature Change Cost Time页面有四栏可输入：
+Capability/Temerpature Start/Temperature End/Change Cost Time/is up
+可支持通配：Temerpature Start/Temperature End置空，若is up为T
+表示对此capability每升高一度需要多少Change Cost Time，若 is up为F,
+表示此capability每降低一度需要多少Change Cost Time
+可支持Csv导入
+Bullet Lot
+查看模式：
+编辑模式：
+功能说明：用于配置Bullet Lot的等待时间
+输入框限制：仅支持数值，最大支持两位小数，0.01-999
+Fix Lot
+功能说明：为避免Reticle提前搬送动作改变，造成多余搬送和机台加工能力浪费，相邻两次排程结果中前序的部分Lot排程结果需要保持稳定，即第二次排程继承上一次Lot指派的机台和作业顺序等信息。该功能用于配置在排程时，机台需要固定Lot数量或固定的时间。
+页面上方提供Capability筛选（单选），默认列表第一个，目前仅支持Litho区域相关Capability。
+查询后，显示该Capability关联的机台数据，固定数量默认值后续可由业务指定，或默认0。
+支持编辑，通过数值选择器选择，上限99，下限0，步长1。
+Reticle Config
+功能说明：用于配置Reticle相关作业时间等
+输入框限制：仅支持数值，最大支持两位小数，0.01-999
+时间单位：mins。
+1）对于单值型，在页面行内编辑数据。
+2）对于机台+时间型
+数据重复性校验：EqpId不可重复，提示：数据已存在（FSO_dataExist）
+3）对于机台+机组+时间型
+数据重复性校验：Capability+EqpId不可重复，提示：数据已存在（FSO_dataExist）
+统一说明：
+Capability和EqpId支持通配符‘*’和‘%’输入，必填，支持输入‘支持英文大小写字母、数字、下划线、连接号、百分号、星号’。
+弹窗数据不分页，上限100.
+默认数据全部展开
+Process Config
+功能说明：定义连续加工的配置
+查看模式：
+编辑模式：
+输入限制：
+仅支持正整数（1-999）
+Only support positive integers（1-999）
+模型管理
+Eqp Group
+
+## [Heading 5] 新增机台组
+路径：点击页面中的“Add”按钮，跳出弹框
+唯一性说明：
+Area、Eqp Type、Running Mode组合唯一，不能重复；
+重复提示：This Eqp Group is already exist
+EqpType匹配逻辑：
+数据中EqpType中包含
+
+## [Heading 5] 编辑机台组
+点击操作列中的“Edit”图标
+未被Model占用的机台组可以修改；
+已被Model占用的不可修改，输入框和确定按钮都变为不可修改状态
+
+## [Heading 5] 删除机台组
+点击操作中的“删除”图标，跳出二次确定弹框。
+说明：
+需要校验机台组是否已经和Model绑定
+未占用时，可以删除，提示：Deleted Successfully
+已占用时，不可删除，提示：Cannot delete Eqp Group. This Eqp Group is occupied by $model_name
+$model_name为绑定该机台组的模型名称
+多个时用“,”分隔
+
+## [Heading 5] 查询
+Eqp Group配置页面上方筛选项：Eqp Type、KPI View、Schedule Model；
+其中Eqp Type下拉框筛选项：页面已配置的Eqp Type；
+KPI View下拉框筛选项：ALL/Yes/No;
+Schedule Model下拉框筛选项：ALL/Yes/No;
+单选，下拉数据自然排序。
+Data Parameter
+功能说明：支持在Data Parameter中配置参数，在模型中配置参数值
+如模型排程时，对需要考虑上游站点，对Coming WIP数据范围进行定义，通常考虑距离排程站点一定时间内或一定步长内的Lot，此时在数据参数中定义comingWip参数，包含Max Time（时间）和Max Step（步长）两个变量，进而在定义模型时，为这两个变量设置变量值，如Max Time=12小时，Max Step=10，数据进行交集处理。
+
+## [Heading 5] 新增
+新增弹窗交互：
+未选择Model Type时，隐藏Set、Type、Scope三个选项
+选择Model Type = Scheduling时，出现上述三个选项；选择Model Type=Planning时，不显示
+新增数据成功后说明：
+新增数据参数后，列表中Model列置空。
+只有通过页面新增的变量，编辑时才可修改，后台内置的，不可修改。
+根据Model Type类型，将Data Param展示在对应的Schedule/Planning模型Data Selection中
+Model Type=Planning时，列表Set、Type、Scope数据为“-”
+Model列展示：
+引用该Item的模型名称。
+
+## [Heading 5] 编辑
+点击，出现该弹框。
+已经被模型占用的参数不可修改，为不可编辑状态，将鼠标置于输入框等时，提示：This Parameter is occupied by $model_name. Cannot be changed.
+在配置模型后修改M/O属性，可能会出现的异常场景：
+属性为O，新建模型A未配置，后改为M，模型A中未选中，而且不可点击。
+
+## [Heading 5] 查询
+
+## [Heading 5] 删除
+点击操作列中的“删除”图标，弹出确认弹框
+成功删除后，success提示：
+Deleted Successfully
+如果已经被模型占用，不可删除
+Cannot delete Parameter. This Parameter is occupied by $model_name
+
+## [Heading 5] 参数清单-仅参考
+相关模型参数清单：（根据业务需求开发时增减）
+Schedule Model
+功能说明：该功能用于定义具体可执行的模型，定义调用的算法模型、模型参数、数据参数等，并且可指定模型是否自动上线，以及运行频率。
+
+## [Heading 5] 查询
+
+## [Heading 5] 修改模型执行
+点击操作中的“编辑”图标，进入编辑模式。
+1）编辑模式下，Auto Run/Execution Start Time/Scheduling Type变为可编辑状态；
+2）操作列变为“保存”（对号）和“取消”（错号）图标。
+判断：
+对于同一个Eqp Group，仅一个Scene场景可生效
+限制：若Eqp Group已经有一个模型Status为on，编辑该机台组其他模型时，不可改为on状态，提示：“This Eqp Group has already running a Model.”
+校验：
+选中Auto后，Scheduling Type、Execution Start Time必须填，不填写无法保存，提示Please Select、Please Input
+未选中Auto时，不校验必填
+点击“保存”，保存修改后的数据，并退出编辑模式；点击“取消”，退出编辑模式。
+保存后Execution Freq Meaning自动生成描述，超出显示长度悬浮展示。
+Schedule Type：
+CRON：使用CRON表达式执行
+FIX DELAY：按照固定频率执行（单位：min）
+默认Cron；
+选择Scheduling = “Cron”，Execution Start Time保持原有；
+选择Fix Delay，Execution Start Time改为数值输入器，单位分钟，默认10，下限1，上限9999，步长1，可手动输入。
+
+## [Heading 5] 模型单次执行
+通过Operation列中的“Run”按钮
+点击出现弹窗，提示：Run this Model once？
+确认后，执行一次模型，生成日志及甘特图结果等
+特殊说明：如果模型Auto Run已开启或状态为Running，则禁用该按钮。鼠标悬浮提示：模型已在运行中（This Model is running）
+
+## [Heading 5] 配置模型
+点击“配置”图标，进入Model Configuraion子页面。
+
+## [Heading 5] 新增基础模型Model Configuration
+前序流程：点击“Add”按钮，选择“Basic Model”进入新增模型子页面，为编辑模式
+后续流程：Submit后，Schedule增加一条数据，Status为关闭，AutoRun未选中，Execution Start Time、Execution Frequency为空
+模型配置统一说明：
+为空提示：必填或必选项为空，进行保存时，需要在输入框或选择框下红字提示“Cannot be empty”
+
+## [Heading 5] 【基础信息Basic Info】
+
+## [Heading 5] 【模型选择Model Selection】
+1、Model Selection未选择时，进行空白提示：Please Select Model
+2、选择Model后，目标和约束出现数据；没有数据时，显示提示词。
+说明：
+选择Model和Data后，Model Parameter和Config出现数据
+Model后问号：Select Model for Scheduling（选择排程使用的算法模型）
+
+## [Heading 5] 【数据选择Data Selection】
+问号解释内容：
+Eqp Group选择：
+数据显示：
+查看模式下，仅显示已选择的Data Parameter，不可编辑
+编辑模式下，全部显示
+展示数据字段
+Item、Set、Type、Description、Variable、Variable Config
+其中，
+1）Item、Set、Type、Description来自于Data Parameter；
+2）Variable来自Variable Config拼接，
+格式：Variable Name + condition +’value’
+多个之间用配置选定的AND或者OR拼接（目前先固定只有AND）。
+Variable Config
+通过“配置”图标，出现配置弹框，其中Variable Name来自于Data Parameter中Variable的配置项。如果未配置Variable时，不显示配置按钮。
+1）输入
+Condition：Variable可以选择的条件，由后端提供
+Value：同之前Parameter的校验
+逻辑关系：AND、OR，默认为AND。
+可以选择何种关系由后端决定，提供映射关系
+若变量未配置值，则确认后，Variable置空。
+2）和Data Parameter的交互：
+保存模型后，选中的Parameter，在Data Parameter的Model列中，将Model Name展示在数据中。
+
+## [Heading 5] 【配置表Config】
+根据需要设置。针对每个模型都不同的配置数据。
+说明
+特殊说明：
+模型模拟功能禁用
+Model Parameter配置禁用
+结果展示
+Scanner Schedule
+
+## [Heading 5] Chart
+功能说明：
+左侧为历史运行版本区域
+1）展示：
+Litho schedule gantt中reticle信息
+Lot 模块上方reticle展示模块
+Setup、Down情况上方无reticle展示
+当多Lot使用同一reticle加工，reticle展示区间拉长
+2）hover交互：
+reticle 模块hover展示
+ReticleId：Reticle 01
+Trainsize：2
+Process Lot：Lot_01; Lot_02
+Start Time：2023-11-12 14:00:00
+End Time：2023-11-12 14:20:00
+Cost Time：20mins
+Lot模块hover展示
+LotId：LOT_01
+EqpId：IMM_01
+ProductId：P1
+Stage：xxxx
+Step Seq：002000
+Recipe：recipe_1
+ReticleId：reticle_01
+Wafer Num：25
+Process Type：Process
+Start Time：2023-11-12 14:00:00
+End Time：2023-11-12 14:00:00
+Cost Time：20mins
+Status：Scheduling
+3）甘特图调整
+支持对甘特图行高、时间粒度进行调整
+甘特图数据查询
+通过页面输入框”Please Input LotId or EqpId“，注意此处精确查询。
+Key Lot Info
+可选择Bullet、LotId、Lot Type、Reticle Name、Recipe
+选择后，对应数据标签显示在甘特图色块上
+图例：图例可通过左键点击控制甘特图色块显隐
+
+## [Heading 5] Recipe模式（Recipe Mode）
+Recipe Mode可切换开启/关闭：
+默认为关闭；
+关闭表示为甘特图图块recipe不进行颜色区分，甘特图展示内容即当前系统展示样式；
+开启表示为甘特图图块recipe进行颜色区分，系统默认配置5种颜色，对应5种不同的recipe，如果recipe超出5种，则重复对应系统配置的5种颜色
+Recipe排序规则：
+（1）recipe最早排程时间，时间越早，排序越靠前；recipe最早排程时间为该recipe min（排程开始时间）；
+（2）排程时间一致时，根据recipe名称升序排序
+Recipe颜色图例：
+切换为Recipe模式后，图例中显示色盘按钮。鼠标左键单击出现Recipe色卡。
+色卡左侧颜色冻结，右侧显示Recipe名称，如果Recipe列数超出窗口最大长度，则可拖动。
+说明：
+1)甘特图需要进行recipe区分的Lot状态为：Scheduling；
+2)对Litho原始Recipe进行数据处理，如PAA00090AE0MAK@M302-A01A-AA100AA，在Recipe模式下，仅保留@前部分进行数据分组。
+举例：如原始Recipe为A@1，A@2，A@3，B@1，B@2，则在Recipe模式下，Recipe为A和B两种，A@1，A@2，A@3显示为A的颜色。
+
+## [Heading 5] Eqp详情
+点击EqpId右侧图标，打开弹窗，显示该机台各个Lot加工时间轴，即Lot视角。
+整体数据为进入该弹窗的Eqp下的Lot。
+左侧为LotId，右侧为时间轴，分为Running、Jobprepare、Scheduling三种状态。Hover同主甘特图。
+
+## [Heading 5] List
+功能说明：对Scanner结果数据进行列表数据展示。
+页面展示内容：
+EqpId、Eqp Type、Eqp Status、Process Type、Recipe、ReticleId、LotId、ProductId、Step Seq、Start Time、End Time、Process Time
+操作：
+支持按内容筛选
+默认展示全部字段
+内容较多分页展示
+下载：
+明细下载包含所有字段内容
+支持CSV格式
+Reticle Transport
+功能说明：展示Reticle搬送结果，包括Reticle搬送路径及搬送原因。
+EqpId，Eqp Type，LotId是排程的信息，由于哪个排程所引发的搬送。
+Job Type：搬送作业的类型，如进行清洗
+Reticle Schedule
+功能说明：以Reticle视角展示排程结果
+Chart：
+hover展示
+LotId：Lot02
+EqpId：IMM01
+ProductId：0001A01A
+Step Seq：000200
+Recipe：XXX
+ReticleId：Reticle 01
+Start Time：2023-11-12 14:00:00
+End Time：2023-11-12 14:20:00
+Cost Time：20mins
+Status：Process
+Location：xxx
+Key Lot Info：EqpId、LotId
+说明：Lot加工状态为Running、Jobprepare、Scheduling，全部认为是Reticle的Process状态。状态分为Process、Inspection、StarLight、Stocker、Transport。
+List：
+List字段包括ReticleId、Status、LotId、ProductId、Step Seq、Recipe、EqpId、Eqp Group、Start Time、End Time、Cost Time。
+后续优化方向：如果前后色块为同一EqpId，则色块连续，不分割；区分不同机台颜色？
+日志
+Scheduling Log
+功能说明：记录模型调度历史
+页面信息：
+跳转：
+1）跳转Error Management
+在Error和Abnormal状态下，显示跳转按钮“View Error”（错误日志），可以跳转至Error Management查看错误信息。
+带入查询条件Model Name，Create Time（=End Time），Error Type
+Error Management
+功能说明：记录模型调度错误日志
+
+## [Heading 5] 查询
+
+## [Heading 5] 页面
+依次为：
+Model Name
+Version
+Planning模型用“1”
+Model Type
+Create Time
+Error Type
+Error Info
+Detail
+
+## [Heading 5] 页面数据排序
+按照Create Time逆序
+Lot排程优先级
+关联RFP
+预处理设计
+根据4.3.1所述算法流程图，排程算法根据排程优先级依次求解（排程优先级高的lot会优先排程），预处理给出lot的排程优先级设定。对于排程优先级，考虑如下属性：
+Lot Mes Priority
+Bullet SHR,SSHR与其他Normal Bullet Lot
+是否Key Lot
+是否Move Target Lot
+是否Module插队Quota Lot
+是否Key Stage Lot
+是否Urgent QTime
+是否Pilot
+是否ship lot
+排程算法将lot分为1-4等级
+下面给出不同属性的Priority划分，对于每个lot，可拥有多个属性，lot的排程 Priority由其属性的最高Priority决定。
+考虑如下Priority分类：
+示例：
+如果当前Lot属性如下：
+Lot MES priority 7
+MoveTarget Lot
+Key lot
+Lot MES priority 7对应Attribute Priority 4， MoveTarget Lot对应Attribute Priority 2，Key lot对应Attribute Priority 1, 因此取最高Attribute Priority 1为Lot的排程优先级
+注：对于Monitor Lot与Mes Queue Lot会在主排程算法之前进行排程
+Stacking Bond
+关联RFP
+算法设计
+算法概述与流程
+算法基于当前层的WIP以及后续站点的Cycle Time计算出当前层的负载，并基于绑定逻辑模拟出未来每一层的负载，平衡未来每层的Loading，并为当前层优选合适的机台进行排程，最终实现产能分配Load Balance
+算法建模
+算法只考虑30天内的stacking bond计算
+Index
+Lot：
+Stacking group:
+Free Layer :
+Stacking Group  的Layer :
+Eqp：
+Day（天）：
+常量
+Lot  Stacking group 的Layer  的cycle Time：Stack
+LotStacking group 的Layer的剩余cycle Time：StackRemain
+Lot  Free Layer  的cycle Time:
+Lot  Free Layer  的剩余cycle Time:
+Lot  的 Stacking Group  的Layer  在 Day  处理的片数：
+变量
+Lot  的 stacking group  分配给机台 ：
+Lot  在 day  在机台 的负载（辅助变量）：
+机台  在 天的负载（辅助变量）：
+约束
+约束：
+Step 1.根据cycle time 将时间分组为 stacking bond与 free layer ，分组方法如下：
+Step 1.1 根据lot  当前Layer判断属于Stacking Bond Group还是Free Layer
+Step 1.2
+若属于Stacking group  ，则获取StackRemain和，若StackRemain不为空，则将且属scanner step划入，不然将且属于scanner step划入
+若属于Free Layer , 则获取和，若不为空，则将且属scanner step划入，不然将且属scanner step划入
+Step 1.3
+将lot  之后的stacking group与 free layer按加工顺序排序 并进行遍历，根据cycleTime将step 2的剩余天数且属于scanner step归入或
+注：标准一天为0 - 24时，若出现由于cycle time跨天场景，则根据分割比例记录两天分别处理的片数
+Step 2 计算lot  在day  在机台的负载
+对于,
+对于 , 记可处理FreeLayer  的机台数为，对于每个可处理的机台，
+约束：
+Stacking Bond唯一性约束：
+目标
+目标1：机台未来总负载均衡（全线负载）
+目标2：机台未来最大负载均衡（峰值负载）
+目标3：机台未来每天负载均衡
+算法出参
+由得到Stacking Bond 绑定的机台，取最早需要决策绑定的stacking bond group的结果接入到Litho Scheduling系统中作为run path constraint
+Lot排程需求对应设计总览
+
+### [表格1]
+项目名称 | GTX FSO项目 | GTX FSO项目 | GTX FSO项目
+项目经理 | 李刚 | 文档版本 | 0.1
+阶段 | Requirement | 文档初版日期 | 
+作者 |  | 当前版本完成日期 | 
+
+### [表格2]
+版本号 | 版本日期 | 修改者 | 描述
+V0.1 |  |  | 初版
+ |  |  | 
+ |  |  | 
+ |  |  | 
+ |  |  | 
+ |  |  | 
+
+### [表格3]
+甲方项目经理签字 | 乙方项目经理签字
+
+### [表格4]
+概念/术语、缩写 | 释义
+Immersion | 浸入式光刻机
+Litho Scheduling | Litho区域派工排程
+Fix Lot | 排程系统中固定住的Lot排序以稳定派工
+MakeSpan | 全部Lot加工完成时间消耗
+Reticle | 光刻工艺掩膜光罩
+Reticle Train size | Reticle在切换前平均完成的Wafer加工量
+IRIS | 光刻机内部集成Reticle检查系统
+StarLight | Reticle透射光与反射光扫描系统
+APC | 先进工艺控制系统
+Stacking Bond | 光刻工艺Layer机台绑定
+Chuck | Immersion双工件台，用于夹住Wafer
+Doma | 光刻剂量Mapping系统
+
+### [表格5]
+序号 | RFP | RFP内容
+1 | 2.1.1 | BAC 放货需要提前获取下游LITHO的Reticle计划，根据Reticle Assignment结果调整下货顺序
+2 | 2.1.2 | BAC 需要根据下游LITHO机台不同Layer Hungry程度调整派工优先级
+3 | 2.1.3 | 当BAC作为LITHO的QTime 安全站点，需要对LITHO控货时，尽量控在BAC
+
+### [表格6]
+字段名 | 类型 | 含义
+lot_id | String | Lot 唯一标识
+earliest_release | Integer | 最早放货时间；无 MAX QTime 时为 null
+latest_release | Integer | 最晚放货时间
+BATCH_ID | String | 放货批次
+ERROR_MESSAGE | String | 计算失败时的错误信息
+
+### [表格7]
+BARC_RELEASE_BATCH | BARC_RELEASE_BATCH | BARC_RELEASE_BATCH
+字段名 | 类型 | 含义
+BATCH_ID | VARCHAR(64) | 计算批次唯一标识
+LOT_ID | VARCHAR(64) | Lot id
+EARLIEST_RELEASE | timestamp | 最早放货时间
+LATEST_RELEASE | timestamp | 最晚放货时间
+ERROR_MESSAGE | VARCHAR(128) | 计算失败时的错误信息
+
+### [表格8]
+字段 | 释义
+LotId | LotId
+BatchId | Barc站点分批次放货，同一批为一个BatchId
+ProductId | Lot所属Product
+Recipe | Lot在Barc站点的Recipe
+Step Seq | Lot在Barc站点的Step Seq
+Is Release | 是否放货
+Earliest Release | 最早放货时间
+Latest Release | 最晚放货时间
+Litho Eqp | Litho排程机台
+Litho Capability | Litho排程机台Capability
+Litho Start | Litho排程开始时间
+Reason | 跳过或计算失败原因
+
+### [表格9]
+序号 | RFP | RFP内容
+4 | 2.1.4 | Reticle Assignment基于当前WIP + Follow In + Next Loop Hungry综合排程，保证当站WIP和Follow不出现QTime Risk，同时保证下游Loop需要的WIP稳定供给
+7 | 2.1.8 | Reticle需要定期扫Star Light等动作，因此在Reticle排程时，需要实时校验Reticle可用时长和剩余可用片数，当余量不足时，停止下货或控货
+8 | 2.2.1 | Lot和Reticle的绑定关系，需要参考MES：APC（R2R）、Stacking、Doma Run Path的绑定关系
+
+### [表格10]
+字段 | 赋值来源 | 说明
+reticleId | source_reticle_info.reticle_id | Reticle ID
+resetCountIris | source_reticle_info.reset_count_iris | IRIS 重置计数阈值：累计加工多少片 wafer 后必须重新执行 IRIS
+resetCountStarLight | source_reticle_info.reset_count_star_light | Starlight 重置计数阈值：累计加工多少片后需要执行 Starlight
+resetTimeoutIrisPre | source_reticle_info.reset_timeout_iris_pre | IRIS PRE 超时阈值：从上次 IRIS 时间起，多长时间后 PRE 类型的 IRIS 数据失效（单位：分钟）
+resetTimeoutIrisPost | source_reticle_info.reset_timeout_iris_post | IRIS POST 超时阈值：从上次 IRIS 时间起，多长时间后 POST 类型的 IRIS 数据失效（单位：分钟）
+reticleLocation | source_reticle_status.reticle_location | Reticle 当前所在的厂（大区域位置）
+reticleSubLocation | source_reticle_status.reticle_sub_location | 标注 reticle 在 IRIS 机台还是 scanner 等更细致的位置
+physicalLocation | source_reticle_status.physical_location | Reticle 的实时物理位置（如 stocker/eqp/library 等）
+reticlePhysicalStatus | source_reticle_status.physical_status | Reticle 在当前所在位置的状态（如在机台上、空闲等）
+irisInspectionType | source_reticle_status.iris_inspection_type | IRIS 检查类型，值为 PRE 或 POST。PRE 表示 IRIS 数据在加工前有效，POST 表示在加工后有效
+waferCountToIris | source_reticle_status.wafer_count_to_iris | reticle IRIS 剩余容许加工的 wafer 片数（累计加工数量距离下次 IRIS 的剩余计数）
+waferCountToStarLight | source_reticle_status.wafer_count_to_star_light | 距离下次 Starlight 的剩余 wafer 数量
+lastIrisInTime | source_reticle_status.last_iris_in_time（相对秒） | 上次执行IRISin的时间
+futureStarlightTime | source_reticle_status.future_starlight_time（相对秒） | 下次执行 Starlight（校准灯源）的时间戳
+earliestAvailableTime | source_reticle_status.earliest_available_time（相对秒） | Reticle 排程起点的最早可用时间。通过推演 reticle 当前的 reserve lot 完工时间、搬送时间等计算得出
+earliestAvailableLocation | source_reticle_status.earliest_available_location | Reticle 排程起点时所处的位置（如某台机台、stocker、library 等）
+irisEqpList | source_eqp_reticle_relation（is_iris='Y'） | 支持IRIS的机台列表
+scheduledDown | source_reticle_scheduled_down | 计划停机时段
+
+### [表格11]
+FSO_RETICLE_INFO | FSO_RETICLE_INFO | FSO_RETICLE_INFO
+字段 | 类型 | 解释
+ID | NUMBER(20,0) | 主键ID
+RETICLE_ID | VARCHAR2(50) | Reticle ID
+RETICLE_VERSION | VARCHAR2(50) | Reticle版本
+RETICLE_LOCATION | VARCHAR2(50) | reticle所在位置，记录哪个厂
+RETICLE_SUB_LOCATION | VARCHAR2(50) | 记录当前reticle是否在使用，比如IRIS/Scanner等
+PHYSICAL_LOCATION | VARCHAR2(50) | reticle位置
+FSO_LOCATION | VARCHAR2(50) | 对应传送距离配置中的位置
+PHYSICAL_STATUS | VARCHAR2(50) | reticle位置状态
+STATUS | VARCHAR2(50) | reticle状态，记录reticle是否有lot在用
+IRIS_INSPECTION_TYPE | VARCHAR2(50) | 记录reticle做iris的inspection类型
+POD_ID | VARCHAR2(50) | 承载reticle的pod id标识
+POD_STATUS | VARCHAR2(50) | 承载reticle的pod实时状态，标记是否available可用
+CURRENT_EQP_ID | VARCHAR2(50) | EQP机台名称
+IS_IRIS | VARCHAR2(1) | 该reticle是否能在机台上做iris的标识
+IS_LOAD | VARCHAR2(1) | 该reticle能否load进机台的标识
+IS_UNLOAD | VARCHAR2(1) | 该reticle是否需unload出机台的标识
+IS_TO_STAGE | VARCHAR2(1) | 该reticle是否需要 to stage
+IS_DELETE | NUMBER(5,0) | 数据是否逻辑删除：1删除；0未删除
+
+### [表格12]
+SOURCE_RETICLE_STATUS | SOURCE_RETICLE_STATUS | SOURCE_RETICLE_STATUS
+字段 | 类型 | 解释
+ID | NUMBER(20,0) | 主键ID
+RETICLE_ID | VARCHAR2(50) | Reticle ID
+RETICLE_LOCATION | VARCHAR2(50) | reticle所在位置，记录哪个厂
+FROM_LOCATION | VARCHAR2(50) | reticle搬送前所在位置
+TO_LOCATION | VARCHAR2(50) | reticle搬送去所在位置
+RETICLE_SUB_LOCATION | VARCHAR2(50) | 记录当前reticle是否在使用，比如IRIS/Scanner等
+TRANS_START_TIME | DATE | reticle搬送开始时间
+PHYSICAL_LOCATION | VARCHAR2(50) | reticle位置
+PHYSICAL_STATUS | VARCHAR2(50) | reticle位置状态
+FSO_LOCATION | VARCHAR2(50) | 对应传送距离配置中的位置
+STATUS | VARCHAR2(50) | reticle状态，记录reticle是否有lot在用
+IRIS_INSPECTION_TYPE | VARCHAR2(50) | 记录reticle做iris的inspection类型
+POD_ID | VARCHAR2(50) | 承载reticle的pod id标识
+POD_STATUS | VARCHAR2(50) | 承载reticle的pod实时状态，标记是否available可用
+LAST_IRISIN_TIME | DATE | reticle上次iris时间
+LAST_STARLIGHT_TIME | DATE | reticle上次STAR_LIGHT时间
+LAST_CLEAN_TIME | DATE | reticle上次Clean时间
+IRIS_QTIME_START | DATE | IRIS的Qtime开始时间
+FUTURE_STARLIGHT_TIME | DATE | 未来的star light时间
+WAFER_COUNT_TO_IRIS | NUMBER(20,0) | reticle IRIS剩余容许加工Wafer片数
+WAFER_COUNT_TO_STARLIGHT | NUMBER(20,0) | reticle star light剩余容许加工Wafer片数
+LAST_UPDATED_BY | VARCHAR2(50) | 最后修改人
+LAST_UPDATED_TIME | DATE | 最后修改时间
+CREATED_BY | VARCHAR2(50) | 创建人
+CREATED_TIME | DATE | 创建时间
+DATA_VERSION | NUMBER(10,0) | 乐观锁
+DATA_STATUS | VARCHAR2(16) | 数据状态（是否生效）
+POD_PHYSICAL_LOCATION | VARCHAR2(50) | pod物理位置
+IS_DELETE | NUMBER(5,0) | 数据是否逻辑删除：1删除；0未删除
+EARLIEST_AVAILABLE_TIME | DATE | Reticle排程起点最早可用时间（由调度算法推算得出）
+EARLIEST_AVAILABLE_LOCATION | VARCHAR2(64) | Reticle排程起点所处位置（机台/Stocker/Library等）
+
+### [表格13]
+序号 | RFP | RFP内容
+5 | 2.1.6 | 针对Key Lot、高等级、优先出货的Lot优先调动Reticle，控制机台内部Reticle数量，确保紧急Reticle能够Load
+6 | 2.1.7 | Reticle排程时，前后Reticle需要满足温层关系和STL等检测信息，避免Reticle Hold导致结果Failed和QTime Risk
+9 | 2.2.2 | WIP排程时，需要检查Chuck信息和大小片对机台的影响，确保Unit满Run，保证机台产能最大化
+11 | 2.2.3 | Follow MES APC（R2R）逻辑，按照Feed Back和Feed Forward设定和Data Due Date调整Reticle优先级
+12 | 2.2.4 | 当存在PiLot时，需要根据Condition Setup选择是否Risk Run；在QTime Loop中下货时，根据Risk Run的设定值，限制同Condition的Lot WIP量
+13 | 2.2.5 | 实时抓取Doma Run Path Group WIP分布，结合水位管控，调整每个Contest Group下货顺序
+
+### [表格14]
+限制类型 | 配置参数 | 默认值 | 逻辑
+Step限制 | maxstep | 1 | 从当前 stepIndex 起，最多取 maxstep 个节点
+到站时间限制 | maxtime | 1000 | 累计cycleTime 不超过 maxtime，超出的节点截断
+
+### [表格15]
+字段名称 | 字段含义 | 赋值来源说明
+stepAbsSeq | 当前步骤绝对序号 | flowSource.getStepIndex()
+subPlan | 子计划 | flowSource.getSubPlan()
+subPlanVersion | 子计划版本 | flowSource.getSubPlanVersion()
+
+### [表格16]
+字段名称 | 字段赋值来源说明 | 备注
+stepAbsSeq | productFlowSource.getStepIndex() | 步骤绝对序号
+stepSeq | productFlowSource.getStepSeq() | 步骤序号
+flowRecipe | productFlowSource.getRecipe() | recipe
+reticleId | productFlowSource.getReticleId() | 光罩 ID
+avgRunTime | 根据capability，eqp，recipe维度取fso_process_time的runTime字段 | 机台的平均加工时间
+eqpList | eqpMap.get(capability).map(EqpId) | 可用机台列表（从 SourceEqpInfo 按 capability 分组）
+
+### [表格17]
+场景 | 计算规则 | 说明
+无运行记录 | availableTime = 0 | 机台空闲，立即可用
+Source_eqp_running_info.lot_status=running（Running） | availableTime += remainPcs × waferProcessTime | 机台正在加工，只需剩余件数 × 单片时间才能空闲
+Source_eqp_running_info.lot_status=reserved（reserved） | availableTime += waferProcessTime × waferCount | 机台准备加工当前 Lot，按当前 Lot 的 wafer 数量预估加工时间
+
+### [表格18]
+字段 | 业务含义
+EQP_ID | 机台ID，本次排程为该Lot分配加工的Litho机台
+SEQ | 加工顺序，该Lot在对应机台上的加工顺序号（机台内第几个加工）
+LOT_ID | Lot ID，被排程的晶圆批（Lot）标识
+RETICLE_ID | 光罩ID，该Lot在当前步骤加工所需使用的光罩（Reticle）
+PROCESS_START | 加工开始时间，该Lot在机台上的排程开始加工时间
+PROCESS_END | 加工结束时间，该Lot在机台上的排程加工结束时间
+STEP_ID | 加工步骤ID，当前排程的加工步骤标识（Step ID）
+STEP_SEQ | 加工步骤序列号，该步骤在产品flow流程中的seq编号
+STAGE | 加工Stage，该步骤所属的工艺阶段（Stage）
+EQP_GROUP | 机台加工能力（设备组），该步骤所需的机台加工能力/设备组，EQP_GROUP在模型中注释为机台加工能力
+PRODUCT | 产品名称，该Lot对应的产品（Product）
+PRODUCT_VERSION | 产品版本，产品的版本号
+PLAN | 计划名称，该Lot加工所属的计划（Plan）
+PLAN_VERSION | 计划版本，计划的版本号
+
+### [表格19]
+SOURCE_LOT | SOURCE_LOT | SOURCE_LOT
+字段 | 类型 | 解释
+ID | NUMBER(20,0) | 主键ID
+LOT_ID | VARCHAR2(50) | Lot ID
+RUNCARD_ID | VARCHAR2(50) | Lot当前是否做RC的标识
+REWORK_ID | VARCHAR2(50) | Rework ID (返工标识)
+EQP_ID | VARCHAR2(50) | EQP ID (载具编号)
+PRODUCT | VARCHAR2(50) | 产品名称
+PRODUCT_VERSION | VARCHAR2(50) | 产品版本
+PLAN | VARCHAR2(50) | 计划名称
+PLAN_VERSION | VARCHAR2(50) | 计划版本
+STEP_STATUS | VARCHAR2(50) | Lot当前状态: 加工中、准备加工、加工结束
+PROCESS_STATUS | VARCHAR2(50) | 标记Lot是active还是hold
+LOT_TYPE | VARCHAR2(50) | Lot类型
+MATERIAL_TYPE | VARCHAR2(50) | material类型
+IS_PILOT | VARCHAR2(50) | 标识是否是pilot lot
+IS_NTO | VARCHAR2(50) | 标识是否是1-0* lot
+PRIORITY | NUMBER(10,0) | lot优先级
+WAFER_COUNT | NUMBER(10,0) | lot wafer count (片数)
+STEP_SEQ | VARCHAR2(50) | 当前STEP SEQ (即将到达STEP/到达STEP/正在加工STEP)
+RESERVED_EQP_ID | VARCHAR2(500) | 当前lot所在机台，如果trackout或还未jobprepare则为空
+RECIPE | VARCHAR2(500) | 机台的Recipe
+STEP_ID | VARCHAR2(100) | Step的ID
+RETICLE_ID | VARCHAR2(50) | lot在当前站所需reticle，只有在scanner机台有值
+AREA | VARCHAR2(50) | 区域
+CAPABILITY | VARCHAR2(50) | lot所在机台组或即将去往的机台组
+STEPPER_CODE | VARCHAR2(50) | lot最近一次绑定的stepper code
+JOB_IN_TIME | DATE | Lot在当前step job in的时间，未jobin时为空
+UPDATE_TIME | DATE | 最后修改时间
+IS_DELETE | NUMBER(5,0) | 数据是否逻辑删除：1删除；0未删除
+EQP_TYPE | VARCHAR2(256) | 机台所属设备组
+LAST_JOB_OUT_TIME | DATE | 最近一次job out时间
+NO_QUEUE_TIME_FLAG_YN | VARCHAR2(100) | 不排队时间标志 (Y/N)
+
+### [表格20]
+SOURCE_PRODUCT_FLOW | SOURCE_PRODUCT_FLOW | SOURCE_PRODUCT_FLOW
+字段 | 类型 | 解释
+ID | NUMBER(20,0) | 主键ID
+PRODUCT | VARCHAR2(500) | 产品名称
+PRODUCT_VERSION | VARCHAR2(500) | 产品版本
+PLAN | VARCHAR2(500) | 计划名称
+PLAN_VERSION | VARCHAR2(500) | 计划版本
+SUB_PLAN | VARCHAR2(500) | 子计划名称
+SUB_PLAN_VERSION | VARCHAR2(500) | 子计划版本
+FROM_STEP_SEQ | VARCHAR2(500) | 起始STEP SEQ
+TO_STEP_SEQ | VARCHAR2(500) | 结束STEP SEQ
+STEP_TYPE | VARCHAR2(500) | 步骤类型
+STEP_ID | VARCHAR2(500) | 步骤ID
+STEP_SEQ | VARCHAR2(500) | 步骤序号
+RECIPE | VARCHAR2(500) | 机台Recipe
+CAPABILITY | VARCHAR2(500) | 机台能力 (机台组)
+STAGE | VARCHAR2(500) | 阶段
+RETICLE_ID | VARCHAR2(500) | 光罩ID
+QTIME_NAME | VARCHAR2(500) | Qtime名称
+QTIME_TYPE | VARCHAR2(500) | Qtime类型
+QTIME_LIMIT | VARCHAR2(500) | QTIME限制时间
+IS_MIN_QTIME | VARCHAR2(500) | 是否为最小Qtime标识
+STEP_DESC | VARCHAR2(500) | 步骤描述
+LAST_UPDATED_BY | VARCHAR2(500) | 最后更新人
+LAST_UPDATED_TIME | DATE | 最后更新时间
+CREATED_BY | VARCHAR2(500) | 创建人
+CREATED_TIME | DATE | 创建时间
+IS_DELETE | NUMBER(5,0) | 逻辑删除标志：1删除；0未删除
+STEP_INDEX | NUMBER(11,0) | 步骤索引 (顺序号)
+CYCLE_TIME | FLOAT(24) | 周期时间
+D_CYCLE_TIME | FLOAT(24) | 算法生成的cycleTime
+PROCESS_TIME | FLOAT(24) | 加工时间
+CRITICAL_LAYER | VARCHAR2(20) | 关键图层标识
+RELEASE_RATE | FLOAT(24) | 释放率
+AREA | VARCHAR2(100) | 区域
+QTIME_START | VARCHAR2(500) | Qtime开始步骤
+QTIME_END | VARCHAR2(500) | Qtime结束步骤
+QTIME_LEVEL | VARCHAR2(32) | Qtime级别
+
+### [表格21]
+SOURCE_LOT_REMAIN_QTIME | SOURCE_LOT_REMAIN_QTIME | SOURCE_LOT_REMAIN_QTIME
+字段 | 类型 | 解释
+ID | NUMBER(38,0) | 主键ID
+LOT_ID | VARCHAR2(100) | Lot ID
+QTIME_NAME | VARCHAR2(100) | Qtime名称
+QTIME_LIMIT | VARCHAR2(100) | Qtime限制时间 (单位: min)
+IS_MIN_QTIME | VARCHAR2(100) | 是否为最小Qtime标记
+QTIME_START_TIME | DATE | Qtime开始时间
+UPDATE_TIME | DATE | 最后修改时间
+START_STEP_NAME | VARCHAR2(100) | Qtime开始步骤的step name
+QTIME_END_TIME | DATE | Qtime结束时间
+START_STEP_SEQ | VARCHAR2(100) | Qtime开始步骤的step seq编号
+START_SUB_PLAN_NAME | VARCHAR2(100) | Qtime开始步骤的sub plan名称
+START_SUB_PLAN_VERSION | VARCHAR2(100) | Qtime开始步骤的sub plan版本
+START_PRODUCT_NAME | VARCHAR2(100) | Qtime开始步骤的product名称
+IS_DELETE | NUMBER(*,0) | 逻辑删除标志：1删除；0未删除
+
+### [表格22]
+SOURCE_EQP_INFO | SOURCE_EQP_INFO | SOURCE_EQP_INFO
+字段 | 类型 | 解释
+ID | NUMBER(20,0) | 主键ID
+EQP_ID | VARCHAR2(256) | 机台ID
+CAPABILITY | VARCHAR2(40) | 机台能力
+EQP_TYPE | VARCHAR2(256) | 机台类型，区分Process、Metrology、辅助机台
+PROCESS_TYPE | VARCHAR2(30) | 机台加工类型
+MFG_AREA | VARCHAR2(30) | 机台所在区域，如Litho_Scanner、Etch
+LOT_LOADPORT_NUM | NUMBER(38,0) | 机台loadport数量
+IS_RTL_LOADPORT | VARCHAR2(30) | 机台reticle loadport的access mode，是否支持自动搬送
+RETICLE_LOADPORT_NUM | NUMBER(38,0) | 机台reticle loadport数量
+RETICLE_LIBRARY_SIZE | NUMBER(38,0) | 机台可存储的光罩数量 (MES中机台物理MAX size)
+IS_SUPPORT_IRIS | VARCHAR2(30) | 机台是否支持IRIS SCAN
+UPDATE_TIME | DATE | 最后修改时间
+HEAD_ID | VARCHAR2(40) | 机台head ID
+RUNNING_MODE | VARCHAR2(40) | 加工模式 (serial/parallel/combination)
+DUMMY_CAPABILITY | NUMBER(11,0) | 机台DUMMY数量
+MAX_DIFF_SIZE | NUMBER(11,0) | diffusion机台的最大加工片数
+MIN_DIFF_SIZE | NUMBER(11,0) | diffusion机台的最小加工片数
+MAX_FOUP_COUNT | NUMBER(11,0) | diffusion机台的最大加工Foup数
+MIN_FOUP_COUNT | NUMBER(11,0) | diffusion机台的最小加工Foup数
+
+### [表格23]
+SOURCE_EQP_CHAMBER_STATUS (机台腔体状态) | SOURCE_EQP_CHAMBER_STATUS (机台腔体状态) | SOURCE_EQP_CHAMBER_STATUS (机台腔体状态)
+字段 | 类型 | 解释
+ID | NUMBER(11,0) | 主键ID
+EQP_ID | VARCHAR2(30) | 机台ID
+CAPABILITY | VARCHAR2(50) | 机台能力
+CHAMBER_ID | VARCHAR2(40) | 腔体ID
+CHAMBER_STATUS | VARCHAR2(40) | 腔体状态
+HEAD_ID | VARCHAR2(40) | 机台head ID
+IS_DELETE | NUMBER(1,0) | 逻辑删除标志：1删除；0未删除
+EQP_TYPE | VARCHAR2(50) | 机台类型
+
+### [表格24]
+SOURCE_EQP_STATUS | SOURCE_EQP_STATUS | SOURCE_EQP_STATUS
+字段 | 类型 | 解释
+ID | NUMBER(38,0) | 主键ID
+STATUS | VARCHAR2(100) | 机台状态: DOWN/MONITOR/SEASON/DC/CLEAN/OFF/PM/WAIT_MFG/IDLE/RUN/TEST
+CAPABILITY | VARCHAR2(100) | 机台能力
+EQP_ID | VARCHAR2(100) | 机台ID
+EQP_TYPE | VARCHAR2(100) | 机台类型
+RUNNING_LOTS | VARCHAR2(100) | 正在加工的lot，多个时按开始加工时间排序
+JOB_PREPARE_LOTS | VARCHAR2(100) | 正在job prepare的lot，多个时按开始加工时间排序
+RUNNING_MODE | VARCHAR2(100) | 加工模式 (serial/parallel/combinationS/combinationP)
+LAST_PURGE_TIME | DATE | 上次清洗时间
+CHANGE_TIME | DATE | 状态变更时间
+
+### [表格25]
+SOURCE_EQP_RECIPE | SOURCE_EQP_RECIPE | SOURCE_EQP_RECIPE
+字段 | 类型 | 解释
+ID | NUMBER(11,0) | 主键ID
+CAPABILITY | VARCHAR2(40) | 机台能力
+EQP_ID | VARCHAR2(40) | 机台ID
+RUNNING_MODE | VARCHAR2(40) | 加工模式
+EQP_RECIPE | VARCHAR2(100) | 机台Recipe
+PPID | VARCHAR2(500) | PPID (配方ID)
+STATE | VARCHAR2(40) | 状态
+CHAMBER_FLOW | VARCHAR2(500) | 腔体流程
+LAST_UPDATE_TIME | DATE | 最后更新时间
+IS_DELETE | NUMBER(1,0) | 逻辑删除标志：1删除；0未删除
+PROCESS_LIST | VARCHAR2(255) | 工艺列表
+MIN_WAFER_COUNT | NUMBER(,0) | 最小片数
+MAX_WAFER_COUNT | NUMBER(,0) | 最大片数
+
+### [表格26]
+名称 | 类型 | 是否必填/必选 | 默认值 | 最大长度 | 说明
+Lot Type | 复选框 | 必选 | - | - | 数据来源于基础数据表
+
+### [表格27]
+名称 | 类型 | 是否必填/必选 | 默认值 | 最大长度 | 说明
+Priority | 单选下拉框 | 必选 | - | - | 下拉数据来源于基础数据表
+Internal Priority | 多选下拉框 | 必选 | - | - | 下拉数据来源于基础数据表
+
+### [表格28]
+字段名称 | 数据需求描述
+BULLET_CONFIG | 定义NormalBullet和SuperBullet
+NORMAL_BULLET_MAX_WAIT_TIME | 普通Bullet最大等待时间
+SUPER_BULLET_ADVANCE_RESERVE_TIME | 紧急Bullet提前预留时间
+
+### [表格29]
+字段名称 | 数据需求描述 | 颗粒度
+RETICLE_TRANS_COST_TIME | Reticle的自动搬送耗时 | 单值
+CLEAN_COST_TIME | Reticle的清洁时间 | 单值
+IRIS_COST_TIME | Reticle在Scanner内部IRIS的耗时 | 三列：机组+机台+时间
+OFFLINE_IRIS_COST_TIME | Reticle在外部机台IRIS的耗时 | 两列：机台+时间
+STARLIGHT_COST_TIME | Reticle的StarLight检测耗时 | 两列：机台+时间
+RETICLE_LOAD_COST_TIME | Reticle装载到机台的耗时 | 三列：机组+机台+时间
+RETICLE_UNLOAD_COST_TIME | Reticle从机台的导出耗时 | 三列：机组+机台+时间
+RETICLE_ADVANCE_NOTIFY_TIME | Reticle搬送的提前通知时间，即Reticle需要搬送，需要提前多久发送通知 | 单值
+RETICLE_LIBRARY_SIZE | Scanner内部的Reticle Library存储水位 | 三列：机组+机台+水位
+
+### [表格30]
+字段名称 | 数据需求描述
+SUM_LOT_QTY | 连续加工滑动窗口Lot数量
+SUM_WAFER_COUNT | 连续加工滑动窗口Wafer数量
+MIN_LOT_QTY | 最小Lot数量阈值
+MIN_LOT_WAFER_COUNT | 最小Lot Wafer数量阈值
+
+### [表格31]
+字段 | 释义
+Eqp Group Name | 机台组名称
+Model | 用于的算法模型
+Eqp Type | Capability
+Running Mode | 运行模式，如Etch可分为串行、并行
+Area | 机台组所属的区域，如Litho
+KPI View | 是否在KPI统计页面展示
+Schedule Model | 是否在排程结果页面展示
+
+### [表格32]
+名称 | 类型 | 是否必填/必选 | 默认值 | 最大长度 | 说明
+Eqp Group Name | 输入框 | 必填 | - | 20 | 1、仅支持英文大小写字母、数字、下划线、连接号， 输入错误框下红字提示：Only support English letters、numbers、blank space、- and _  2、超出长度不可输入 3、具有唯一性，不可重复，重复提示：This Eqp Group Name is already exist
+Model | 单选下拉框 | 必选 | - | -列表第一个 | 1、数据为定义的算法模型：Diffusion、Etch、Litho、Wet 2、按照字母顺序排序 随着算法模型增加拓展
+Eqp Type | 输入框 | 必填 | - | 50 | 1、 支持英文大小写字母，连接符，括号
+Running Mode | 单选下拉框 | 必选 | - | - | 1、联动Area，选择Area后，该下拉列表数据相应变化 2、Litho区该选项置灰； 3、Wet：Bench、Single Wafer 4、Diffusion：Dual Boat、One Boat 5、Etch：serial、parallel 、combinationS、combinationP
+Area | 单选下拉框 | 必选 | - | -列表第一个 | Eqp Group Name所属区域，应用在KPI及排程结果页面。 和系统区域对应
+KPI View | 单选下拉框 | 必选 | - | - | 该capability是否在KPI页面展示； 选择项Yes/No
+Schedule Model | 单选下拉框 | 必选 | - | - | 该capability是否需要排程，需要排程的，则在排程结果页面展示； 选择项Yes/No
+
+### [表格33]
+名称 | 类型 | 是否必填/必选 | 默认值 | 最大长度 | 说明
+Model Type | 多选下拉框 | 必选 | - | - | 未选择Model Type时，隐藏Set、Type、Scope三个选项 选择Model Type = Scheduling时，出现上述三个选项；选择Model Type=Planning时，不显示
+Set | 单选下拉框 | 必选 | - | - | 分为Lot、Eqp、Runpath
+Item | 输入框 | 必填 | - | 20 | 1、仅支持英文大小写字母、数字、下划线、连接号、空格， 输入错误框下红字提示：Only support English letters、numbers、blank space、- and _  2、超出长度不可输入 3、具有唯一性，不可重复，重复提示：This Item is already exist
+Type | 单选下拉框 | 必选 | - | - | 分为Filter、Supplement、Priority
+Status | 开关 | 必选 | 开启 |  | -
+Scope | 多选下拉框 | 必选 | - | - | 分为Single Wafer、MultiChamber、Batch、Reticle
+M/O | 单选下拉框 | 必选 | - | - | 模型中参数是否必须配置。 选项：M、O
+Variable | 多选下拉框 | 非必填 | 选中所有值 | - | 用于配置Item入参的变量，列表中数据自行配置。 新增：通过“+”进行新增，新增后，列表增加一个空白行，并且光标定位于行首。 点击页面其他位置保存。保存后的数据显示在选择框中。 编辑：点击编辑图标后，该行变为可编辑状态 删除：直接删除，不进行二次校验 校验：仅支持英文大小写字母和下划线，提示：Only support English letters and _ 最多5个 不超过20字符
+Description | 多行文本框 | 非必填 | - | 100 | 超出长度，提示：Cannot exceed 100 characters
+
+### [表格34]
+条件名称 | 类型 | 必要性 | 最大长度 | 默认项 | 说明
+Model Type | 多选下拉框 | 非必选 | - | - | 精确查询结果。 选项：Scheduling、Planning
+
+### [表格35]
+类别 | 参数名 | 说明 | 备注
+数据范围类 | max_step | 排程coming wip站点区间 | 
+数据范围类 | max_time | 排程coming wip时间区间 | 
+算法类 | time_limit | 模型求解时间上限 | 算法
+算法类 | worker | 线程 | 算法
+放货管理 | BARC_SAME_STAGE_RELEASE_GAP | Scanner上游BARC站点同Stage放货间隔（避免下游抢光罩） | 默认2小时
+放货管理 | FIX_LOT_COUNT | 冻结Lot最小个数 | 
+放货管理 | FIX_LOT_MIN_TIME | 冻结Lot最小排程时间 | 
+其他 | LOT_TRANS_COST_TIME | Lot搬送上机台的平均耗时 | 
+
+### [表格36]
+条件名称 | 类型 | 必要性 | 最大长度 | 默认项 | 说明
+Model Name | 可搜索多选下拉框 | 非必选 | - | - | 精确查询结果。 所有Schedule Model中的Model Name，自然排序
+Model | 多选下拉框 | 非必选 | 不限制 | - | 下拉选项和模型中配置的Model 保持一致，排序一致； 可输入对列表数据进行模糊匹配
+Eqp Group Name | 多选下拉框 | 非必选 | 不限制 | - | 下拉数据：来自Eqp Group页签下数据“Eqp Group Name”； 按字母排序 可输入对列表数据进行模糊匹配
+
+### [表格37]
+名称 | 类型 | 是否必填/必选 | 默认值 | 最大长度 | 说明
+Model Name | 输入框 | 必填 | - | 20 | 1、仅支持英文大小写字母、数字、下划线、连接号， 输入错误框下红字提示：Only support English letters、numbers、- and _ 仅支持英文大小写字母、数字、-和_ 2、超出长度不可输入 3、具有唯一性，不可重复，保存submit时重复提示：This Model Name already exists
+
+### [表格38]
+名称 | 类型 | 是否必填/必选 | 默认值 | 最大长度 | 说明
+Model | 单选按钮 | 必选 | - | - | 1、数据为定义的算法模型：Diffusion、Etch、Litho、Reticle Inspection、Wet 2、按照字母顺序排序
+
+### [表格39]
+位置 | 中文 | 英文
+Eqp Group | 选择排程目标机台组 | Select target Eqp Group for scheduling.
+Data Parameter | 模型数据输入参数 | Configure model input data parameters
+
+### [表格40]
+名称 | 类型 | 是否必填/必选 | 默认值 | 最大长度 | 说明
+Eqp Group | 单选下拉框 | 必选 | - | - | 1、列表数据为Eqp Group定义的数据中Area和模型匹配的数据
+
+### [表格41]
+英文 | 中文
+Model Name | 模型名称
+Version | 版本
+Model Type | 模型类型
+Status | 状态
+Error Type | 错误类型
+Scheduling Start Time | 调度开始时间
+Scheduling End Time | 调度结束时间
+
+### [表格42]
+条件名称 | 类型 | 必要性 | 最大长度 | 默认项 | 说明
+Model Name | 可搜索多选下拉框 | 非必选 | - | - | 精确查询结果 所有Schedule Model中的Model Name，自然排序
+Model Type | 单选下拉框 | 非必选 | 1 | - | 下拉数据： Scheduling Planning
+Scheduling End Time | 时间范围选择 | 非必选 | 90天 | 当日 | 秒级，查询时包含边界值； 可选时间范围：当日至过去最长90天内可选（90+往前日期不可选）
+Status | 多选下拉框 | 非必选 | - | - | 下拉数据： Abnormal Error Success
+
+### [表格43]
+条件名称 | 类型 | 必要性 | 最大长度 | 默认项 | 说明
+Model Name | 可搜索多选下拉框 | 非必选 | - | - | 精确查询结果 所有Schedule Model中的Model Name，自然排序
+Model Type | 单选下拉框 | 非必选 | 1 | - | 下拉数据： Scheduling Planning
+Create Time | 时间范围选择 | 必选 | - | 当日 | 秒级，查询时包含边界值
+Error Type | 单选下拉框 | 非必选 | - | - | 下拉数据： DATA_ERROR UNKNOWN_ERROR MODEL_ERROR
+
+### [表格44]
+序号 | RFP | RFP内容
+5 | 2.1.6 | 针对Key Lot、高等级、优先出货的Lot优先调动Reticle，控制机台内部Reticle数量，确保紧急Reticle能够Load
+
+### [表格45]
+Attribute Scheduling Priority | Lot Priority 划分标准
+Attribute Priority 1 | SHR,SSHR Bullet lot
+Attribute Priority 1 | pilot
+Attribute Priority 1 | Remain qt < 60 min
+Attribute Priority 1 | Key Lot
+Attribute Priority 2 | Lot MES priority 1-*
+Attribute Priority 2 | Normal Bullet Lot
+Attribute Priority 2 | Key Stage Lot
+Attribute Priority 2 | Module插队Quota Lot
+Attribute Priority 2 | Move Target Lot
+Attribute Priority 2 | Ship Lot
+Attribute Priority 3 | Lot MES priority 2-* - 6-*
+Attribute Priority 3 | 下游LoadBalance需要的Pull Lot
+Attribute Priority 4 | Lot MES priority 7-* - 9-*
+
+### [表格46]
+序号 | RFP | RFP内容
+10 | 2.1.5 | 存在Stacking Bond & ReBond的站点，需要在首层或第一个绑定站点根据下游各个机台的Stacking WIP存量进行调整，确保每个机台绑定的WIP Balance。
+
+### [表格47]
+编号 | 属性大类 | 属性子类 | 属性名称 | 处理阶段
+ | Lot属性 | 通用属性 | Lot Priority | 前处理
+ | Lot属性 | 通用属性 | Lot绑定Reticle | 前处理
+ | Lot属性 | 通用属性 | Lot温层属性 | 前处理
+ | Lot属性 | 通用属性 | Lot Remain QTime | 前处理，算法
+ | Lot属性 | 通用属性 | 是否Key Lot | 前处理
+ | Lot属性 | 通用属性 | 是否Key Stage Lot | 前处理
+ | Lot属性 | 通用属性 | 是否出货Lot | 前处理
+ | Lot属性 | 通用属性 | 是否Move Target Lot | 前处理
+ | Lot属性 | 通用属性 | Lot当前站点（scanner当站优先排程） | 前处理，算法
+ | Lot属性 | 通用属性 | Lot Type | 前处理
+ | Lot属性 | 通用属性 | 是否与当前加工同Recipe（组批考虑recipe组批，细排程算法recipe change约束考虑） | 算法
+ | Lot属性 | 通用属性 | 是否与当前加工同温层（温区、升降温、温差）（组批考虑recipe组批，细排程算法recipe change约束考虑） | 算法
+ | Lot属性 | 通用属性 | 是否Monitor Lot | 前处理，算法
+ | Lot属性 | 通用属性 | 是否Reticle连批（reticle组批考虑） | 算法
+ | Lot属性 | 通用属性 | Lot同Stage间隔放货(2小时，可配置) | 后处理
+ | Lot属性 | 当站属性 | 是否Pirun Lot | 前处理
+ | Lot属性 | 当站属性 | 是否OverQTime Lot | 前处理
+ | Lot属性 | 当站属性 | Lot WaitTime | 前处理
+ | Lot属性 | 当站属性 | Lot Queue插队，需要绑定机台与First排位 | 前处理
+ | Lot属性 | 当站属性 | Module 插队Quota提前排序 | 前处理
+ | Lot属性 | 上游属性 | 上游平均CycleTime（前处理计算到scanner时间） | 前处理
+ | Lot属性 | 上游属性 | 上游所属站点（前处理计算到scanner时间） | 前处理
+ | Lot属性 | 上游属性 | 预计到站时间（前处理计算到scanner时间） | 前处理
+ | Lot属性 | 上游属性 | BARC能否组Batch | 后处理
+ | Lot属性 | 下游属性 | 下游Hungry Layer | 前处理，算法
+ | Lot属性 | 下游属性 | Doma Etch绑定机台 | 前处理，算法
+ | Lot属性 | 下游属性 | Doma Etch绑定机台Chamber WIP情况 | 前处理，算法
+ | EQP属性 | - | 机组可用机台List（runpath 考虑） | 前处理
+ | EQP属性 | - | Capability机台List（runpath考虑） | 前处理
+ | EQP属性 | - | UnFinishedProcessTime | 前处理
+ | EQP属性 | - | 当前机况信息 | 前处理
+ | EQP属性 | - | PM计划信息 | 前处理
+ | EQP属性 | - | Doma机台关联信息 | 前处理
+ | EQP属性 | - | Reticle储位信息 | 前处理
+ | EQP属性 | - | Monitor时效信息 | 前处理
+ | Reticle信息 | - | Reticle绑定Recipe | 前处理
+ | Reticle信息 | - | Reticle对应温层信息 | 前处理
+ | Reticle信息 | - | Reticle IRIS/StarLight配置信息 | 前处理，算法
+ | Reticle信息 | - | Reticle IRIS/StarLight计片/计时信息 | 前处理，算法

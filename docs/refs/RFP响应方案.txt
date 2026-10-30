@@ -1,0 +1,145 @@
+
+## [Slide 1]
+Litho Scheduling方案
+CONTENTS 目录
+01
+Litho Scheduling RFP需求响应
+
+## [Slide 2]
+Litho Scheduling RFP需求设计方案
+
+## [Slide 3]
+RFP(3) Litho Scheduling与QTMS联动方案
+将每一个过BARC站点与Immersion站点的Loop的水位接入到Immersion的排程系统中，Immersion排程基于当站Lot及Coming Lot进行排程。
+Litho Scheduling在排程后会校验QTMS计算的放货水位，对于每个Loop的放货量进行校准，如果在排程后，有Lot超出了QTMS规划的水位，则在排程Gantt图中进行标记显示。
+
+## [Slide 4]
+RFP(1,2,3) BARC-Immersion上游联动、QTime控制
+BARC Release StartTime与EndTime计算如下：
+StartTime时间守住BARC Start的QTime，如果过早会OverQTime
+EndTime时间守住排程规划与BARC Remain QTime，如果过晚会延误排程规划，或者导致OverQTime
+举例：给出BARC 最早开始时间及最晚开始时间 最早开始时间要满足 6 hour QT 最晚开始时间要来的及上 Immersion
+最早开始时间：BARC站点Start QTime 6Hrs，如果BARC站点的PT为0.5Hrs，Immersion当站排程为该Lot规划的上机时间为10Hrs后，则：StartTime = 10 - 6 -0.5= 3.5Hrs（再早会Over QT) 最晚开始时间 =10-0.5（WT）=9.5小时(再晚来不及上Immersion）
+
+## [Slide 5]
+RFP(10) Stacking Bond产能分配Load Balance及Reticle Train Size
+每层负载计算流程：
+基于机台当前WIP
+计算当前层负载
+判断未来层的绑定关系Critical
+算法基于CT模拟未来每一层的负载
+优化目标：
+Load Balance +
+Reticle Train Size
+决策当前层在哪个机台加工最优
+预计效果：未来Immersion的Load Balance及Reticle Train Size（减低光罩的搬运量）
+
+## [Slide 6]
+RFP(10) Stacking Bond产能分配
+MIP 首层分配模型
+决策变量
+xi,j​∈{0,1}：投放 Lot i 是否分配至机台 j
+rk,j​∈{0,1}：Reticle k 是否在机台 j 加工
+优化目标：负载均衡 + Reticle Train
+1.根据计算当前负载，未来负载，关键层负载设计评价函数：
+Score=α1Loadcurrent+α2Loadfuture+α3Loadcritical
+其中 Loadcurrent为当前负载， 对于Loadfuture，为未来按照ct预估的 负载，Loadcritical为关键层负载， α1+α2+α3=1
+2.对于每个投放loti, 获取首层以及剩余层均可用的机台{eqpi}j，决策loti是否在机台j加工：xi,j∈{0,1}
+3.对每个reticle, 辅助变量 rk,j 决策是否在此机台加工，其中 rk,j≥xi,j,∀i∈reticle k 加工步骤
+3.每个机台的负载 Loadj 为评价函数的负载
+4.目标为load balance + reticle train = min(αLoadoverall+β∑rk,j),α+β=1
+目标1：机台未来总负载均衡（全线负载）
+目标2：机台未来最大负载均衡（峰值负载）
+
+## [Slide 7]
+RFP(10) Stacking Bond产能分配负载计算案例
+Layer1
+LayerN
+原始负载计算：
+E2 负载：day 1, day 3, day 9需要加工lot2和lot4，每天负载为50片；day11 day13 ... day29 只需要加工lot2，负载为25片
+E1 负载：day1，day3...day 29需要加工lot0，每天负载为25片；机台E2未来总负载 为10 * 25 + 5 * 50 = 500，E1 为 25 * 15 = 375
+目标1未来总负载为500 - 375 = 125片
+目标2未来最大负载为50 -25 = 25片
+目标3每天机台间负载差值之和为 25 * 5 = 125
+优化负载计算：
+Lot 1选择绑定 E1，Lot 3选择绑定E3，Lot 5选择绑定E2
+E2 负载：day 1, day 3, day 9需要加工lot2和lot4，每天负载为50片
+day11 day13 ... day29 需要加工lot2和lot5负载为50片
+E1 负载：day1，day3...day 29需要加工lot0，lot1，每天负载为50片
+优化后：
+目标1未来总负载实现均衡，差值为500 * 15 - 50 * 15 = 0片
+目标2未来最大负载实现均衡为 50 -50 = 0片
+目标3每天机台间负载实现均衡：未来30天两EQP每天的负载差值都为0
+
+## [Slide 8]
+RFP(4,7) Litho Scheduling RFP需求设计方案
+排程系统与SDR系统
+联动管理Reticle流程
+
+## [Slide 9]
+RFP(5,6,11,12) Litho Scheduling RFP需求设计方案
+
+## [Slide 10]
+APC检查项详细表说明Item 1~7
+
+## [Slide 11]
+APC检查项详细表说明Item 8~14
+
+## [Slide 12]
+APC检查项详细表说明Item 15~21
+
+## [Slide 13]
+APC检查项详细表说明Item 22~24
+
+## [Slide 14]
+RFP(5,6,11,12) Litho Scheduling RFP需求设计方案
+
+## [Slide 15]
+RFP(13) Doma RunPath RFP需求响应细节
+Doma派工校验上游Immersion机台和下游Etch Chamber的可用性，且确保中间站点不发生RunPath 断线；
+Doma派工会整体考虑下游Etch Chamber的Loading，以及当前的Immersion的WIP情况，从而平衡当站及下游的放货需求；
+Doma RunPath校验内容条目见下表
+
+## [Slide 16]
+Fix Lot逻辑
+Fix Lot目的：
+固定Lot排序，防止报表数据频繁波动；
+防止Reserve/Runing Lot状态误差导致帐料不一致；
+Queue Lot插队到派工排序序列中首个Lot的情况
+打破Fix Lot的场景：
+突然出现的Lot(HoldRelease，Bullet，Skip)；
+Lot到站时间大幅度波动；
+Lot RunPath通路断线；
+人为干预Manual Hold/Reserve/Queue等
+冻结方案：
+至少冻结超过系统数据延迟的时间，Lot数量向上取整；
+支持用户配置Fix Lot个数/时间
+
+## [Slide 17]
+Litho Scheduling方案
+CONTENTS 目录
+02
+产线派工逻辑需求点响应
+
+## [Slide 18]
+Reticle组Batch排程响应逻辑
+
+## [Slide 19]
+Reticle组Batch排程响应逻辑
+
+## [Slide 20]
+Litho Scheduling方案
+CONTENTS 目录
+03
+其他需求点方案
+
+## [Slide 21]
+Scanner派工温层控制问题
+核心逻辑：
+PE+IT给出温度的配置与切换逻辑，
+提供温度切换到耗时的转换方程，
+Scheduling将其参数化
+① By Reicpe构建参数矩阵
+② By Reicpe Group构建参数矩阵
+①
+②
