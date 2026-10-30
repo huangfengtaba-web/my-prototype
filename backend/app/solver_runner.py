@@ -9,6 +9,7 @@ mock_data 的 LOTS / CONFIG / RETICLES 是模块级可变对象，scenario 覆�
 
 结果不落库：RUNS 是内存字典，进程重启即清空（演示口径，见 docs/05_AGENT_HANDOFF_TEMPLATE.md）。
 """
+import json
 import os
 import subprocess
 import sys
@@ -46,10 +47,11 @@ def _parse_summary(stdout):
         return None
 
 
-def run_solve(case=None):
+def run_solve(case=None, fix=False):
     """同步执行一次求解，返回 {run_id, status, summary|error, started_at, finished_at}。
 
     case: scenario 名（tests/cases/*.yaml），None 用基线数据。
+    fix: R1 Fix Lot——以上一次成功运行冻结机台与顺序。
     """
     run_id = _new_run_id()
     record = {
@@ -68,6 +70,8 @@ def run_solve(case=None):
     cmd = [sys.executable, "-m", "backend.solver", "run", "--out", _out_dir(run_id), "--json"]
     if case:
         cmd += ["--case", case]
+    if fix:
+        cmd += ["--fix"]
 
     try:
         proc = subprocess.run(
@@ -101,7 +105,30 @@ def run_solve(case=None):
         summary=summary,
         finished_at=time.strftime("%Y-%m-%d %H:%M:%S"),
     )
+    _save_freeze(summary)                                   # R1: Fix Lot 冻结快照
+    from backend.app import store
+    store.persist_run(record)                               # Supabase 持久化（可选）
     return record
+
+
+def _save_freeze(summary):
+    """把最近一次成功排程存为冻结快照（Fix Lot 用）。"""
+    try:
+        freeze = {r["lot"]: {"eqp": r["eqp"], "start": to_min(r["start"])}
+                  for r in summary.get("schedule") or [] if r.get("start") and r.get("eqp")}
+        path = os.path.join(REPO_ROOT, "backend", "solver", "output", "freeze.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(freeze, f, ensure_ascii=False, indent=1)
+    except Exception as e:                        # noqa: BLE001
+        print(f"[solver_runner] 冻结快照保存失败（不影响）: {e!r}")
+
+
+def to_min(hm):
+    try:
+        h, m = str(hm).split(":")
+        return int(h) * 60 + int(m)
+    except Exception:
+        return 0
 
 
 def get_result(run_id):

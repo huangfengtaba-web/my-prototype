@@ -31,6 +31,29 @@ except ImportError:                      # 没装 PyYAML 时降级为「仅支�
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))          # 仓库根
 CASES_DIR = os.path.join(ROOT, "tests", "cases")
+RUNTIME_CONFIG = os.path.join(HERE, "runtime_config.json")   # R1: 运行时配置（配置管理 API 落盘）
+
+
+def load_runtime_config():
+    """运行时配置覆盖（配置管理 API 写入，子进程启动时加载生效）。"""
+    if os.path.exists(RUNTIME_CONFIG):
+        try:
+            with open(RUNTIME_CONFIG, encoding="utf-8") as f:
+                return json.load(f) or {}
+        except Exception:
+            return {}
+    return {}
+
+
+def apply_runtime_config():
+    from . import litho_solver as ls
+
+    applied = []
+    for k, v in load_runtime_config().items():
+        if k in ls.CONFIG:
+            ls.CONFIG[k] = v
+            applied.append(f"CONFIG.{k}={v}")
+    return applied
 
 
 def load_case(name):
@@ -58,6 +81,8 @@ def apply_case(case):
 
     注意：mock_data 的 LOTS / RETICLES / CONFIG 是模块级可变对象，
     覆盖只对当前进程生效，不会写回磁盘。跑完想复原请重启进程。
+    支持 sections：config / lots / reticles / doma（Chamber ready 覆盖）/
+    qtms（Loop 水位覆盖）。
     """
     from . import litho_solver as ls
 
@@ -75,14 +100,21 @@ def apply_case(case):
         if r_id in ls.RETICLES:
             ls.RETICLES[r_id].update(patch)
             applied.append(f"RETICLES[{r_id}]+={patch}")
+    if case.get("doma"):                                    # R3: Doma Chamber 可用时间覆盖
+        ls.CONFIG["__doma_ready"] = case["doma"]
+        applied.append(f"__doma_ready={case['doma']}")
+    if case.get("qtms"):                                    # R3: Loop 水位覆盖
+        ls.CONFIG["__qtms_water"] = case["qtms"]
+        applied.append(f"__qtms_water={case['qtms']}")
     return applied
 
 
 def cmd_run(args):
     from . import litho_solver as ls
 
+    applied = apply_runtime_config()                        # R1: 运行时配置先于 scenario 生效
     case = load_case(args.case)
-    applied = apply_case(case)
+    applied += apply_case(case)
     if args.out:
         ls.OUT = os.path.abspath(args.out)
         os.makedirs(ls.OUT, exist_ok=True)
@@ -92,7 +124,27 @@ def cmd_run(args):
         for a in applied:
             print(f"       - {a}")
 
-    summary = ls.main()
+    fix = None
+    if getattr(args, "fix", False):                         # R1: Fix Lot 冻结
+        freeze_path = os.path.join(HERE, "output", "freeze.json")
+        if os.path.exists(freeze_path):
+            with open(freeze_path, encoding="utf-8") as f:
+                fix = json.load(f)
+            print(f"[fix] Fix Lot 冻结 {len(fix)} 批（来自上一次运行）")
+        else:
+            print("[fix] 无可用的冻结快照，按无冻结执行")
+
+    summary = ls.main(fix=fix)
+    # R1: 成功运行保存冻结快照（Fix Lot 下一次执行用）
+    if summary.get("milp_status", {}).get("step3") == "Optimal":
+        try:
+            freeze = {r["lot"]: {"eqp": r["eqp"], "start": int(r["start"].split(":")[0]) * 60
+                                 + int(r["start"].split(":")[1])}
+                      for r in summary.get("schedule") or [] if r.get("start") and r.get("eqp")}
+            with open(os.path.join(HERE, "output", "freeze.json"), "w", encoding="utf-8") as f:
+                json.dump(freeze, f, ensure_ascii=False, indent=1)
+        except Exception as e:                    # noqa: BLE001
+            print(f"[fix] 冻结快照保存失败（不影响）: {e!r}")
     print(f"\n[cli] 求解状态：{summary.get('milp_status')}")
     if args.json:
         print(json.dumps(summary, ensure_ascii=False, indent=2))
@@ -151,6 +203,7 @@ def main(argv=None):
     r.add_argument("--case", default=None, help="scenario 用例名（见 cases 子命令）")
     r.add_argument("--out", default=None, help="输出目录，默认 backend/solver/output")
     r.add_argument("--json", action="store_true", help="额外打印完整 JSON 结果")
+    r.add_argument("--fix", action="store_true", help="R1: Fix Lot——按上次运行冻结机台与顺序")
     r.set_defaults(func=cmd_run)
 
     c = sub.add_parser("cases", help="列出所有 scenario 用例")

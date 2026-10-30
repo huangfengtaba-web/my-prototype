@@ -1,0 +1,17 @@
+# Cloudflare Pages 路由（构建时自动进 dist/_redirects；语义与 vercel.json 一致）
+/twin            /vendor-twin/twin.html 200
+/twin/*          /vendor-twin/:splat 200
+/js/*            /vendor-twin/js/:splat 200
+/gtx-layout-map.json  /vendor-twin/gtx-layout-map.json 200
+/gtx-catalog.json     /vendor-twin/gtx-catalog.json 200
+/prototypes       /prototypes/index.html 200
+/prototypes/*     /prototypes/:splat 200
+/simulation       /src/pages/simulation/index.html 200
+/ai-agent         /src/pages/ai-agent/index.html 200
+/ai-workflow      /src/pages/ai-workflow/index.html 200
+/scheduling-test  /src/pages/scheduling-test/index.html 200
+/reports          /src/pages/reports/index.html 200
+/litho-schedule   /src/pages/litho-schedule/index.html 200
+/reticle-schedule /src/pages/reticle-schedule/index.html 200
+/logs             /src/pages/logs/index.html 200
+/config           /src/pages/config/index.html 200

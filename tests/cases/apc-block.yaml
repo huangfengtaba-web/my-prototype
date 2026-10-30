@@ -1,0 +1,7 @@
+# R3 APC 校验场景：LOT-E09 OOD（数据超有效期）→ 本 Loop 不可派工
+name: APC OOD 卡控
+desc: LOT-E09 的 APC 数据 OOD，验证 step4 整批卡控（排程置空 + Error 可追溯）。
+lots:
+  LOT-E09:
+    apc_ood: true
+    apc_failed: ["CHK-07 OOD 计时", "CHK-13 Pilot 标识"]

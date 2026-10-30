@@ -1,0 +1,5 @@
+# R3 QTMS 逐 Loop 水位场景：Loop-C (P-C) 水位降为 1 → 超出的 C07 被延后一个放货间隔
+name: QTMS Loop-C 水位收紧
+desc: 验证逐 Loop 水位校验——放货量超水位时超出部分延后（后处理说明含 QTMS 字样）。
+qtms:
+  Loop-C (BARC→IMM, P-C): 1

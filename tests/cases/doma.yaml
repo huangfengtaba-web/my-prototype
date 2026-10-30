@@ -1,0 +1,6 @@
+# R3 Doma RunPath 场景：下游 Etch Chamber ETCH-C1 最早 700min（11:40）可用
+# LOT-D02/D08 绑定 ETCH-C1 → 开工下界被 Chamber 就绪时间抬高
+name: Doma Chamber 忙碌
+desc: 验证 Doma 绑定 Lot 的开工受下游 Chamber 可用时间约束（11:53 → ≥11:40 基础上再抬升）。
+doma:
+  ETCH-C1: 720

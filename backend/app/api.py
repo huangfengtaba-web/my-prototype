@@ -42,6 +42,7 @@ app.add_middleware(
 # ---------------------------------------------------------------- 基础
 class SolveRequest(BaseModel):
     case: str | None = None      # scenario 名，缺省跑基线
+    fix: bool | None = None      # R1: Fix Lot——按上次运行冻结机台与顺序
 
 
 class SimRequest(BaseModel):
@@ -75,7 +76,50 @@ def cases():
 def solve_run(req: SolveRequest):
     if req.case and req.case not in cli.list_cases():
         raise HTTPException(404, detail=f"未知用例 {req.case}，可用：{', '.join(cli.list_cases()) or '无'}")
-    return solver_runner.run_solve(req.case)
+    return solver_runner.run_solve(req.case, fix=bool(req.fix))
+
+
+# ---------------------------------------------------------------- 配置管理（R1）
+from backend.solver.mock_data import CONFIG as _CONFIG_DEFAULTS  # noqa: E402
+from backend.solver.cli import RUNTIME_CONFIG as _RT_CONFIG, load_runtime_config  # noqa: E402
+
+_CONFIG_EDITABLE = ["temp_change_min", "release_gap_min", "iris_min", "transport_min",
+                    "load_min", "w_changeover", "w_makespan", "time_limit_s",
+                    "stocker_phys", "stocker_water", "iris_reset_wafers", "chunk_size"]
+
+
+class ConfigRequest(BaseModel):
+    patches: dict | None = None       # 键必须属于 CONFIG 白名单
+    reset: bool | None = None         # True = 清除运行时覆盖，恢复默认
+
+
+@app.get("/api/config")
+def get_config():
+    """当前生效配置（默认值 + 运行时覆盖合并）。下一次求解（子进程启动时）生效。"""
+    merged = {**_CONFIG_DEFAULTS, **load_runtime_config()}
+    return {"config": {k: merged[k] for k in _CONFIG_EDITABLE if k in merged},
+            "overridden": sorted(load_runtime_config().keys()),
+            "editable": _CONFIG_EDITABLE}
+
+
+@app.put("/api/config")
+def put_config(req: ConfigRequest):
+    import json as _json
+    overrides = {} if req.reset else load_runtime_config()
+    if not req.reset:
+        for k, v in (req.patches or {}).items():
+            if k not in _CONFIG_EDITABLE:
+                raise HTTPException(400, detail=f"配置项 {k} 不可编辑，允许：{_CONFIG_EDITABLE}")
+            try:
+                v = int(v) if isinstance(v, str) and v.isdigit() else v
+            except Exception:
+                pass
+            overrides[k] = v
+    os.makedirs(os.path.dirname(_RT_CONFIG), exist_ok=True)
+    with open(_RT_CONFIG, "w", encoding="utf-8") as f:
+        _json.dump(overrides, f, ensure_ascii=False, indent=1)
+    return {"ok": True, "overridden": sorted(overrides.keys()),
+            "note": "下一次求解生效（子进程启动时加载）"}
 
 
 @app.get("/api/solve/result/{run_id}")

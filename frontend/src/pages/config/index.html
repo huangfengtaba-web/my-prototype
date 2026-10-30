@@ -1,0 +1,61 @@
+<!doctype html>
+<!-- GTX FSO Litho · 数据配置（真配置）config · v1 · 2026-10-30
+     GET/PUT /api/config：修改 CONFIG 参数（温层/放货间隔/IRIS 链路/换罩权重/求解时限/储位水位…），
+     落盘 runtime_config.json，下一次求解（子进程启动时）生效。
+     原型版 config_zone（9 页签 mock）保留在「原型参考」组。 -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GTX FSO Litho · 数据配置（真配置）</title>
+<link rel="stylesheet" href="/src/pages/_shared/shell.css">
+<style>
+.cfg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.cfg{border:1px solid var(--colorBorder);border-radius:var(--radius);padding:10px 12px;background:#fff}
+.cfg .lab{display:block;margin-bottom:4px}
+.cfg .desc{font-size:11px;color:var(--colorTextQuaternary);margin-top:4px;line-height:1.5}
+.cfg input{width:100%;padding:5px 8px;border:1px solid var(--colorBorder);border-radius:var(--radiusSM)}
+.cfg.overridden{border-color:var(--colorWarning)}
+.cfg.overridden .lab::after{content:"（已覆盖）";color:var(--colorWarning);font-size:11px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sider" id="sider"></aside>
+  <div class="main">
+    <header class="header">
+      <div class="crumb">Production Config / <b>数据配置（真配置）</b></div>
+      <div class="right"><span id="clock" class="clock"></span>
+        <button id="cmBtn" class="btn sm">💬 评论模式</button></div>
+    </header>
+    <div class="content">
+      <div class="card">
+        <div class="card-h">
+          <div><div class="t">排程参数（写回 runtime_config.json）</div>
+            <div class="sub">保存后「下一次求解」生效（子进程启动时加载）；「恢复默认」清除全部覆盖</div></div>
+          <span class="q" data-cm="参数即 mock_data.CONFIG 的白名单子集：温层耗时/放货间隔/IRIS 链路（检测+搬送+装载）/换罩与 MakeSpan 权重/求解时限/储位水位/IRIS 重置片数。改完可到「求解演示」或「Litho 排程」重跑对比。">?</span>
+        </div>
+        <div class="cfg-grid" id="cfgGrid">加载中…</div>
+        <div class="toolbar" style="margin-top:12px">
+          <button id="saveBtn" class="btn primary">💾 保存（下次求解生效）</button>
+          <button id="resetBtn" class="btn">↺ 恢复默认</button>
+          <span id="cfgState" class="run-state"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><div class="t">怎么验证配置生效</div></div>
+        <div style="font-size:12px;line-height:1.9;color:var(--colorTextSecondary)">
+          1. 把「温层转换耗时 temp_change_min」从 20 改成 60 → 保存；<br>
+          2. 去「Litho 排程」点「重新求解」→ 异温层相邻的 Lot 间隔应明显拉大（后处理说明/甘特可见）；<br>
+          3. 或到「求解演示」跑 <b>temp-conflict</b> 场景对比同 Lot 的开工时间；<br>
+          4. 「恢复默认」后重跑，结果回到基线。
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tt" class="tt"></div>
+<script type="module" src="/src/pages/config/script.js"></script>
+</body>
+</html>

@@ -94,10 +94,67 @@ CONFIG = {
     "w_makespan": 1.0,         # ②目标权重：MakeSpan
     "pri_flow_w": {1: 4.0, 2: 2.0, 3: 1.0, 4: 0.5},   # ③目标权重：优先级加权流时间
     "time_limit_s": 30,        # CBC 求解时限
+    "iris_reset_wafers": 100,  # R2：IRIS 检测后光罩恢复的可用片数
+    "chuck_penalty": 15,       # R2：Chuck 首尾片不相容的相邻惩罚（目标函数）
 }
 
 # 求解运行批次标识（对齐 FSO_MID_RUN_BATCH / 原型中间结果页）
 RUN = {"model": "Litho_Main", "version": "V1.3", "batch": "RUN-20261024-01"}
+
+# =====================================================================
+# 扩展能力 mock（R1/R2/R3，口径来源：需求 V0.5 + 设计 V0.1-0922 + 总体计划 39 项功能点）
+# =====================================================================
+
+# --- R1: 属性→优先级四档映射（设计版：数字越小越优先，取最高档） ---
+TAG_TIER = {
+    "SHR": 1, "SSHR": 1, "Pilot": 1, "KeyLot": 1, "PiRun": 1,          # 档1
+    "NormalBullet": 2, "MoveTarget": 2, "KeyStage": 2, "Ship": 2,      # 档2
+    "MESQueue": 2, "ModuleQuota": 2,
+}
+QTIME_URGENT_MIN = 60          # Remain QTime < 60min → 档1
+
+# --- R1: 下游 Hungry（Next Loop 缺货拉货）：产品 → 优先级提升档数 ---
+HUNGRY = {"P-C": 1}
+
+# --- R2: Chuck 首尾片绑定（相邻 Lot：前序尾片 == 后序首片 才免双工件台等待） ---
+CHUCK = {
+    "LOT-A01": {"first": "A", "last": "A"}, "LOT-A02": {"first": "B", "last": "A"},
+    "LOT-B02": {"first": "A", "last": "B"}, "LOT-B05": {"first": "B", "last": "B"},
+    "LOT-C01": {"first": "A", "last": "A"}, "LOT-C07": {"first": "B", "last": "B"},
+    "LOT-D02": {"first": "A", "last": "B"}, "LOT-D08": {"first": "B", "last": "A"},
+    "LOT-E03": {"first": "A", "last": "A"}, "LOT-E09": {"first": "A", "last": "B"},
+}
+
+# --- R2: Stacking Bond 首层绑定白名单（设计版口径：RunPath constraint） ---
+STACK_BIND = {"P-A": ["IMM03", "IMM04"], "P-D": ["IMM06"]}
+
+# --- R3: APC 校验（Normal/RunCard/SRC/Single 类型；OOD 卡控；24 项检查） ---
+APC = {
+    "LOT-A01": {"type": "Normal", "ood": False, "failed": []},
+    "LOT-A02": {"type": "RunCard", "ood": False, "failed": []},
+    "LOT-B02": {"type": "Normal", "ood": False, "failed": []},
+    "LOT-B05": {"type": "SRC", "ood": False, "failed": []},
+    "LOT-C01": {"type": "Normal", "ood": False, "failed": []},
+    "LOT-C07": {"type": "Single", "ood": False, "failed": []},
+    "LOT-D02": {"type": "Normal", "ood": False, "failed": []},
+    "LOT-D08": {"type": "Normal", "ood": False, "failed": []},
+    "LOT-E03": {"type": "RunCard", "ood": False, "failed": []},
+    "LOT-E09": {"type": "Normal", "ood": False, "failed": []},
+}
+APC_CHECKS_TOTAL = 24          # RFP 方案列出 24 项检查
+
+# --- R3: Doma RunPath（Immersion 绑定下游 Etch Chamber） ---
+DOMA = {
+    "LOT-D02": {"chamber": "ETCH-C1", "recipe": "DOMA-R1"},
+    "LOT-D08": {"chamber": "ETCH-C1", "recipe": "DOMA-R1"},
+}
+CHAMBERS = {"ETCH-C1": {"ready": 600}, "ETCH-C2": {"ready": 540}}
+
+# --- R3: QTMS 逐 Loop 水位（BARC→Immersion Loop 的放货量管控） ---
+QTMS_LOOPS = [
+    {"loop": "Loop-A (BARC→IMM, P-A)", "products": ["P-A"], "water": 2},
+    {"loop": "Loop-C (BARC→IMM, P-C)", "products": ["P-C"], "water": 2},
+]
 
 
 def fmt(minute):

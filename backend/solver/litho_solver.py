@@ -21,9 +21,13 @@ import time
 import pulp
 
 try:                                    # 包模式：python -m backend.solver
-    from .mock_data import (CONFIG, DATE, LOTS, MACHINES, RETICLES, RUN, fmt)
+    from .mock_data import (APC, APC_CHECKS_TOTAL, CHAMBERS, CHUCK, CONFIG, DATE,
+                            DOMA, HUNGRY, LOTS, MACHINES, QTIME_URGENT_MIN,
+                            QTMS_LOOPS, RETICLES, RUN, STACK_BIND, TAG_TIER, fmt)
 except ImportError:                     # 脚本模式：python litho_solver.py
-    from mock_data import (CONFIG, DATE, LOTS, MACHINES, RETICLES, RUN, fmt)
+    from mock_data import (APC, APC_CHECKS_TOTAL, CHAMBERS, CHUCK, CONFIG, DATE,
+                           DOMA, HUNGRY, LOTS, MACHINES, QTIME_URGENT_MIN,
+                           QTMS_LOOPS, RETICLES, RUN, STACK_BIND, TAG_TIER, fmt)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "output")
@@ -89,24 +93,56 @@ def reticle_ready_lb(reticle_id, eqp):
 # =====================================================================
 def step1_preprocess():
     lots = LOTS
-    # 加工时长：qty / wph（取分配前各机台最短可能时长作为估计，③按实际机台重算）
+    apc_holds = []
+    # 加工时长 + 属性→优先级四档推导（设计版：数字越小越优先，取最高档）+ Hungry 拉货
     for l in LOTS:
         wphs = [MACHINES[e]["wph"] for e in capable_machines(l)]
         l["dur_est"] = -(-l["qty"] * 60 // min(wphs))          # 向上取整
-        l["pri_w"] = CONFIG["pri_flow_w"][l["priority"]]
+        eff = l["priority"]                                     # 显式优先级（MES 口径兜底）
+        src = ["显式"]
+        for t in l["tags"]:                                     # 属性映射（R1: Ship/MoveTarget/KeyStage/Queue/Quota…）
+            tier = TAG_TIER.get(t)
+            if tier and tier < eff:
+                eff, src = tier, src + [f"{t}→档{tier}"]
+        if l.get("remain_qt") is not None and l["remain_qt"] < QTIME_URGENT_MIN:
+            if eff > 1:
+                eff, src = 1, src + [f"QTime<{QTIME_URGENT_MIN}→档1"]
+        boost = HUNGRY.get(l["product"], 0)                     # R1: 下游 Hungry 拉货
+        if boost:
+            eff = max(1, eff - boost)
+            src.append(f"Hungry({l['product']})+{boost}")
+        l["priority"], l["priority_src"] = eff, "+".join(src)
+        l["pri_w"] = CONFIG["pri_flow_w"][eff]
         l["tag_str"] = "/".join(l["tags"]) if l["tags"] else "Normal"
-    rows = [[l["lot"], l["tag_str"], f"PRI{l['priority']}", l["temp"],
+        # R3: APC 校验（Normal/RunCard/SRC/Single 维度；OOD 卡控；24 项检查）
+        #     scenario 可覆盖：lots.LOT-X: {apc_ood: true, apc_failed: [...]}
+        apc = dict(APC.get(l["lot"], {"type": "Normal", "ood": False, "failed": []}))
+        apc["ood"] = bool(l.get("apc_ood", apc["ood"]))
+        apc["failed"] = l.get("apc_failed", apc["failed"])
+        l["apc"] = apc
+        if apc["ood"]:
+            apc_holds.append(l["lot"])
+    rows = [[l["lot"], l["tag_str"], f"PRI{l['priority']}({l['priority_src']})", l["temp"],
              str(l["remain_qt"]) if l["remain_qt"] else "-",
-             l["reticle"], fmt(l["ready"]), str(l["dur_est"]), "完成"] for l in LOTS]
+             l["reticle"], fmt(l["ready"]), str(l["dur_est"]),
+             "APC OOD 卡控" if l["apc"]["ood"] else "完成"] for l in LOTS]
     save_csv("step1_preprocess.csv",
-             ["LotId", "属性打标", "Priority", "温层", "RemainQTime(min)",
+             ["LotId", "属性打标", "Priority(推导)", "温层", "RemainQTime(min)",
               "ReticleId", "预计到站", "加工时长估(min)", "状态"], rows)
-    log_step(1, "① 预处理", "完成", 0.001, f"{len(LOTS)} lots 打标+计时")
+    log_step(1, "① 预处理", "完成", 0.001,
+             f"{len(LOTS)} lots 打标+计时, APC OOD 卡控 {len(apc_holds)} 批")
+    SUMMARY["apc"] = {l["lot"]: {"type": l["apc"]["type"], "ood": l["apc"]["ood"],
+                                 "checks_passed": APC_CHECKS_TOTAL - len(l["apc"]["failed"]),
+                                 "checks_total": APC_CHECKS_TOTAL,
+                                 "failed": l["apc"]["failed"]} for l in LOTS}
     return LOTS
 
 
 def capable_machines(lot):
-    return [e for e, m in MACHINES.items() if lot["product"] in m["products"]]
+    # R2: Stacking Bond 首层绑定白名单（设计版口径：RunPath constraint）
+    allowed = STACK_BIND.get(lot["product"])
+    base = [e for e, m in MACHINES.items() if lot["product"] in m["products"]]
+    return [e for e in base if not allowed or e in allowed]
 
 
 # =====================================================================
@@ -131,11 +167,16 @@ def step2_reticle_grouping(lots):
     prob += (CONFIG["w_changeover"] * pulp.lpSum(mnt.values())
              + CONFIG["w_makespan"] * C)
 
+    freeze = CONFIG.get("__freeze") or {}                   # R1: Fix Lot 冻结（相邻版本稳定）
     for l in lots:                                          # 每 Lot 恰分配一台
         prob += pulp.lpSum(x[l["lot"], e] for e in capable_machines(l)) == 1
         r = l["reticle"]
         for e in capable_machines(l):                       # 用到即挂载
             prob += x[l["lot"], e] <= mnt[r, e]
+        if l["lot"] in freeze:                              # 冻结：锁定前序版本的机台
+            fe = freeze[l["lot"]]["eqp"]
+            if (l["lot"], fe) in x:
+                prob += x[l["lot"], fe] == 1
     for e in mach:                                          # MakeSpan = 最大机台负载
         prob += C >= pulp.lpSum(x[l["lot"], e] * l["dur_est"] for l in lots
                                 if (l["lot"], e) in x)
@@ -175,9 +216,17 @@ def step3_lot_scheduling(lots, assign):
     prob = pulp.LpProblem("lot_scheduling", pulp.LpMinimize)
     s, o = {}, {}
     gated = 0
+    doma_ready = dict(CHAMBERS)                                   # R3: Doma Chamber 可用时间
+    doma_ready.update(CONFIG.get("__doma_ready") or {})
+    freeze = CONFIG.get("__freeze") or {}
     for l in lots:
         # 光罩就绪耦合：开工不得早于该 Lot 所配机台上光罩的就绪下界
         lb = max(l["ready"], reticle_ready_lb(l["reticle"], assign[l["lot"]]))
+        d = DOMA.get(l["lot"])                                    # R3: Doma RunPath——下游 Chamber 可用性
+        if d:
+            lb = max(lb, doma_ready.get(d["chamber"], {}).get("ready", 0)
+                     if isinstance(doma_ready.get(d["chamber"]), dict)
+                     else doma_ready.get(d["chamber"], 0))
         if lb > l["ready"]:
             gated += 1
         s[l["lot"]] = pulp.LpVariable(f"s_{l['lot']}", lowBound=lb, cat="Integer")
@@ -201,8 +250,33 @@ def step3_lot_scheduling(lots, assign):
     for e, ls in by_m.items():
         for l in ls:
             prob += C >= s[l["lot"]] + dur_on(l, e)
-    # 目标：MakeSpan（弱权）+ Σ 优先级权 × 超出 ready 的延迟（强权，保证急货优先）
-    prob += 0.05 * C + pulp.lpSum(l["pri_w"] * (s[l["lot"]] - l["ready"]) for l in lots)
+    # R2: Chuck 首尾衔接——同机台相邻 Lot 尾片/首片不相容时给软惩罚（并入目标，勿单独 prob+=）
+    W = CONFIG.get("chuck_penalty", 15)
+    chuck_terms = []
+    chuck_pairs = 0
+    for e, ls in by_m.items():
+        for i in range(len(ls)):
+            for j in range(i + 1, len(ls)):
+                l1, l2 = ls[i], ls[j]
+                c1, c2 = CHUCK.get(l1["lot"]), CHUCK.get(l2["lot"])
+                if not (c1 and c2):
+                    continue
+                if c1["last"] != c2["first"]:                 # l1 → l2 方向不相容
+                    chuck_terms.append(W * o[l1["lot"], l2["lot"]])
+                    chuck_pairs += 1
+                if c2["last"] != c1["first"]:                 # l2 → l1 方向不相容
+                    chuck_terms.append(W * o[l2["lot"], l1["lot"]])
+                    chuck_pairs += 1
+    # 目标：MakeSpan（弱权）+ Σ 优先级权 × 超出 ready 的延迟（强权，保证急货优先）+ Chuck 惩罚
+    prob += (0.05 * C
+             + pulp.lpSum(l["pri_w"] * (s[l["lot"]] - l["ready"]) for l in lots)
+             + pulp.lpSum(chuck_terms))
+    # R1: Fix Lot 冻结——同机台上被冻结的 Lot 保持前序版本的先后顺序
+    for e, ls in by_m.items():
+        frozen = sorted([l for l in ls if l["lot"] in freeze],
+                        key=lambda l: freeze[l["lot"]]["start"])
+        for a, b in zip(frozen, frozen[1:]):
+            prob += s[b["lot"]] >= s[a["lot"]] + dur_on(a, e)
     solver = _pick_solver()
     prob.solve(solver)
     status = pulp.LpStatus[prob.status]
@@ -219,7 +293,8 @@ def step3_lot_scheduling(lots, assign):
              ["LotId", "Litho Eqp", "Eqp Group", "ProductId", "Step Seq", "ReticleId",
               "Litho Start", "Litho End", "Process Time(min)", "Priority", "Temp", "Status"], rows)
     log_step(3, "③ Lot 细排程 MILP", status, time.time() - t0,
-             f"MakeSpan={fmt(int(round(C.value())))}, 光罩就绪卡控 {gated} 条")
+             f"MakeSpan={fmt(int(round(C.value())))}, 光罩就绪卡控 {gated} 条, Chuck 不相容对 {chuck_pairs}")
+    SUMMARY["chuck_pairs"] = chuck_pairs
     return status
 
 
@@ -235,6 +310,12 @@ def step4_postprocess(lots):
     skipped = [l for l in lots if l["qtms_over"]]
     for l in skipped:
         l["start"], l["end"], l["post_note"] = None, None, "QTMS 超水位，跳过本 Loop"
+    # R3: APC OOD 卡控——整批不可派工（需求版：已有 OOD 的货应阻止派工）
+    for l in lots:
+        if l["apc"]["ood"] and not l["qtms_over"]:
+            l["start"], l["end"] = None, None
+            l["post_note"] = "APC OOD 卡控，本 Loop 不可派工"
+            skipped.append(l)
     # 同光罩放货间隔（BARC_SAME_STAGE_RELEASE_GAP）
     by_r = {}
     for l in lots:
@@ -253,16 +334,118 @@ def step4_postprocess(lots):
             prev = l["start"]
     for l in lots:
         l.setdefault("post_note", "-")
+    # R3: QTMS 逐 Loop 水位校验——每个 Loop 放货量超水位时，延后超出部分（排程后校准标记）
+    qtms_out = []
+    for loop in QTMS_LOOPS:
+        members = [l for l in lots
+                   if l["product"] in loop["products"] and l["start"] is not None]
+        water_override = (CONFIG.get("__qtms_water") or {}).get(loop["loop"])
+        water = water_override if water_override is not None else loop["water"]
+        members.sort(key=lambda x: x["start"])
+        excess = members[water:]
+        for k, l in enumerate(excess, 1):
+            push = CONFIG["release_gap_min"] * k
+            l["start"] += push
+            l["end"] = l["start"] + dur_on(l, l["assign"])
+            l["post_note"] = f"QTMS {loop['loop']} 水位卡控 +{push}min"
+        qtms_out.append({"loop": loop["loop"], "water": water,
+                         "released": len(members), "deferred": len(excess)})
+    SUMMARY["qtms_loops"] = qtms_out
     rows = [[l["lot"], l["reticle"], fmt(l["start"]) if l["start"] else "-",
              ("推至 " + fmt(l["start"])) if "卡控" in l["post_note"] else
-             ("跳过本 Loop" if l["qtms_over"] else "无调整"),
-             ("BARC_SAME_STAGE_RELEASE_GAP=2h" if "卡控" in l["post_note"] else
-              "QTMS 超水位" if l["qtms_over"] else "-"), "已应用"] for l in lots]
+             ("跳过本 Loop" if (l["qtms_over"] or l["apc"]["ood"]) else "无调整"),
+             ("BARC_SAME_STAGE_RELEASE_GAP=2h" if "放货间隔" in l["post_note"] else
+              "QTMS 超水位" if l["qtms_over"] else
+              "APC OOD" if l["apc"]["ood"] else "-"), "已应用"] for l in lots]
     save_csv("step4_postprocess.csv",
              ["LotId", "ReticleId", "调整后Litho Start", "调整", "规则", "状态"], rows)
     log_step(4, "④ 后处理", "完成", time.time() - t0,
-             f"卡控 {sum(1 for l in lots if '卡控' in l['post_note'])} 条, 跳过 {len(skipped)} 条")
+             f"卡控 {sum(1 for l in lots if '卡控' in l['post_note'])} 条, 跳过 {len(skipped)} 条, "
+             f"QTMS Loop 延后 {sum(o['deferred'] for o in qtms_out)} 条")
     return skipped
+
+
+# =====================================================================
+# ④+ 光罩计片/寿命动态校准（R2, RFP 2.1.8）：
+#     沿时间轴维护每枚光罩的剩余可用片数与检测有效期；余量不足或寿命到期时
+#     触发一次 IRIS（检测20+搬送10+装载5=35min）并顺延同机台后续 Lot。
+#     这是 MILP 之后的确定性校准步：不改变 MILP 状态，只对执行时间做可行性修正。
+# =====================================================================
+def step45_reticle_calibration(lots):
+    t0 = time.time()
+    reset_wafers = CONFIG["iris_reset_wafers"]
+    chain = CONFIG["iris_min"] + CONFIG["transport_min"] + CONFIG["load_min"]  # 35min
+
+    def expiry_of(meta):
+        if meta.get("need_iris"):
+            return 10 ** 9          # 外部 IRIS 刚重置（就绪链路已含检测），无计时约束
+        if meta["status"] == "StarLight" and meta.get("iris_at"):
+            return meta["iris_at"]  # StarLight 到期后才可用
+        return 540 + meta.get("life_remain_min", 10 ** 9)       # 计时余量自 09:00 起
+
+    state = {}
+    for l in sorted([x for x in lots if x.get("start") is not None],
+                    key=lambda x: x["start"]):
+        r = l["reticle"]
+        meta = RETICLES[r]
+        st = state.setdefault(r, {
+            "remain": reset_wafers if meta.get("need_iris") else meta.get("wafer_to_iris", 0),
+            "expiry": expiry_of(meta), "free": 0, "last_eqp": None,
+        })
+        notes = []
+        # 1) 计时：寿命到期 → 触发 IRIS 重置
+        if l["start"] > st["expiry"]:
+            st["remain"] = reset_wafers
+            st["expiry"] = 10 ** 9 if meta.get("need_iris") else l["start"] + meta.get("life_remain_min", 0)
+            l["start"] = max(l["start"], st["free"]) + chain
+            l["end"] = l["start"] + dur_on(l, l["assign"])
+            notes.append(f"光罩寿命到期，IRIS 重置 +{chain}min")
+        # 2) 计片：剩余可用片数不足本 Lot → 触发 IRIS 重置
+        elif st["remain"] < l["qty"]:
+            pre = st["remain"]
+            base = max(l["start"], st["free"])
+            l["start"] = base + chain
+            l["end"] = l["start"] + dur_on(l, l["assign"])
+            st["remain"] = reset_wafers
+            st["expiry"] = 10 ** 9 if meta.get("need_iris") else l["start"] + meta.get("life_remain_min", 0)
+            notes.append(f"计片不足（余{pre}<{l['qty']}），IRIS +{chain}min")
+        # 3) 光罩跨机接力：上一使用机台不同 → 搬送+装载
+        earliest = st["free"] + (CONFIG["transport_min"] + CONFIG["load_min"]
+                                 if st["last_eqp"] not in (None, l["assign"]) else 0)
+        if l["start"] < earliest:
+            notes.append(f"光罩接力等待 +{earliest - l['start']:.0f}min")
+            l["start"] = int(earliest)
+            l["end"] = l["start"] + dur_on(l, l["assign"])
+        st["remain"] -= l["qty"]
+        st["free"] = l["end"]
+        st["last_eqp"] = l["assign"]
+        if notes:
+            l["post_note"] = (l["post_note"] + "；" if l.get("post_note", "-") != "-" else "") + \
+                             "；".join(notes)
+
+    # 同机台去重叠：校准顺延后保证机台内不重叠（含异温层换温间隔）
+    for e in MACHINES:
+        ml = sorted([l for l in lots if l.get("assign") == e and l.get("start") is not None],
+                    key=lambda x: x["start"])
+        prev = None
+        for l in ml:
+            if prev is not None:
+                gap = 0 if prev["temp"] == l["temp"] else CONFIG["temp_change_min"]
+                if l["start"] < prev["end"] + gap:
+                    push = prev["end"] + gap - l["start"]
+                    l["start"] += push
+                    l["end"] = l["start"] + dur_on(l, e)
+                    l["post_note"] = (l["post_note"] + "；" if l.get("post_note", "-") != "-" else "") + \
+                                     f"机台顺延 +{push}min"
+            prev = l
+
+    SUMMARY["reticle_calib"] = {
+        r: {"remain_wafers": s["remain"], "expiry": fmt(s["expiry"]) if s["expiry"] < 10 ** 8 else "-",
+            "free_at": fmt(s["free"])} for r, s in state.items()}
+    n_cal = sum(1 for l in lots if "IRIS" in (l.get("post_note") or ""))
+    log_step("4.5", "④+ 光罩计片/寿命校准", "完成", time.time() - t0,
+             f"IRIS 触发 {n_cal} 批, 光罩 {len(state)} 枚")
+    return lots
 
 
 # =====================================================================
@@ -271,22 +454,47 @@ def step4_postprocess(lots):
 def step5_barc(lots):
     t0 = time.time()
     rows, batch_id = [], {}
+    batches = []
+    # R1: BARC 预组批——同 Reticle 且放货窗口相容（ER ≤ 批次最晚窗口）的 Lot 归入同一 Batch
+    for ret in sorted({l["reticle"] for l in lots}):
+        members = sorted([l for l in lots if l["reticle"] == ret and l["start"] is not None],
+                         key=lambda x: x["start"] - x["barc_qt"] - x["pt"])
+        cur, k = None, 0
+        for l in members:
+            er = l["start"] - l["barc_qt"] - l["pt"]
+            lr = l["start"] - l["pt"]
+            l["barc_er"], l["barc_lr"] = er, lr
+            if cur is None or er > cur["lr_max"]:               # 窗口不相容 → 新开 Batch
+                k += 1
+                cur = {"batch_id": f"B-{DATE.replace('-', '')}-{ret[-4:]}-{k}",
+                       "reticle": ret, "lots": [], "er_min": er, "lr_max": lr}
+                batches.append(cur)
+            cur["lots"].append(l["lot"])
+            cur["er_min"] = max(cur["er_min"], er)              # 批次窗口取交集
+            cur["lr_max"] = min(cur["lr_max"], lr)
+            batch_id[l["lot"]] = cur["batch_id"]
+        for l in [l for l in lots if l["reticle"] == ret and l["start"] is None]:
+            batches.append({"batch_id": f"B-{DATE.replace('-', '')}-{ret[-4:]}-X",
+                            "reticle": ret, "lots": [l["lot"]], "er_min": None,
+                            "lr_max": None})
+            batch_id[l["lot"]] = f"B-{DATE.replace('-', '')}-{ret[-4:]}-X"
     for l in sorted(lots, key=lambda x: x["reticle"]):
-        bid = f"B-{DATE.replace('-', '')}-{l['reticle'][-4:]}"
-        batch_id[l["lot"]] = bid
+        bid = batch_id[l["lot"]]
         if l["start"] is None:
-            rows.append([bid, l["lot"], "-", "-", "-", "FAIL",
-                         "QTMS 超水位，无法计算放货窗口"])
+            reason = "QTMS 超水位" if l["qtms_over"] else ("APC OOD 卡控" if l["apc"]["ood"] else "-")
+            rows.append([bid, l["lot"], "-", "-", "-", "FAIL", reason])
             continue
-        er = l["start"] - l["barc_qt"] - l["pt"]
-        lr = l["start"] - l["pt"]
-        l["barc_er"], l["barc_lr"] = er, lr
-        rows.append([bid, l["lot"], fmt(er), fmt(lr),
+        rows.append([bid, l["lot"], fmt(l["barc_er"]), fmt(l["barc_lr"]),
                      f"LithoStart {fmt(l['start'])} − QTime {l['barc_qt'] // 60}h − PT {l['pt']}min",
                      "OK", ""])
+    SUMMARY["barc_batches"] = [
+        {"batch_id": b["batch_id"], "reticle": b["reticle"], "lots": b["lots"],
+         "window": (f"{fmt(b['er_min'])}~{fmt(b['lr_max'])}" if b["er_min"] is not None else "-")}
+        for b in batches]
     save_csv("step5_barc_release.csv",
              ["BatchId", "LotId", "Earliest Release", "Latest Release", "计算依据", "状态", "错误信息"], rows)
-    log_step(5, "⑤ BARC 反推", "完成", time.time() - t0, f"{len(rows)} 行")
+    log_step(5, "⑤ BARC 反推", "完成", time.time() - t0,
+             f"{len(rows)} 行, 组批 {len(SUMMARY['barc_batches'])} 个")
     return batch_id
 
 
@@ -337,17 +545,23 @@ def step6_reticle_deduction(lots):
 # =====================================================================
 # 主流程：六步串联 + run_summary.json
 # =====================================================================
-def main():
+def main(fix=None):
     SUMMARY["steps"] = []               # 支持被 API 反复调用，先清空历史步骤
+    if fix:
+        CONFIG["__freeze"] = fix        # R1: Fix Lot 冻结（相邻版本机台与顺序保持）
     print(f"=== GTX FSO Litho 六步算法链 Demo · {RUN['model']} {RUN['version']} · {RUN['batch']} ===")
     lots = step1_preprocess()
     assign, s2 = step2_reticle_grouping(lots)
     s3 = step3_lot_scheduling(lots, assign)
     step4_postprocess(lots)
+    step45_reticle_calibration(lots)
     step5_barc(lots)
     step6_reticle_deduction(lots)
 
     SUMMARY["milp_status"] = {"step2": s2, "step3": s3}
+    SUMMARY["stacking_load"] = {e: sum(dur_on(l, e) for l in lots
+                                       if l.get("assign") == e and l.get("start"))
+                                for e in MACHINES}          # R2: Stacking 30 天负载推演输入
     SUMMARY["story_check"] = {                      # 急货故事线一致性自检
         "LOT-A01 上机时间": fmt(next(l["start"] for l in lots if l["lot"] == "LOT-A01")),
         "RT-0101 就绪时间": fmt(RETICLES["RT-0101"]["ready"]),

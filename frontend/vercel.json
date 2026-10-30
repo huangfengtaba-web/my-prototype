@@ -19,5 +19,6 @@
     { "source": "/litho-schedule", "destination": "/src/pages/litho-schedule" },
     { "source": "/reticle-schedule", "destination": "/src/pages/reticle-schedule" },
     { "source": "/logs", "destination": "/src/pages/logs" },
+    { "source": "/config", "destination": "/src/pages/config" },
   ]
 }
