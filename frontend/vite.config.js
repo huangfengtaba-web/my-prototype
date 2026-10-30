@@ -73,6 +73,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         index:         r('index.html'),
+        protoIndex:    r('prototypes/index.html'),
         dataZone:      r('prototypes/data_zone.html'),
         configZone:    r('prototypes/config_zone.html'),
         modelZone:     r('prototypes/model_zone.html'),

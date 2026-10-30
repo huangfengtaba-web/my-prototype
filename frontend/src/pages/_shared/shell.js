@@ -5,7 +5,7 @@
 //   mountShell('scheduling-test')   // 传当前页 key 高亮
 const NAV = [
   ['系统导航', [
-    ['/', '系统总览', 'index'],
+    ['/', '系统总览', 'dashboard'],
     ['/litho-schedule', 'Litho 排程', 'litho-schedule'],
     ['/reticle-schedule', 'Reticle 排程', 'reticle-schedule'],
     ['/prototypes/data_zone.html', '数据接入', ''],
@@ -23,6 +23,7 @@ const NAV = [
     ['/reports', '报告生成', 'reports'],
   ]],
   ['原型参考（mock 数据，设计基线）', [
+    ['/prototypes/index.html', '系统总览（原型）', ''],
     ['/prototypes/result_litho.html', 'Litho 排程（原型）', ''],
     ['/prototypes/result_reticle.html', 'Reticle 排程（原型）', ''],
     ['/prototypes/equip_temp_layer_config.html', '温层配置（原型）', ''],

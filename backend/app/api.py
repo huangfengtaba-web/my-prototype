@@ -53,7 +53,9 @@ class SimRequest(BaseModel):
 @app.get("/api/health")
 def health():
     return {"ok": True, "solver": os.getenv("LITHO_SOLVER", "CBC"),
-            "agent_mode": agent.agent_status()["mode"], "version": "0.2.0"}
+            "agent_mode": agent.agent_status()["mode"],
+            "docgen_enabled": os.getenv("DOCGEN_ENABLED", "1") == "1",
+            "version": "0.2.0"}
 
 
 @app.get("/api/mock/data")

@@ -1,599 +1,104 @@
 <!doctype html>
-<!-- GTX FSO Litho 原型 · 总览 Dashboard · v1 · 2026-10-24 · 对应设计书：2.x RFP 汇总表(t:5/t:9/t:13)、LITHO功能介绍 slide 2/5、缺口对照表 v1 -->
+<!-- GTX FSO Litho · 系统总览 dashboard · v1 · 2026-10-30
+     真系统的入口：后端健康/求解器/Agent 模式/Dify·文档生成配置状态、真实数据 KPI、
+     最近求解批次、八大能力入口。原型版总览在 /prototypes/index.html（原型参考组）。 -->
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>总览 Dashboard · GTX FSO Litho 原型</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GTX FSO Litho · 系统总览</title>
+<link rel="stylesheet" href="/src/pages/_shared/shell.css">
 <style>
-:root{
-  --colorPrimary:#1677FF; --colorPrimaryHover:#4096FF; --colorPrimaryActive:#0958D9;
-  --colorSuccess:#52C41A; --colorWarning:#FAAD14; --colorError:#FF4D4F;
-  --colorText:rgba(0,0,0,.88); --colorTextSecondary:rgba(0,0,0,.65);
-  --colorTextTertiary:rgba(0,0,0,.45); --colorTextQuaternary:rgba(0,0,0,.25);
-  --bgContainer:#fff; --bgLayout:#F5F5F5;
-  --colorBorder:#D9D9D9; --colorBorderSecondary:#F0F0F0; --colorSplit:rgba(5,5,5,.06);
-  --primaryBg:#E6F4FF; --primaryBorder:#91CAFF;
-  --successBg:#F6FFED; --successBorder:#B7EB7F;
-  --warningBg:#FFFBE6; --warningBorder:#FFE58F;
-  --errorBg:#FFF2F0; --errorBorder:#FFCCC7;
-  --radiusSM:4px; --radius:6px; --radiusLG:8px;
-  --siderW:208px; --headerH:48px;
-  --shadow3:0 1px 2px 0 rgba(0,0,0,.03),0 1px 6px -1px rgba(0,0,0,.02),0 2px 4px 0 rgba(0,0,0,.02);
-  --shadow:0 6px 16px 0 rgba(0,0,0,.08),0 3px 6px -4px rgba(0,0,0,.12),0 9px 28px 8px rgba(0,0,0,.05);
-  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif;
-}
-*{box-sizing:border-box}
-html,body{height:100%}
-body{margin:0;font-family:var(--font);font-size:14px;line-height:1.5714;color:var(--colorText);background:var(--bgLayout)}
-a{color:var(--colorPrimary);text-decoration:none}
-a:hover{color:var(--colorPrimaryHover)}
-.app{display:flex;height:100vh;overflow:hidden}
-.sider{width:var(--siderW);flex:0 0 var(--siderW);background:#fff;border-right:1px solid var(--colorBorderSecondary);display:flex;flex-direction:column;height:100vh}
-.logo{height:var(--headerH);display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--colorBorderSecondary);flex:0 0 var(--headerH)}
-.logo .mark{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#1677FF,#69B1FF);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
-.logo .name{font-weight:600;font-size:14px}
-.logo .sub{font-size:11px;color:var(--colorTextTertiary);margin-top:-3px}
-.menu{padding:8px 0;overflow-y:auto;flex:1}
-.menu .grp{padding:8px 16px 4px;font-size:12px;color:var(--colorTextQuaternary)}
-.menu .item{height:40px;display:flex;align-items:center;gap:10px;padding:0 16px;cursor:pointer;color:var(--colorTextSecondary);font-size:14px;transition:background .2s;text-decoration:none}
-.menu .item:hover{background:rgba(0,0,0,.04)}
-.menu .item.active{background:var(--primaryBg);color:var(--colorPrimary);font-weight:500}
-.menu .item .ic{width:16px;height:16px;flex:0 0 16px;opacity:.85}
-.main{flex:1;display:flex;flex-direction:column;min-width:0}
-.header{height:var(--headerH);flex:0 0 var(--headerH);background:#fff;border-bottom:1px solid var(--colorBorderSecondary);display:flex;align-items:center;padding:0 24px;gap:12px}
-.crumb{font-size:13px;color:var(--colorTextTertiary)}
-.crumb b{color:var(--colorText);font-weight:500}
-.header .right{margin-left:auto;display:flex;align-items:center;gap:8px}
-.content{flex:1;overflow:auto;padding:24px}
-.btn{height:32px;padding:0 15px;border-radius:var(--radius);border:1px solid var(--colorBorder);background:#fff;color:var(--colorText);font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap;font-family:var(--font)}
-.btn:hover{color:var(--colorPrimary);border-color:var(--colorPrimary)}
-.btn.primary{background:var(--colorPrimary);border-color:var(--colorPrimary);color:#fff}
-.btn.primary:hover{background:var(--colorPrimaryHover);border-color:var(--colorPrimaryHover);color:#fff}
-.btn.link{border-color:transparent;background:transparent;color:var(--colorPrimary);padding:0 4px;height:24px}
-.btn.link:hover{background:var(--primaryBg)}
-.btn.sm{height:28px;padding:0 10px;font-size:13px}
-.card{background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow3);padding:24px;margin-bottom:16px}
-.card.np{padding:0}
-.card-h{display:flex;align-items:center;gap:12px;margin-bottom:16px}
-.card-h.pad{padding:20px 24px 0;margin-bottom:14px}
-.card-h .t{font-size:16px;font-weight:600}
-.card-h .sub{font-size:12px;color:var(--colorTextTertiary)}
-.card-h .right{margin-left:auto;display:flex;gap:8px;align-items:center}
-.tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:var(--radiusSM);font-size:12px;line-height:20px;border:1px solid transparent;white-space:nowrap}
-.tag.success{background:var(--successBg);color:#389E0D;border-color:var(--successBorder)}
-.tag.processing{background:var(--primaryBg);color:var(--colorPrimary);border-color:var(--primaryBorder)}
-.tag.warning{background:var(--warningBg);color:#D48806;border-color:var(--warningBorder)}
-.tag.error{background:var(--errorBg);color:var(--colorError);border-color:var(--errorBorder)}
-.tag.default{background:#FAFAFA;color:var(--colorTextSecondary);border-color:var(--colorBorder)}
-.note{font-size:12px;color:var(--colorTextTertiary)}
-.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
-.toolbar .sp{margin-left:auto}
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
-.kpi{background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow3);padding:18px 20px;display:block;color:var(--colorText);transition:all .2s;position:relative}
-.kpi:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
-.kpi .l{font-size:13px;color:var(--colorTextTertiary);margin-bottom:6px}
-.kpi .v{font-size:26px;font-weight:600;line-height:1.2}
-.kpi .v small{font-size:13px;font-weight:400;color:var(--colorTextTertiary);margin-left:4px}
-.kpi .d{font-size:12px;color:var(--colorTextTertiary);margin-top:6px}
-.kpi .q{position:absolute;right:14px;top:16px}
-table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
-table.tbl th{background:#FAFAFA;text-align:left;font-weight:600;color:var(--colorText);padding:12px 16px;border-bottom:1px solid var(--colorBorderSecondary);white-space:nowrap;font-size:13px}
-table.tbl th.sortable{cursor:pointer;user-select:none}
-table.tbl th.sortable:hover{color:var(--colorPrimary)}
-table.tbl th .si{font-size:10px;margin-left:2px;color:var(--colorTextQuaternary)}
-table.tbl td{padding:12px 16px;border-bottom:1px solid var(--colorBorderSecondary);color:var(--colorTextSecondary);vertical-align:middle}
-table.tbl tr:hover td{background:#FAFAFA}
-table.tbl td b{color:var(--colorText)}
-.mono{font-family:Consolas,'Courier New',monospace;font-size:12.5px}
-.tscroll{overflow:auto;max-height:520px;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius)}
-.tscroll table.tbl{margin:0}
-.tscroll th{position:sticky;top:0;z-index:2}
-/* 模块入口卡片 */
-.mods{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-.mod{display:block;background:#FAFAFA;border:1px solid var(--colorBorderSecondary);border-radius:var(--radiusLG);padding:16px;text-decoration:none;color:var(--colorText);transition:all .2s;position:relative;min-height:132px}
-.mod:hover{border-color:var(--primaryBorder);background:var(--primaryBg);box-shadow:var(--shadow3);transform:translateY(-2px)}
-.mod .mi{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:10px;background:#fff;border:1px solid var(--colorBorderSecondary)}
-.mod .mt{font-size:14px;font-weight:600;margin-bottom:2px}
-.mod .me{font-size:11px;color:var(--colorTextTertiary);margin-bottom:6px}
-.mod .md{font-size:12px;color:var(--colorTextSecondary);line-height:1.6}
-.mod .go{position:absolute;right:14px;top:16px;color:var(--colorTextQuaternary);font-size:12px}
-.mod:hover .go{color:var(--colorPrimary)}
-.mod.self{border-style:dashed;background:#fff}
-.mod.self:hover{background:#fff;border-color:var(--primaryBorder)}
-/* 交付物索引 */
-.dl-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 40px}
-.dl-grid h4{font-size:13px;color:var(--colorText);margin:0 0 8px;display:flex;align-items:center;gap:6px}
-.dl-grid h4 .dot{width:6px;height:6px;border-radius:50%;background:var(--colorPrimary)}
-.dl-grid h4+h4{margin-top:18px}
-ul.dl{list-style:none;margin:0 0 18px;padding:0}
-ul.dl li{display:flex;align-items:baseline;gap:8px;padding:7px 0;border-bottom:1px dashed var(--colorBorderSecondary);font-size:13px;color:var(--colorTextSecondary)}
-ul.dl li .nm{font-family:Consolas,'Courier New',monospace;font-size:12.5px}
-ul.dl li .ds{color:var(--colorTextTertiary);font-size:12px}
-ul.dl li .ext{margin-left:auto;font-size:11px;color:var(--colorTextQuaternary);white-space:nowrap}
-.footer-note{padding:20px 24px;font-size:12px;color:var(--colorTextTertiary);line-height:1.8}
-/* 评论模式 */
-.q{display:none;width:15px;height:15px;border-radius:50%;background:var(--colorWarning);color:#fff;font-size:11px;line-height:15px;text-align:center;cursor:pointer;margin-left:4px;font-weight:700;vertical-align:middle;user-select:none}
-body.cmt-on .q{display:inline-block}
-.bubble{position:fixed;z-index:1000;max-width:300px;background:#fff;border-radius:var(--radiusLG);box-shadow:var(--shadow);padding:12px 14px;font-size:13px;color:var(--colorText);border-top:3px solid var(--colorWarning)}
-.bubble .bt{font-weight:600;margin-bottom:4px}
-.bubble .bd{color:var(--colorTextSecondary);font-size:12.5px;line-height:1.65}
-.toast{position:fixed;top:64px;left:50%;transform:translateX(-50%);background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:9px 16px;font-size:13px;z-index:1200;display:flex;align-items:center;gap:8px;border-left:3px solid var(--colorSuccess);animation:tin .2s}
-.toast.err{border-left-color:var(--colorError)}
-@keyframes tin{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
-#arch svg{width:100%;height:auto;display:block}
-.stat-ok{background:var(--successBg);color:#389E0D;border-color:var(--successBorder)}
-.stat-part{background:var(--warningBg);color:#D48806;border-color:var(--warningBorder)}
+.sys-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.sys-card{border:1px solid var(--colorBorder);border-radius:var(--radiusLG);padding:14px;background:#fff;
+  display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit}
+.sys-card:hover{border-color:var(--colorPrimaryHover);box-shadow:var(--shadow3)}
+.sys-card .si{font-size:22px}
+.sys-card .st{font-weight:600;font-size:14px}
+.sys-card .sd{font-size:12px;color:var(--colorTextSecondary);line-height:1.6;flex:1}
+.sys-card .go{font-size:12px;color:var(--colorPrimary)}
+.status-row{display:flex;gap:10px;flex-wrap:wrap}
+.status-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 12px;
+  border-radius:999px;border:1px solid var(--colorBorderSecondary);background:#FAFAFA}
+.status-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--colorBorder)}
+.status-pill.ok .dot{background:var(--colorSuccess)}
+.status-pill.warn .dot{background:var(--colorWarning)}
+.status-pill.err .dot{background:var(--colorError)}
 </style>
 </head>
 <body>
 <div class="app">
-  <aside class="sider">
-    <div class="logo">
-      <div class="mark">FS</div>
-      <div>
-        <div class="name">Pxsemi FSO</div>
-        <div class="sub">智能生产中心 · 光刻排程</div>
-      </div>
-    </div>
-    <nav class="menu">
-      <div class="grp">总览</div>
-      <a class="item active" href="index.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>总览 Dashboard</a>
-      <div class="grp">数据接入</div>
-      <a class="item" href="prototypes/data_zone.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v4M16 3v4M8 7h8M4 11h16M4 11v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M7 15h4"/></svg>数据接入</a>
-      <div class="grp">配置</div>
-      <a class="item" href="prototypes/config_zone.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>数据配置</a>
-      <div class="grp">模型</div>
-      <a class="item" href="prototypes/model_zone.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>模型管理</a>
-      <div class="grp">结果</div>
-      <a class="item" href="prototypes/result_litho.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18M6 12h12M9 19h6"/></svg>结果-Litho排程</a>
-      <a class="item" href="prototypes/result_reticle.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 12h4M7 15h7"/></svg>结果-Reticle排程</a>
-      <div class="grp">日志</div>
-      <a class="item" href="prototypes/log_zone.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h14v16l-4-2-3 2-3-2-4 2z"/><path d="M9 9h6M9 13h4"/></svg>日志</a>
-      <div class="grp">扩展页面</div>
-      <a class="item" href="prototypes/stacking_bond_ui_v6.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="7" height="8" rx="1"/><rect x="14" y="12" width="7" height="8" rx="1"/><rect x="8" y="4" width="8" height="6" rx="1"/></svg>Stacking Bond</a>
-      <a class="item" href="prototypes/equip_temp_layer_config.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v10a3 3 0 1 0 0 6 3 3 0 0 0 0-6"/><path d="M12 9h4M12 6h3"/></svg>温层配置详细版</a>
-    </nav>
-  </aside>
+  <aside class="sider" id="sider"></aside>
   <div class="main">
     <header class="header">
-      <div class="crumb">System Overview / <b>Dashboard</b></div>
-      <div class="right">
-        <span class="note" id="clock"></span>
-        <button class="btn" id="cmtBtn">💬 评论模式</button>
-      </div>
+      <div class="crumb">System Overview / <b>系统总览（真后端）</b></div>
+      <div class="right"><span id="clock" class="clock"></span>
+        <button id="cmBtn" class="btn sm">💬 评论模式</button></div>
     </header>
-    <main class="content" id="content">
-
-      <!-- KPI -->
-      <div class="kpis">
-        <a class="kpi" href="prototypes/result_litho.html">
-          <div class="l">在线机台<span class="q" data-cm="在线机台 :: IMM01~IMM08 共 8 台浸没式（Immersion）Scanner；另有 BARC01~06、IRIS01~02 独立检测、STK01~03 Stocker，详见结果页与 Eqp Group。">?</span></div>
-          <div class="v" id="kEqp">—<small>台</small></div>
-          <div class="d" id="kEqpD">加载中…</div>
-        </a>
-        <a class="kpi" href="prototypes/result_litho.html">
-          <div class="l">待排 Lot</div>
-          <div class="v" id="kLot">—<small>批</small></div>
-          <div class="d" id="kLotD">加载中…</div>
-        </a>
-        <a class="kpi" href="prototypes/result_reticle.html">
-          <div class="l">在库 Reticle</div>
-          <div class="v" id="kRet">—<small>枚</small></div>
-          <div class="d" id="kRetD">加载中…</div>
-        </a>
-        <a class="kpi" href="prototypes/result_litho.html">
-          <div class="l">QTMS 超水位<span class="q" data-cm="QTMS 超水位 :: 当站 WIP 超过 QTMS 水位上限的管控点共 3 处，在 Scanner Schedule-Chart 上以红框/角标标记（RFP 2.1.3）。">?</span></div>
-          <div class="v" id="kQtms" style="color:var(--colorError)">—<small>处</small></div>
-          <div class="d" id="kQtmsD">加载中…</div>
-        </a>
-      </div>
-
-      <!-- 系统功能架构 -->
+    <div class="content">
       <div class="card">
         <div class="card-h">
-          <div class="t">系统功能架构</div>
-          <div class="sub">数据层 → 前处理 → 算法层 → 后处理 → 结果层 → 联动层（对应《LITHO功能介绍》slide 2 / slide 5）</div>
-          <div class="right"><span class="q" data-cm="架构示意 :: 算法层 MILP（Reticle 预组批 ΣY_kj、Lot 细排程 chunk≤50 迭代）为界面层示意，本原型不含求解器；求解与验证口径见 03_文档/01_算法说明.md。">?</span></div>
+          <div><div class="t">系统状态</div>
+            <div class="sub">全部由运行中的后端实时返回；原型版总览（架构图/RFP 矩阵）在「原型参考」组</div></div>
+          <span class="q" data-cm="求解器=CBC（PuLP 自带，LITHO_SOLVER 可切 Gurobi/COPT）；Agent 模式=LLM（配置 Key）或规则兜底；Dify=线上工作流是否已配 Key；文档生成=仅本地 Windows（WPS COM），云端设 DOCGEN_ENABLED=0。">?</span>
         </div>
-        <div id="arch"></div>
+        <div class="status-row" id="statusRow">
+          <span class="status-pill"><span class="dot"></span>检测中…</span>
+        </div>
       </div>
 
-      <!-- 模块入口 -->
+      <div class="kpis cols-4">
+        <div class="kpi"><div class="k-l">在线机台</div><div class="k-v" id="kEqp">—</div></div>
+        <div class="kpi"><div class="k-l">待排 Lot</div><div class="k-v" id="kLot">—</div></div>
+        <div class="kpi"><div class="k-l">在库 Reticle</div><div class="k-v" id="kRet">—</div></div>
+        <div class="kpi"><div class="k-l">QTMS 超水位</div><div class="k-v" id="kQtms">—</div></div>
+      </div>
+
       <div class="card">
         <div class="card-h">
-          <div class="t">模块入口</div>
-          <div class="sub">8 张卡片 · 相对路径跳转 · 当前文件与其余 6 个分区文件由各分区 Agent 生成</div>
+          <div><div class="t">系统能力入口</div><div class="sub">全部接真后端</div></div>
         </div>
-        <div class="mods">
-          <a class="mod" href="prototypes/data_zone.html">
-            <div class="mi">⇄</div>
-            <div class="mt">数据接入</div>
-            <div class="me">Data Integration</div>
-            <div class="md">数据源管理 / 同步任务监控 / 字段映射 / 数据质量对账（接生产 MES 前置）</div>
-            <div class="go">进入 ›</div>
-          </a>
-          <a class="mod" href="prototypes/config_zone.html">
-            <div class="mi">🧩</div>
-            <div class="mt">数据配置</div>
-            <div class="me">Production Config</div>
-            <div class="md">Lot Control / Priority / Transport / Temperature / Bullet / Fix / Reticle / Process 共 8 页签</div>
-            <div class="go">进入 ›</div>
-          </a>
-          <a class="mod" href="prototypes/model_zone.html">
-            <div class="mi">⚙️</div>
-            <div class="mt">模型管理</div>
-            <div class="me">Model Control</div>
-            <div class="md">Eqp Group / Data Parameter / Schedule Model + Model Configuration</div>
-            <div class="go">进入 ›</div>
-          </a>
-          <a class="mod" href="prototypes/result_litho.html">
-            <div class="mi">📈</div>
-            <div class="mt">结果-Litho排程</div>
-            <div class="me">Scheduling Result</div>
-            <div class="md">Barc / Scanner 双视图 / OverLap / Lot 加工流 / Wafer 加工时间</div>
-            <div class="go">进入 ›</div>
-          </a>
-          <a class="mod" href="prototypes/result_reticle.html">
-            <div class="mi">🔭</div>
-            <div class="mt">结果-Reticle排程</div>
-            <div class="me">Reticle Result</div>
-            <div class="md">Reticle Schedule Chart/List + Reticle Transport 搬送</div>
-            <div class="go">进入 ›</div>
-          </a>
-          <a class="mod" href="prototypes/log_zone.html">
-            <div class="mi">📋</div>
-            <div class="mt">日志</div>
-            <div class="me">System Log</div>
-            <div class="md">Scheduling Log 调度历史 + Error Management 错误明细（View Error 联跳）</div>
-            <div class="go">进入 ›</div>
-          </a>
-          <a class="mod" href="prototypes/equip_temp_layer_config.html">
-            <div class="mi">🌡️</div>
-            <div class="mt">温层配置详细版</div>
-            <div class="me">Temperature Config · 复用</div>
-            <div class="md">Recipe-Eqp-Temperature 匹配 + Capability 转温成本时间</div>
-            <div class="go">进入 ›</div>
-          </a>
-          <a class="mod" href="prototypes/stacking_bond_ui_v6.html">
-            <div class="mi">🧱</div>
-            <div class="mt">Stacking Bond</div>
-            <div class="me">扩展 · 复用</div>
-            <div class="md">EQP Loading 30 天负载 + Lot Stacking Bond 绑定推演</div>
-            <div class="go">进入 ›</div>
-          </a>
-          <a class="mod self" href="index.html">
-            <div class="mi">🏠</div>
-            <div class="mt">总览 Dashboard（本页）</div>
-            <div class="me">System Overview</div>
-            <div class="md">4 KPI · 功能架构图 · 模块入口 · 13 条 RFP 覆盖矩阵 · 交付物索引</div>
-            <div class="go">当前页</div>
-          </a>
-          <a class="mod" href="/twin">
-            <div class="mi">🏭</div>
-            <div class="mt">数字孪生</div>
-            <div class="me">Digital Twin</div>
-            <div class="md">SemiconFab 3D 洁净室 · 六步排程时间轴回放 · 光罩搬送与机台占用</div>
-            <div class="go">进入 ›</div>
-          </a>
-          <a class="mod" href="/scheduling-test">
-            <div class="mi">▶</div>
-            <div class="mt">求解演示</div>
-            <div class="me">Solver Playground</div>
-            <div class="md">选 Scenario → 调 CBC 求解器 → 实时看六步输出与甘特</div>
-            <div class="go">进入 ›</div>
-          </a>
-          <a class="mod" href="/simulation">
-            <div class="mi">🔀</div>
-            <div class="mt">仿真验证</div>
-            <div class="me">Simulation</div>
-            <div class="md">计划 vs 实际 · 机台故障 MTBF/MTTR · 光罩接力 · 良率返工扰动</div>
-            <div class="go">进入 ›</div>
-          </a>
-          <a class="mod" href="/ai-workflow">
-            <div class="mi">🧠</div>
-            <div class="mt">AI 工作流</div>
-            <div class="me">Dify Workflow</div>
-            <div class="md">日计划排程 / 场景对比 / 智能问答 · 线上 Dify 编排 + 本地降级</div>
-            <div class="go">进入 ›</div>
-          </a>
+        <div class="sys-grid">
+          <a class="sys-card" href="/litho-schedule"><div class="si">📈</div><div class="st">Litho 排程</div>
+            <div class="sd">六步 MILP 真实结果：Scanner Schedule 甘特、Lot 明细（BARC 窗口）、六步时间线、批次管理</div>
+            <div class="go">进入 ›</div></a>
+          <a class="sys-card" href="/reticle-schedule"><div class="si">🎭</div><div class="st">Reticle 排程</div>
+            <div class="sd">光罩五态时间轴（Stocker/搬送/装载/加工），与孪生回放同一套搬送语义</div>
+            <div class="go">进入 ›</div></a>
+          <a class="sys-card" href="/twin-control"><div class="si">🏭</div><div class="st">数字孪生回放</div>
+            <div class="sd">3D 洁净室按排程时间轴回放：机台 SEMI E10 灯 + OHT 光罩搬送 + Lot/搬送双面板</div>
+            <div class="go">进入 ›</div></a>
+          <a class="sys-card" href="/simulation"><div class="si">🔀</div><div class="st">仿真验证</div>
+            <div class="sd">执行态离散事件仿真：机台故障/良率返工/光罩接力，计划 vs 实际，同种子可复现</div>
+            <div class="go">进入 ›</div></a>
+          <a class="sys-card" href="/scheduling-test"><div class="si">▶</div><div class="st">求解演示</div>
+            <div class="sd">选 Scenario → 调 CBC 求解器 → 实时看六步输出与甘特</div>
+            <div class="go">进入 ›</div></a>
+          <a class="sys-card" href="/ai-agent"><div class="si">🤖</div><div class="st">AI 助手</div>
+            <div class="sd">对话直接驱动系统：求解/仿真/工作流/数据查询（LLM 自主决策或规则兜底）</div>
+            <div class="go">进入 ›</div></a>
+          <a class="sys-card" href="/ai-workflow"><div class="si">🧠</div><div class="st">AI 工作流</div>
+            <div class="sd">线上 Dify 编排 + 本地降级：日计划链路 / 多场景对比，节点级真实执行流</div>
+            <div class="go">进入 ›</div></a>
+          <a class="sys-card" href="/reports"><div class="si">📄</div><div class="st">报告生成</div>
+            <div class="sd">WPS COM 渲染排程报告 docx/pdf、明细 xlsx、汇报 pptx（本地 Windows）</div>
+            <div class="go">进入 ›</div></a>
         </div>
       </div>
 
-      <!-- RFP 覆盖矩阵 -->
-      <div class="card np">
-        <div class="card-h pad">
-          <div class="t">RFP 覆盖矩阵</div>
-          <div class="sub">13 条 RFP（设计说明书 t:5 / t:9 / t:13 汇总）→ 原型页面 → 覆盖状态</div>
-          <div class="right">
-            <span class="q" data-cm="判读口径 :: ✅ 覆盖＝界面/配置项已呈现；🟡 部分＝有入口或部分字段，关键逻辑（打分/校验/接口）待算法与联调落地。与《GTX_FSO_Litho_缺口对照表_v1》§1.3 口径一致。">?</span>
-            <button class="btn sm" id="rfpCSV">导出 CSV</button>
-          </div>
-        </div>
-        <div class="tscroll">
-          <table class="tbl" id="rfpTbl">
-            <thead>
-              <tr>
-                <th class="sortable" data-sort="no" style="width:52px">序号<span class="si"></span></th>
-                <th class="sortable" data-sort="rfp" style="width:76px">RFP<span class="si"></span></th>
-                <th>RFP 内容摘要</th>
-                <th style="width:300px">对应页面</th>
-                <th class="sortable" data-sort="st" style="width:96px">状态<span class="si"></span></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div class="footer-note" id="rfpStat"></div>
-      </div>
-
-      <!-- 交付物索引 -->
       <div class="card">
         <div class="card-h">
-          <div class="t">交付物索引</div>
-          <div class="sub">相对路径 · 全部离线可开 · 5 份文档已于 2026-10-25 交付</div>
-          <div class="right"><span class="q" data-cm="文档生成 :: 03_文档 下 5 份设计文档由文档 Agent 生成；若链接暂不可用，请先查阅根目录 README.md 的清单与生成说明。">?</span></div>
+          <div><div class="t">最近求解批次</div><div class="sub">点行内链接查看完整排程结果</div></div>
+          <div class="right"><a class="btn sm" href="/litho-schedule">排程结果 ›</a></div>
         </div>
-        <div class="dl-grid">
-          <div>
-            <h4><span class="dot"></span>原型页面 · 02_原型/（7 文件 + 2 复用）</h4>
-            <ul class="dl">
-              <li><a class="nm" href="index.html">index.html</a><span class="ds">总览：KPI / 架构 / RFP 矩阵 / 交付索引</span><span class="ext">本页</span></li>
-              <li><a class="nm" href="prototypes/data_zone.html">data_zone.html</a><span class="ds">数据接入（4 页签）</span><span class="ext">HTML</span></li>
-              <li><a class="nm" href="prototypes/config_zone.html">config_zone.html</a><span class="ds">数据配置（8 页签）</span><span class="ext">HTML</span></li>
-              <li><a class="nm" href="prototypes/model_zone.html">model_zone.html</a><span class="ds">模型管理（3 页签 + 配置子页）</span><span class="ext">HTML</span></li>
-              <li><a class="nm" href="prototypes/result_litho.html">result_litho.html</a><span class="ds">结果-Litho排程（6 页签）</span><span class="ext">HTML</span></li>
-              <li><a class="nm" href="prototypes/result_reticle.html">result_reticle.html</a><span class="ds">结果-Reticle排程（3 页签）</span><span class="ext">HTML</span></li>
-              <li><a class="nm" href="prototypes/log_zone.html">log_zone.html</a><span class="ds">日志（2 页签）</span><span class="ext">HTML</span></li>
-              <li><a class="nm" href="prototypes/stacking_bond_ui_v6.html">stacking_bond_ui_v6.html</a><span class="ds">Stacking Bond 复用页</span><span class="ext">复用</span></li>
-              <li><a class="nm" href="prototypes/equip_temp_layer_config.html">equip_temp_layer_config.html</a><span class="ds">温层配置详细版复用页</span><span class="ext">复用</span></li>
-              <li><a class="nm" href="../README.md">../README.md</a><span class="ds">交付总说明（根目录）</span><span class="ext">MD</span></li>
-            </ul>
-            <h4><span class="dot"></span>PPT · 01_PPT/ 与 00_素材/</h4>
-            <ul class="dl">
-              <li><a class="nm" href="../00_素材/LITHO功能介绍-全功能版.pptx">LITHO功能介绍-全功能版.pptx</a><span class="ds">功能总览 / 核心模块</span><span class="ext">PPTX</span></li>
-              <li><a class="nm" href="../00_素材/Litho%20Scheduling%20RFP响应方案-20260907.pptx">Litho Scheduling RFP响应方案-20260907.pptx</a><span class="ds">RFP 响应</span><span class="ext">PPTX</span></li>
-              <li><a class="nm" href="../01_PPT/光罩推演_PPT大纲_v1.md">光罩推演_PPT大纲_v1.md</a><span class="ds">光罩推演 PPT 大纲</span><span class="ext">MD</span></li>
-            </ul>
-          </div>
-          <div>
-            <h4><span class="dot"></span>设计文档 · 03_文档/（由文档 Agent 生成）</h4>
-            <ul class="dl">
-              <li><a class="nm" href="../docs/specs/01_算法说明.md">01_算法说明.md</a><span class="ds">预组批/细排程 MILP 公式与流程</span><span class="ext">已交付</span></li>
-              <li><a class="nm" href="../docs/specs/02_数据流转.md">02_数据流转.md</a><span class="ds">SOURCE_* → 前处理 → 结果文件</span><span class="ext">已交付</span></li>
-              <li><a class="nm" href="../docs/specs/03_页面流转.md">03_页面流转.md</a><span class="ds">25 页面跳转与交互说明</span><span class="ext">已交付</span></li>
-              <li><a class="nm" href="../docs/specs/04_数据库设计.md">04_数据库设计.md</a><span class="ds">SOURCE_* 表结构与结果表</span><span class="ext">已交付</span></li>
-              <li><a class="nm" href="../docs/specs/05_API接口设计.md">05_API接口设计.md</a><span class="ds">SDR/QTMS/MES 联动接口</span><span class="ext">已交付</span></li>
-              <li><a class="nm" href="../docs/specs/06_客户使用场景与操作流程.md">06_客户使用场景与操作流程.md</a><span class="ds">6 大客户场景操作流程 + 优化清单</span><span class="ext">已交付</span></li>
-              <li><a class="nm" href="../backend/solver/README.md">04_算法demo\</a><span class="ds">六步算法链 Python Demo（PuLP+CBC 求解器）</span><span class="ext">已交付</span></li>
-            </ul>
-            <h4><span class="dot"></span>素材与规范 · 00_素材/</h4>
-            <ul class="dl">
-              <li><a class="nm" href="../00_素材/GTX%20FSO项目设计说明书-Litho-V0.1-1023.docx">GTX FSO项目设计说明书-Litho-V0.1-1023.docx</a><span class="ds">设计基线（字段出处）</span><span class="ext">DOCX</span></li>
-              <li><a class="nm" href="../00_素材/GTX_FSO_Litho_缺口对照表_v1.md">GTX_FSO_Litho_缺口对照表_v1.md</a><span class="ds">42 行需求缺口对照</span><span class="ext">MD</span></li>
-              <li><a class="nm" href="../00_素材/半导体基本概念和术语介绍-20260604.pptx">半导体基本概念和术语介绍-20260604.pptx</a><span class="ds">术语背景</span><span class="ext">PPTX</span></li>
-              <li><a class="nm" href="../docs/_DESIGN_SPEC.md">_DESIGN_SPEC.md</a><span class="ds">原型共享设计规范 v1</span><span class="ext">MD</span></li>
-            </ul>
-          </div>
-        </div>
+        <div class="tscroll"><table class="dt" id="runTbl">
+          <thead><tr><th>run_id</th><th>Scenario</th><th>MILP</th><th>Lot 数</th><th>开始时间</th><th>状态</th><th></th></tr></thead>
+          <tbody></tbody></table></div>
       </div>
-
-      <div class="note" style="text-align:center;padding:4px 0 12px">GTX FSO Litho 原型 · 单文件离线 · 演示数据确定性好复现 · v1 · 2026-10-24</div>
-    </main>
+    </div>
   </div>
 </div>
-
-<script>
-/* ================= 系统功能架构 SVG ================= */
-var ARCH={
-  W:1180,colW:148,xs:[9,175,341,507,673,839,1005],H:318,
-  layers:[
-    {name:'接入层',en:'Integration In',bg:'#FFF7E6',bd:'#FFD591',tc:'#D48806',items:[
-      {t:'数据源管理',s:'MES/EAP/QTMS/SDR/APC'},
-      {t:'同步任务监控',s:'增量水位 · 断点续传'},
-      {t:'字段映射',s:'版本化清洗规则'},
-      {t:'数据质量对账',s:'WIP 对账 · 隔离区'},
-      {t:'输入快照 SNAP',s:'排程前数据冻结'}],
-     note:'data_zone.html · 接生产 MES 前置'},
-    {name:'数据层',en:'Data',bg:'#E6F4FF',bd:'#91CAFF',tc:'#0958D9',items:[
-      {t:'SOURCE_LOT',s:'32 字段 · QTime/优先级',mono:1},
-      {t:'SOURCE_PRODUCT_FLOW',s:'38 字段 · RunPath',mono:1},
-      {t:'SOURCE_EQP_STATUS',s:'PM / Down / Purge',mono:1},
-      {t:'SOURCE_RETICLE_STATUS',s:'32 字段 · IRIS 余量',mono:1},
-      {t:'FSO_RETICLE_INFO',s:'19 字段 · 储位/水位',mono:1}],
-     note:'SOURCE_* 12+ 张源表 · 定时同步'},
-    {name:'前处理',en:'Pre-process',bg:'#F6FFED',bd:'#B7EB7F',tc:'#389E0D',items:[
-      {t:'Lot Preprocess',s:'fillQtimeInfo · 优先级映射'},
-      {t:'Eqp Preprocess',s:'Available Time · PM/Down'},
-      {t:'Reticle Preprocess',s:'IRIS / StarLight / Purge 余量校验'},
-      {t:'特殊 Lot 前处理',s:'Bullet / Fix / PiLot / Monitor'}],
-     note:'规则引擎清洗 → 结构化输入'},
-    {name:'算法层',en:'Algorithm',bg:'#FFFBE6',bd:'#FFE58F',tc:'#D48806',arrows:1,items:[
-      {t:'Reticle 预组批 MILP',s:'ΣY_kj · maxload−minload · train size'},
-      {t:'Lot 细排程 MILP',s:'chunk ≤ 50 迭代 · 温层/QTime/不重叠'},
-      {t:'Lot 后优化',s:'Σ makespan 最小化'}],
-     note:'求解器超时 → 启发式降级'},
-    {name:'后处理',en:'Post-process',bg:'#F9F0FF',bd:'#D3ADF7',tc:'#722ED1',items:[
-      {t:'Reticle 位置仿真推演',s:'机内储位 · 水位联动'},
-      {t:'BARC 放货反推',s:'earliest / latest release 三 Case'},
-      {t:'Reticle 指令生成',s:'清洗 / IRIS / StarLight / N2 / Load'}],
-     note:'细化 Reticle 指令与动作'},
-    {name:'结果层',en:'Result',bg:'#E6FFFB',bd:'#87E8DE',tc:'#08979C',items:[
-      {t:'LOT_SCHEDULING_RESULT',mono:1},
-      {t:'RETICLE_SCHEDULING_RESULT',mono:1},
-      {t:'RETICLE_TRANSPORT_RESULT',mono:1},
-      {t:'BARC_RELEASE_BATCH',mono:1}],
-     note:'4 类结果文件 · CSV 导出'},
-    {name:'联动层',en:'Integration',bg:'#FFF0F6',bd:'#FFA8D0',tc:'#C41D7F',items:[
-      {t:'SDR',s:'搬送调度指令',mono:1},
-      {t:'QTMS',s:'水位管控 · 超水位标记',mono:1},
-      {t:'MES / APC / Doma',s:'绑定关系 · RunPath 回读'},
-      {t:'下游 RTD',s:'集成接口见 05_API接口设计'}],
-     note:'双向联动 · 接口待联调'}
-  ]
-};
-function renderArch(){
-  var A=ARCH,H=A.H,s='';
-  s+='<svg viewBox="0 0 '+A.W+' 404" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="系统功能架构图">';
-  s+='<defs><marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><path d="M0,0L7,3.5L0,7z" fill="#94A7C4"/></marker></defs>';
-  A.layers.forEach(function(L,i){
-    var x=A.xs[i];
-    s+='<rect x="'+x+'" y="8" width="'+A.colW+'" height="'+H+'" rx="8" fill="'+L.bg+'" stroke="'+L.bd+'"/>';
-    s+='<path d="M'+x+',38 h'+A.colW+'" stroke="'+L.bd+'" fill="none"/>';
-    s+='<text x="'+(x+A.colW/2)+'" y="28" text-anchor="middle" font-size="13" font-weight="600" fill="'+L.tc+'">'+L.name+' <tspan font-size="10" font-weight="400" opacity=".75">'+L.en+'</tspan></text>';
-    var y=48,cx=x+A.colW/2,n=L.items.length,gap=L.arrows?18:8;
-    L.items.forEach(function(it,k){
-      var h=it.s?34:26;
-      s+='<rect x="'+(x+10)+'" y="'+y+'" width="'+(A.colW-20)+'" height="'+h+'" rx="4" fill="#fff" stroke="'+L.bd+'"/>';
-      var mf=it.mono?' font-family="Consolas,monospace"':'';
-      if(it.s){
-        s+='<text x="'+cx+'" y="'+(y+15)+'" text-anchor="middle" font-size="11.5" font-weight="600" fill="rgba(0,0,0,.85)"'+mf+'>'+it.t+'</text>';
-        s+='<text x="'+cx+'" y="'+(y+28)+'" text-anchor="middle" font-size="9.5" fill="rgba(0,0,0,.5)">'+it.s+'</text>';
-      }else{
-        s+='<text x="'+cx+'" y="'+(y+16.5)+'" text-anchor="middle" font-size="10.5" font-weight="500" fill="rgba(0,0,0,.8)"'+mf+'>'+it.t+'</text>';
-      }
-      y+=h;
-      if(k<n-1){
-        if(L.arrows){s+='<text x="'+cx+'" y="'+(y+13)+'" text-anchor="middle" font-size="11" fill="'+L.tc+'">▼</text>';}
-        y+=gap;
-      }
-    });
-    if(L.note){s+='<text x="'+(x+A.colW/2)+'" y="'+(8+H-10)+'" text-anchor="middle" font-size="9.5" fill="'+L.tc+'" opacity=".85">'+L.note+'</text>';}
-  });
-  for(var i=0;i<6;i++){
-    var x1=A.xs[i]+A.colW+3,x2=A.xs[i+1]-3;
-    s+='<line x1="'+x1+'" y1="167" x2="'+x2+'" y2="167" stroke="#94A7C4" stroke-width="1.6" marker-end="url(#ah)"/>';
-  }
-  s+='<rect x="9" y="338" width="1162" height="56" rx="8" fill="#FAFAFA" stroke="#D9D9D9" stroke-dasharray="4 3"/>';
-  s+='<text x="24" y="360" font-size="12" font-weight="600" fill="rgba(0,0,0,.65)">演示故事线 · 急货 LOT-A01</text>';
-  s+='<text x="24" y="380" font-size="11" fill="rgba(0,0,0,.5)">10:00 上机（IMM01）→ RT-0101 需外部 IRIS 检测 20min → 搬送 10min → 装载 5min → 09:45 就绪；详见「结果-Litho排程 / 结果-Reticle排程」</text>';
-  s+='</svg>';
-  document.getElementById('arch').innerHTML=s;
-}
-
-/* ================= RFP 覆盖矩阵 ================= */
-var RFP=[
-  {no:1,rfp:'2.1.1',txt:'BAC 放货需提前获取下游 LITHO 的 Reticle 计划，根据 Reticle Assignment 结果调整下货顺序',pages:[['result_litho.html','Barc Schedule'],['result_reticle.html','Reticle Schedule']],st:1,why:'放货区间联控 + Reticle 计划回读界面已覆盖'},
-  {no:2,rfp:'2.1.2',txt:'BAC 需根据下游 LITHO 机台不同 Layer Hungry 程度调整派工优先级',pages:[['result_litho.html','Barc Schedule']],st:2,why:'Hungry 原因列已呈现，打分口径待算法落地'},
-  {no:3,rfp:'2.1.3',txt:'当 BAC 作为 LITHO 的 QTime 安全站点，需对 LITHO 控货时尽量控在 BAC',pages:[['result_litho.html','QTMS 超水位标记'],['config_zone.html','Transport/Process Config']],st:1,why:'水位标记与控货配置已覆盖（OverTime 定义待客户澄清 D1）'},
-  {no:4,rfp:'2.1.4',txt:'Reticle Assignment 基于当前 WIP + Follow In + Next Loop Hungry 综合排程，保证当站 WIP 与 Follow 不出现 QTime Risk，同时保证下游 Loop WIP 稳定供给',pages:[['result_reticle.html','Reticle Schedule'],['model_zone.html','Schedule Model']],st:2,why:'WIP/Follow 已建模，Next Loop Hungry 待补'},
-  {no:5,rfp:'2.1.5',txt:'Stacking Bond 产线长期 Loading Balance 并与派工结合',pages:[['stacking_bond_ui_v6.html','EQP Loading / Lot Stacking Bond']],st:1,why:'30 天负载与绑定推演界面已覆盖'},
-  {no:6,rfp:'2.1.6',txt:'针对 Key Lot、高等级、优先出货的 Lot 优先调动 Reticle，控制机台内部 Reticle 数量，确保紧急 Reticle 能够 Load',pages:[['config_zone.html','Bullet Lot / Reticle Config'],['result_litho.html','Key Lot Info']],st:1,why:'Bullet 双级 + 库位水位 + Key Lot Info 已覆盖'},
-  {no:7,rfp:'2.1.7',txt:'Reticle 排程时，前后 Reticle 需满足温层关系和 STL 等检测信息，避免 Reticle Hold 导致 Failed 与 QTime Risk',pages:[['equip_temp_layer_config.html','温层配置'],['result_litho.html','Scanner Schedule']],st:1,why:'同温层优先/转温成本/检测约束界面已覆盖'},
-  {no:8,rfp:'2.1.8',txt:'Reticle 需定期扫 Star Light 等动作，排程时实时校验可用时长与剩余可用片数，余量不足时停止下货或控货',pages:[['config_zone.html','Reticle Config'],['result_reticle.html','Reticle Schedule']],st:2,why:'IRIS/StarLight 计时计片为配置项，实时校验逻辑待联调'},
-  {no:9,rfp:'2.2.1',txt:'Lot 和 Reticle 的绑定关系需参考 MES：APC（R2R）、Stacking、Doma Run Path 的绑定关系',pages:[['stacking_bond_ui_v6.html','Lot Stacking Bond'],['config_zone.html','Lot Control']],st:2,why:'Stacking 绑定已演示，APC/Doma 绑定接口未联'},
-  {no:10,rfp:'2.2.2',txt:'WIP 排程时需检查 Chuck 信息和大小片对机台的影响，确保 Unit 满 Run、机台产能最大化',pages:[['result_litho.html','Scanner Schedule']],st:2,why:'Chuck 大小片为字段示意，满 Run 算法未落地（D2）'},
-  {no:11,rfp:'2.2.3',txt:'Follow MES APC（R2R）逻辑，按 Feed Back / Feed Forward 设定和 Data Due Date 调整 Reticle 优先级',pages:[['config_zone.html','Priority Config']],st:2,why:'优先级映射表已呈现，APC 回馈权重为占位'},
-  {no:12,rfp:'2.2.4',txt:'存在 PiLot 时需按 Condition Setup 选择是否 Risk Run；QTime Loop 下货时按设定值限制同 Condition 的 Lot WIP 量',pages:[['config_zone.html','Lot Control / Process Config']],st:2,why:'PiLot/Risk Run 开关为配置占位，WIP 限制口径待定义'},
-  {no:13,rfp:'2.2.5',txt:'实时抓取 Doma Run Path Group WIP 分布，结合水位管控，调整每个 Contest Group 下货顺序',pages:[['index.html','QTMS 水位 KPI'],['config_zone.html','Transport Config']],st:2,why:'水位 KPI 已呈现，Doma 数据源未接入'}
-];
-var rfpSort={key:'no',dir:1};
-function renderRfp(){
-  var rows=RFP.slice().sort(function(a,b){
-    var k=rfpSort.key;
-    var va=k==='st'?a.st:a[k],vb=k==='st'?b.st:b[k];
-    return va<vb?-rfpSort.dir:va>vb?rfpSort.dir:0;
-  });
-  var tb=document.querySelector('#rfpTbl tbody');
-  tb.innerHTML=rows.map(function(r){
-    var pl=r.pages.map(function(p){return '<a href="'+(p[0]==='index.html'?p[0]:'prototypes/'+p[0])+'">'+p[1]+'</a>';}).join(' · ');
-    var stTag=r.st===1?'<span class="tag stat-ok">✅ 覆盖</span>':'<span class="tag stat-part">🟡 部分</span>';
-    return '<tr><td class="mono">'+r.no+'</td><td><b class="mono">'+r.rfp+'</b></td><td style="min-width:260px">'+r.txt+'</td><td>'+pl+'<div class="note" style="margin-top:2px">'+r.why+'</div></td><td>'+stTag+'</td></tr>';
-  }).join('');
-  document.querySelectorAll('#rfpTbl th.sortable').forEach(function(th){
-    var on=th.getAttribute('data-sort')===rfpSort.key;
-    th.querySelector('.si').textContent=on?(rfpSort.dir>0?'▲':'▼'):'';
-  });
-  var ok=RFP.filter(function(r){return r.st===1;}).length;
-  document.getElementById('rfpStat').innerHTML='统计：✅ 覆盖 <b>'+ok+'</b> 条 · 🟡 部分 <b>'+(13-ok)+'</b> 条 / 共 13 条 —— 判读口径为「界面与配置项层面」，与缺口对照表 v1 §1.3 一致；🟡 项的算法/接口缺口详见 03_文档 与 HANDOFF。';
-}
-document.querySelectorAll('#rfpTbl th.sortable').forEach(function(th){
-  th.addEventListener('click',function(){
-    var k=th.getAttribute('data-sort');
-    if(rfpSort.key===k){rfpSort.dir=-rfpSort.dir;}else{rfpSort.key=k;rfpSort.dir=1;}
-    renderRfp();
-  });
-});
-
-/* ================= 通用：时钟 / 评论模式 / toast / CSV ================= */
-function tick(){var d=new Date(),p=function(n){return (n<10?'0':'')+n;};document.getElementById('clock').textContent=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());}
-setInterval(tick,1000);tick();
-var cmt=false;
-document.getElementById('cmtBtn').addEventListener('click',function(){
-  cmt=!cmt;document.body.classList.toggle('cmt-on',cmt);
-  this.textContent=cmt?'💬 评论模式 · 开':'💬 评论模式';
-  toast(cmt?'评论模式已开启：点击 ? 徽章查看设计说明':'评论模式已关闭');
-});
-document.addEventListener('click',function(e){
-  var q=e.target.closest('.q');
-  var old=document.querySelector('.bubble');
-  if(old){old.remove();}
-  if(q){
-    var parts=(q.getAttribute('data-cm')||'').split(' :: ');
-    var b=document.createElement('div');b.className='bubble';
-    b.innerHTML='<div class="bt">'+(parts[0]||'说明')+'</div><div class="bd">'+(parts[1]||'')+'</div>';
-    document.body.appendChild(b);
-    var r=q.getBoundingClientRect();
-    b.style.left=Math.min(window.innerWidth-320,Math.max(8,r.left-140))+'px';
-    b.style.top=Math.min(window.innerHeight-120,r.bottom+8)+'px';
-    e.stopPropagation();
-  }
-});
-function toast(msg,err){
-  var t=document.createElement('div');t.className='toast'+(err?' err':'');t.textContent=msg;
-  document.body.appendChild(t);setTimeout(function(){t.remove();},2400);
-}
-function dl(name,text){
-  var a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob(['\ufeff'+text],{type:'text/csv;charset=utf-8'}));
-  a.download=name;a.click();URL.revokeObjectURL(a.href);
-}
-document.getElementById('rfpCSV').addEventListener('click',function(){
-  var head=['序号','RFP','RFP内容','对应页面','状态','说明'];
-  var body=RFP.map(function(r){return [r.no,r.rfp,r.txt,r.pages.map(function(p){return p[1]+'('+p[0]+')';}).join('; '),r.st===1?'覆盖':'部分',r.why];});
-  var csv=head.concat(body).map(function(row){return row.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\r\n');
-  dl('rfp_coverage_matrix.csv',csv);toast('已导出 rfp_coverage_matrix.csv');
-});
-renderArch();renderRfp();
-
-/* KPI 真实数据填充（替代硬编码） */
-(function () {
-  var API = window.__API_BASE__ || 'http://127.0.0.1:8000';
-  function txt(id, s) { var e = document.getElementById(id); if (e) e.textContent = s; }
-  function val(id, n, u) {
-    var e = document.getElementById(id);
-    if (e) e.innerHTML = (n == null ? '—' : n) + '<small>' + u + '</small>';
-  }
-  fetch(API + '/api/mock/data')
-    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(function (d) {
-      var eqps = Object.keys(d.machines || {});
-      var lots = d.lots || [];
-      var rets = Object.keys(d.reticles || {});
-      var over = lots.filter(function (l) { return l.qtms_over; });
-
-      val('kEqp', eqps.length, '台');
-      txt('kEqpD', eqps.join(' · ') + ' · 浸没式 Scanner');
-
-      val('kLot', lots.length, '批');
-      var prods = Array.from(new Set(lots.map(function (l) { return l.product; })));
-      txt('kLotD', prods.join(' / ') + ' · 25 片/批');
-
-      val('kRet', rets.length, '枚');
-      txt('kRetD', rets.join(' · '));
-
-      val('kQtms', over.length, '处');
-      txt('kQtmsD', over.length
-        ? over.map(function (l) { return (l.reticle || '-') + '@' + (l.assign || '待分配'); }).join(' · ')
-        : '当前无超水位');
-    })
-    .catch(function () {
-      ['kEqp', 'kLot', 'kRet', 'kQtms'].forEach(function (id) {
-        var e = document.getElementById(id); if (e) e.innerHTML = '—';
-      });
-      ['kEqpD', 'kLotD', 'kRetD', 'kQtmsD'].forEach(function (id) { txt(id, '后端未连接'); });
-    });
-})();
-</script>
+<div id="tt" class="tt"></div>
+<script type="module" src="/src/pages/dashboard/script.js"></script>
 </body>
 </html>
