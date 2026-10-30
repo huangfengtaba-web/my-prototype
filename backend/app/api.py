@@ -92,6 +92,13 @@ def solve_list(limit: int = 20):
     return {"runs": solver_runner.list_runs(limit)}
 
 
+@app.get("/api/solve/lot/{run_id}/{lot_id}")
+def solve_lot(run_id: str, lot_id: str):
+    """单 Lot 全景：基础属性 → 排程 → BARC → 光罩 → 六步时间线。"""
+    from backend.app.lot_panorama import lot_panorama
+    return lot_panorama(run_id, lot_id)
+
+
 # ---------------------------------------------------------------- 仿真
 @app.post("/api/sim/run")
 def sim_run(req: SimRequest):

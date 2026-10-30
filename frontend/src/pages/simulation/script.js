@@ -1,7 +1,9 @@
-// 仿真验证页逻辑：POST /api/sim/run → KPI + 计划/实际双轨甘特 + Lot 明细
-import { API_BASE, $, mountShell, toMin, fmtMin } from '../_shared/shell.js'
+// 仿真验证页逻辑：POST /api/sim/run → KPI + 计划/实际双轨甘特 + Lot 明细（行点击 → 全景抽屉）
+import { API_BASE, $, mountShell, toMin, fmtMin, openLotPanorama } from '../_shared/shell.js'
 
 mountShell('simulation')
+
+let lastSolveRunId = null
 
 async function init() {
   try {
@@ -32,6 +34,7 @@ async function runSim() {
     })
     if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.json()).detail || ''}`)
     const data = await res.json()
+    lastSolveRunId = data.solve_run_id
     render(data.sim)
     $('#runState').textContent = `完成 · solve_run_id=${data.solve_run_id}`
     $('#runState').className = 'run-state ok'
@@ -54,13 +57,17 @@ function render(sim) {
   $('#kDist').textContent = `${k.breakdowns} / ${k.rework_count} / ${k.qtime_violations}`
 
   renderGantt(sim.lots)
-  $('#tbl tbody').innerHTML = sim.lots.map((r) => `<tr>
+  $('#tbl tbody').innerHTML = sim.lots.map((r) => `<tr class="row-click" data-lot="${r.lot}">
     <td><b>${r.lot}</b></td><td>${r.eqp}</td><td>${r.reticle}</td>
     <td>${r.planned_start}</td><td>${r.planned_end}</td>
     <td>${r.actual_start}</td><td>${r.actual_end}</td>
     <td><span class="tag ${r.on_time ? 'success' : 'error'}">${r.delay_min}</span></td>
     <td>${r.qtime_breach ? '<span class="tag error">违约</span>' : '<span class="tag success">OK</span>'}</td>
     <td>${r.note}</td></tr>`).join('')
+  $('#tbl tbody').querySelectorAll('tr').forEach((tr) =>
+    tr.addEventListener('click', () => {
+      if (lastSolveRunId) openLotPanorama(lastSolveRunId, tr.dataset.lot)
+    }))
 }
 
 // 每机台一行，行内两条子轨道：上=计划（描边） 下=实际（实色，延误标红）

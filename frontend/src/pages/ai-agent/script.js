@@ -14,11 +14,21 @@ async function init() {
     const badge = $('#modeBadge')
     badge.textContent = st.mode === 'llm' ? `LLM · ${st.model}` : '规则模式（未配置 LLM）'
     badge.className = `mode-badge ${st.mode}`
+    // 能力与调试面板
+    $('#capMode').textContent = st.mode === 'llm'
+      ? `模式 LLM · 模型 ${st.model}（OpenAI 兼容，.env 的 LLM_MODEL 可换）`
+      : '模式 规则兜底（.env 配 LLM_API_BASE/KEY/MODEL 后切自主决策）'
+    $('#capTools').innerHTML = (st.tools || [])
+      .map((t) => `<span class="cap-tool">${t}</span>`).join(' ')
   } catch { /* 后端未起：发送时再报错 */ }
   $('#quick').innerHTML = QUICK.map((q) => `<button data-q="${q}">${q}</button>`).join('')
   document.querySelectorAll('.quick button').forEach((b) =>
     b.addEventListener('click', () => send(b.dataset.q)))
   $('#sendBtn').addEventListener('click', () => send())
+  $('#capBtn').addEventListener('click', () => {
+    const p = $('#capPanel')
+    p.style.display = p.style.display === 'none' ? '' : 'none'
+  })
   $('#input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
   })

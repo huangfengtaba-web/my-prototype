@@ -97,3 +97,20 @@ table.dt tbody tr:hover{background:#FAFAFA}
 body.cm .q{display:inline-block}
 .tt{display:none;position:fixed;z-index:99;max-width:320px;background:rgba(0,0,0,.85);color:#fff;
   font-size:12px;padding:8px 10px;border-radius:var(--radius);pointer-events:none}
+
+/* --- Lot 全景抽屉（drawer）--- */
+.drawer-mask{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:90;display:none}
+.drawer-mask.show{display:block}
+.drawer{position:fixed;top:0;right:-460px;width:440px;max-width:92vw;height:100vh;background:var(--bgContainer);
+  box-shadow:var(--shadow);z-index:91;transition:right .22s ease;display:flex;flex-direction:column}
+.drawer.show{right:0}
+.drawer .d-h{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;
+  border-bottom:1px solid var(--colorBorderSecondary)}
+.drawer .d-h .t{font-weight:600;font-size:15px}
+.drawer .d-b{flex:1;overflow:auto;padding:12px 16px;font-size:12px;line-height:1.7}
+.drawer .d-sec{font-weight:600;margin:10px 0 4px;color:var(--colorPrimary)}
+.drawer .d-kv{display:grid;grid-template-columns:110px 1fr;gap:2px 10px}
+.drawer .d-kv .k{color:var(--colorTextTertiary)}
+.drawer table.dt{margin-top:4px}
+.row-click{cursor:pointer}
+.row-click:hover{background:var(--primaryBg) !important}

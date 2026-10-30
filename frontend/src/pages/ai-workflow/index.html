@@ -36,6 +36,10 @@
 .step .s-err{color:var(--colorError)}
 .report{background:#FAFAFA;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius);
   padding:14px;font-size:12px;white-space:pre-wrap;font-family:Consolas,monospace;max-height:420px;overflow:auto}
+.guide{margin-top:10px;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius);
+  padding:10px 12px;font-size:12px;background:#FAFAFA;line-height:1.8;display:none}
+.guide.show{display:block}
+.guide code{background:#fff;border:1px solid var(--colorBorderSecondary);border-radius:4px;padding:0 4px}
 </style>
 </head>
 <body>
@@ -65,7 +69,16 @@
             <input id="seed" class="inp" type="number" value="42" style="width:90px"></div>
           <button id="runBtn" class="btn primary">▶ 运行工作流</button>
           <span id="runState" class="run-state"></span>
+          <button id="guideBtn" class="btn sm">📖 接入指引</button>
           <span class="hint">Dify DSL 骨架在 dify/dsl/（线上导入用，不含 Key）</span>
+        </div>
+        <div class="guide" id="guide">
+          <b>Dify 如何接到本系统（5 步，详见 docs/08_DIFY_INTEGRATION.md）：</b><br>
+          ① 线上 Dify 建 3 个应用：导入本仓库 <code>dify/dsl/</code> 下三个骨架（日计划/场景对比/智能问答），LLM 节点选你有额度的模型；<br>
+          ② 应用的 HTTP 节点 Base URL 填 <code>API_PUBLIC_BASE</code>（下一步的隧道地址），可回调本系统的 8 个接口；<br>
+          ③ 本机起隧道：<code>cloudflared tunnel --url http://localhost:8000</code>，得到公网地址；<br>
+          ④ 项目 <code>.env</code> 填 <code>DIFY_BASE</code> + 3 个 App Key（只进后端，禁止进前端）+ <code>API_PUBLIC_BASE</code>，重启后端；<br>
+          ⑤ 本页运行：徽章变绿「Dify 线上」即接通；清空 Key 自动回「本地降级」，HTTP 恒 200。
         </div>
       </div>
 

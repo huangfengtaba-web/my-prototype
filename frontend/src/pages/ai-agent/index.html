@@ -28,6 +28,13 @@
 .mode-badge{font-size:12px;padding:2px 10px;border-radius:999px}
 .mode-badge.llm{background:var(--successBg);color:var(--colorSuccess);border:1px solid var(--successBorder)}
 .mode-badge.rule{background:var(--warningBg);color:var(--colorWarning);border:1px solid var(--warningBorder)}
+.cap-panel{margin-top:10px;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius);
+  padding:10px 12px;font-size:12px;background:#FAFAFA}
+.cap-panel .cap-h{font-weight:600;margin-bottom:6px}
+.cap-panel .muted{font-weight:400;color:var(--colorTextTertiary)}
+.cap-panel .cap-tool{display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;border-radius:var(--radiusSM);
+  background:var(--primaryBg);color:var(--colorPrimary);font-size:11px}
+.cap-panel .cap-tip{color:var(--colorTextTertiary);margin-top:6px;line-height:1.6}
 </style>
 </head>
 <body>
@@ -38,6 +45,7 @@
       <div class="crumb">Model Control / <b>AI 助手 Agent</b></div>
       <div class="right"><span id="clock" class="clock"></span>
         <span id="modeBadge" class="mode-badge rule">检测中…</span>
+        <button id="capBtn" class="btn sm">🧰 能力与调试</button>
         <button id="cmBtn" class="btn sm">💬 评论模式</button></div>
     </header>
     <div class="content chat-card">
@@ -51,6 +59,12 @@
           <div class="msg bot">你好！我是排程 AI 助手。我可以直接帮你跑求解、做仿真、执行工作流、查数据。试试下面的快捷提问。</div>
         </div>
         <div class="quick" id="quick"></div>
+        <div class="cap-panel" id="capPanel" style="display:none">
+          <div class="cap-h">能力与调试 <span id="capMode" class="muted"></span></div>
+          <div id="capTools"></div>
+          <div class="cap-tip">调试：每轮对话的 🔧 chip 即真实工具调用轨迹（name/args/summary）；
+            扩展能力改 backend/app/agent/tools.py（注册即生效），详见 docs/06_AI_CAPABILITIES.md §3.5-3.8。</div>
+        </div>
         <div class="inputbar">
           <textarea id="input" placeholder="例如：跑一下 urgent-A01 看看急货排得怎么样（Enter 发送，Shift+Enter 换行）"></textarea>
           <button id="sendBtn" class="btn primary">发送</button>

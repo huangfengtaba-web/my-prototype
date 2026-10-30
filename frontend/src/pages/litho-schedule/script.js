@@ -1,5 +1,5 @@
 // Litho 排程结果页（真数据）：批次选择 → run_summary → KPI/甘特/明细/六步时间线
-import { API_BASE, $, mountShell, seqGantt, statusTag, toMin, fmtMin } from '../_shared/shell.js'
+import { API_BASE, $, mountShell, seqGantt, statusTag, toMin, fmtMin, openLotPanorama } from '../_shared/shell.js'
 
 mountShell('litho-schedule')
 
@@ -88,14 +88,16 @@ async function renderRun(runId) {
   }))
   $('#gantt').innerHTML = rows.length ? seqGantt(rows) : '<div class="empty">无排程</div>'
 
-  // 明细表
-  $('#tbl tbody').innerHTML = sched.map((r) => `<tr>
+  // 明细表（行可点击 → Lot 全景抽屉）
+  $('#tbl tbody').innerHTML = sched.map((r) => `<tr class="row-click" data-lot="${r.lot}">
     <td><b>${r.lot}</b></td><td>${r.eqp || '—'}</td><td>${r.eqp_group || '—'}</td>
     <td>${r.reticle}</td>
     <td><span class="tag ${r.priority === 'PRI1' ? 'error' : 'default'}">${r.priority}</span></td>
     <td>${r.temp}</td><td>${r.start || '—'}</td><td>${r.end || '—'}</td>
     <td>${r.barc_er || '—'}</td><td>${r.barc_lr || '—'}</td><td>${r.post_note || '-'}</td>
   </tr>`).join('')
+  $('#tbl tbody').querySelectorAll('tr').forEach((tr) =>
+    tr.addEventListener('click', () => openLotPanorama(rec.run_id, tr.dataset.lot)))
 }
 
 function exportCSV() {

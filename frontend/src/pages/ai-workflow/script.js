@@ -49,6 +49,7 @@ async function init() {
       state.current = el.dataset.id
     }))
   $('#runBtn').addEventListener('click', runWorkflow)
+  $('#guideBtn').addEventListener('click', () => $('#guide').classList.toggle('show'))
 }
 
 async function runWorkflow() {

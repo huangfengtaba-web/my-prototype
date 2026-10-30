@@ -120,6 +120,44 @@ curl -X POST http://127.0.0.1:8000/api/agent/chat \
 2. 完成。LLM 的 tools spec（`tool_specs_for_llm`）与规则路由都会自动看到新工具
    （规则路由需加一条关键词，见 `agent.py::_rule_route` 的优先级注释）。
 
+### 3.6 调试 Agent（日常手段）
+
+| 想看什么 | 手段 |
+|---|---|
+| 当前模式/模型/工具清单 | `GET /api/agent/status`；前端 AI 助手页右上角徽章 + 「能力与调试」面板 |
+| 某句话路由到了哪个工具 | 响应体 `tool_calls[]`（name/args/summary）——前端已渲染为 🔧 chip |
+| LLM 是否可用 | `.env` 配 `LLM_API_BASE/LLM_API_KEY/LLM_MODEL` 后 status.mode=llm；LLM 调用失败自动落规则模式（响应 mode=rule） |
+| 工具执行报错 | tool_calls[i].ok=false + summary；后端日志看 `[wps-worker]`/traceback |
+| 会话状态 | `SESSIONS` 内存字典（重启清空）；同 session_id 多轮，保留 20 条 |
+
+**调试建议流程**：改 tools.py / agent.py → 保存（uvicorn --reload 自动重启）→
+AI 助手页发一句话 → 看 chip 与 reply → 不对就看 tool_calls.args 是否符合预期。
+
+### 3.7 换模型 / 接私有模型
+
+Agent 走 **OpenAI 兼容 `/chat/completions`**，任何兼容网关都行（智谱/通义/DeepSeek/one-api 自建网关）：
+
+```ini
+LLM_API_BASE=https://open.bigmodel.cn/api/paas/v4   # 示例
+LLM_API_KEY=xxx
+LLM_MODEL=glm-4-flash
+```
+
+改模型**不需要动代码**——工具声明、系统提示、多轮循环全部模型无关。
+模型只做「决策」：选哪个工具、传什么参数；真正执行全在本地 Python（L1/L2 能力层）。
+
+### 3.8 Agent 与 Dify 工作流的分工（怎么选）
+
+| | 排程 Agent（自研） | Dify 工作流 |
+|---|---|---|
+| 形态 | 对话式，模型 function calling 自主决策 | 可视化编排的固定节点链 |
+| 接入 | `.env` 三个变量，任意兼容模型 | 线上 Dify 应用 + App Key |
+| 适合 | 「跑一下 urgent-A01」这类**交互式操作** | 固定流程（日计划解读/场景对比/知识库问答） |
+| 调试 | tool_calls 轨迹 + /api/agent/status | Dify 控制台的节点级运行日志 |
+| 修改能力 | tools.py 注册工具（分钟级） | Dify 控制台拖节点 |
+
+两者可并存：Agent 的 `run_workflow` 工具本身就会调 `run_with_fallback`（内部可再走 Dify）。
+
 ---
 
 ## 4. 执行态仿真（L1 的仿真腿，SemiconFab 叙事移植）
