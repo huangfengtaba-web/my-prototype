@@ -1,0 +1,65 @@
+<!doctype html>
+<!-- GTX FSO Litho · Model Control（真配置数据）model-control · v1 · 2026-10-31
+     Eqp Group / Data Parameter / Schedule Model 三页签；原型版 model_zone 保留在「原型参考」组。 -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GTX FSO Litho · Model Control（真数据）</title>
+<link rel="stylesheet" href="/src/pages/_shared/shell.css">
+<style>
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tabs .btn.primary{pointer-events:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sider" id="sider"></aside>
+  <div class="main">
+    <header class="header">
+      <div class="crumb">Model Control / <b>Model Control（真数据）</b></div>
+      <div class="right"><span id="clock" class="clock"></span>
+        <button id="cmBtn" class="btn sm">💬 评论模式</button></div>
+    </header>
+    <div class="content">
+      <div class="card">
+        <div class="tabs">
+          <button id="tabE" class="btn sm primary">Eqp Group</button>
+          <button id="tabD" class="btn sm">Data Parameter</button>
+          <button id="tabS" class="btn sm">Schedule Model</button>
+        </div>
+
+        <div id="viewE">
+          <div class="card-h"><div class="t">Eqp Group · 机台组</div>
+            <div class="sub">唯一性：Area + Eqp Type + Running Mode 组合唯一；Litho 区 Running Mode 置灰</div></div>
+          <div class="tscroll"><table class="dt" id="egTbl">
+            <thead><tr><th>Eqp Group Name</th><th>Model</th><th>Eqp Type</th><th>Running Mode</th>
+              <th>Area</th><th>KPI View</th><th>Schedule Model</th><th>关联机台</th><th>状态</th></tr></thead>
+            <tbody></tbody></table></div>
+        </div>
+
+        <div id="viewD" style="display:none">
+          <div class="card-h"><div class="t">Data Parameter · 模型数据参数</div>
+            <div class="sub">Scheduling 显示 Set/Type/Scope；被模型占用的参数存在修改删除限制</div></div>
+          <div class="tscroll"><table class="dt" id="dpTbl">
+            <thead><tr><th>Model Type</th><th>Set</th><th>Item</th><th>Type</th><th>Status</th>
+              <th>Scope</th><th>M/O</th><th>Variable</th><th>Value</th><th>Description</th></tr></thead>
+            <tbody></tbody></table></div>
+        </div>
+
+        <div id="viewS" style="display:none">
+          <div class="card-h"><div class="t">Schedule Model · 排程模型</div>
+            <div class="sub">同一 Eqp Group 仅一个场景模型生效；Auto Run 开启或运行中时单次 Run 禁用</div></div>
+          <div class="tscroll"><table class="dt" id="smTbl">
+            <thead><tr><th>Model Name</th><th>Version</th><th>Eqp Group</th><th>Status</th>
+              <th>Auto Run</th><th>Schedule Type</th><th>最近运行</th><th>说明</th></tr></thead>
+            <tbody></tbody></table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tt" class="tt"></div>
+<script type="module" src="/src/pages/model-control/script.js"></script>
+</body>
+</html>

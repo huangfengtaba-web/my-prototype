@@ -15,3 +15,6 @@
 /reticle-schedule /src/pages/reticle-schedule/index.html 200
 /logs             /src/pages/logs/index.html 200
 /config           /src/pages/config/index.html 200
+/cim             /src/pages/cim/index.html 200
+/model-control   /src/pages/model-control/index.html 200
+/data-zone       /src/pages/data-zone/index.html 200

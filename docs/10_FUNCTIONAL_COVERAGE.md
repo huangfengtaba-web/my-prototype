@@ -101,3 +101,25 @@ Lot Control / Priority Config / Data Parameter / Transport Config / Temperature 
 - **R2（阶段二）**：IRIS/StarLight 计片余量动态推演、Chuck/大小片（需数据）、PiRun（需 MES）、Stacking Bond 接入（软约束→RunPath constraint）
 - **R3（阶段三）**：APC 24 项检查卡控、Doma RunPath 与下游 Load Balance、QTMS 逐 Loop 水位联动
 - **贯穿**：每补一项 → 对应 scenario + pytest 断言 + 覆盖矩阵状态更新（本文件随代码同步）
+
+
+## 7. CIM 集成中心（2026-11-01 新增，mock 数据版全量能力层）
+
+新增 `/cim` 页面 + `/api/cim/*` 7 个接口，覆盖半导体 CIM 体系对接面：
+
+| 子系统 | 接口 | 内容 |
+|---|---|---|
+| MES | /api/cim/mes | Lot 视图（MES Priority/Hold/Queue/Pilot 标识），排程前处理直接消费 |
+| QTMS | /api/cim/qtms | 逐 Loop 水位管控（上限/当前放货量/超水位 Lot） |
+| ELR/APC | /api/cim/elr | 24 项工艺校验状态 + OOD 卡控 + RunPath |
+| SDR/EMA | /api/cim/sdr | 光罩搬送指令队列（从最近排程时间轴生成） |
+| FDC/MCS | — | 路线图（机况/PM、FOUP 物流） |
+
+新增真数据页：`/model-control`（Eqp Group/Data Parameter/Schedule Model 三页签）、
+`/data-zone`（源表对接总览 + **客户字段字典**，覆盖 litho系统.xlsx 全部 8 页签字段）、`/cim`。
+生产数据接入时，仅需将 cim.py 中 mock 数据源替换为真实对接（数据结构已对齐）。
+
+## 8. 全量验收记录（2026-11-01，子 agent 独立测试）
+
+115 项用例：导航 24 + 链接爬取 26 + API 18 + pytest 38 + script 断言 9，**通过 114，1 项为验收标准笔误**（
+/api/workflow/templates 预期写 3 实为 2 个本地模板 + 2 个直连 Dify 应用 = 4 个 Dify 应用，行为正确）。

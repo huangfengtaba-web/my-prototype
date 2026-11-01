@@ -52,7 +52,10 @@ function gtxDevUrls() {
           '/litho-schedule': '/src/pages/litho-schedule/index.html',
           '/reticle-schedule': '/src/pages/reticle-schedule/index.html',
           '/logs': '/src/pages/logs/index.html',
-          '/config': '/src/pages/config/index.html'
+          '/config': '/src/pages/config/index.html',
+          '/cim': '/src/pages/cim/index.html',
+          '/model-control': '/src/pages/model-control/index.html',
+          '/data-zone': '/src/pages/data-zone/index.html'
         }
         if (cleanMap[url]) req.url = cleanMap[url]
         next()
@@ -93,7 +96,10 @@ export default defineConfig({
         lithoSched:    r('src/pages/litho-schedule/index.html'),
         reticleSched:  r('src/pages/reticle-schedule/index.html'),
         logsPage:      r('src/pages/logs/index.html'),
-        configPage:    r('src/pages/config/index.html')
+        configPage:    r('src/pages/config/index.html'),
+        cimPage:       r('src/pages/cim/index.html'),
+        modelCtl:      r('src/pages/model-control/index.html'),
+        dataZone:      r('src/pages/data-zone/index.html')
       }
     }
   }

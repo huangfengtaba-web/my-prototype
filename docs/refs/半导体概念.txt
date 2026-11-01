@@ -1,0 +1,42 @@
+[1] 半导体基本概念和术语介绍 | 2026/06/04 李刚 | 上海朋熙半导体股份有限公司
+[2] 入门介绍 | 目  录 | 02 | 01 | 术语介绍
+[3] 基础术语
+[4] 半导体产业的整个流程: | 1.IC：Integrated Circuit，集成电路 | 2.Design:根据实际需求来进行芯片设计 | 3.Manufacturing：根据设计的电路图来进行加工制造（前道） | 4.Package：封装测试（后道）
+[5] FAB,即晶圆代加工厂的制造厂房，承担的是半导体产业链中的Manufacturing的角色。 | 晶圆厂占地规模： | 小型晶圆厂（如8英寸产线）‌： | 占地约 ‌50–300亩‌（约3.3万–20万平方米）。例如，中芯国际深圳12英寸厂配套项目用地为52亩（约3.47万平方米），但该面积主要用于厂房而非整厂‌‌；而康宁出售的俄勒冈8英寸厂占地约11.15公顷（约167亩）‌‌。 | ‌中型晶圆厂（12英寸产线，月产能2–4万片）‌： | 占地约 ‌300–500亩‌（约2–3.3万平方米建筑面积，但总用地更大）。例如：合肥晶合12英寸晶圆厂一期占地 ‌316亩‌，设计月产能4万片‌‌。
+[6] 芯片wafer（晶圆）是半导体制造中的基础材料，指由高纯度硅制成的圆形薄片，用于生产集成电路芯片。 | 常见的规格： | Wafer大小：8英寸、12英寸所指的就是Wafer的直径，即单晶硅柱的柱体部分的直径。 | 制程：7纳米、14纳米、28纳米所指的是芯片制程中线最小可做到的尺寸。
+[7] 目前主流的 12 英寸（300mm）晶圆，其价格随工艺先进程度显著上升，以下是基于行业数据的参考价格： | ‌成熟工艺（28nm-40nm 及以上）‌ | 价格范围：‌1,500 - 2,000 美元/片‌ | 说明：技术最成熟，产量大，成本相对较低，常用于电源管理、传感器等芯片 。‌‌‌ | ‌中端工艺（12nm-16nm）‌ | 价格范围：‌4,000 - 6,000 美元/片‌
+[8] 
+[9] Carrier 是晶圆的载具。核心作用是晶圆承载、传输和防护。主要分为以下几个类型： | FOUP（Front‑Opening Unified Pod）前开式晶圆传送盒 | 12 英寸（300mm）晶圆标准载具，先进制程 7nm/5nm/3nm 必备，密闭、洁净、防静电，配合自动化设备传输（最多装25片Wafer）。 | FOSB（Front‑Opening Shipping Box）前开式晶圆运输盒 | 用于晶圆厂间 / 厂内长途运输，防护等级更高，真空防潮。 | Cassette（晶圆盒 / 晶舟）
+[10] Lot：批次，制造过程当中是以Lot为单位加工的，一个Lot包含多片Wafer，Lot刚下线的时候是满批25片，会用一个唯一的ID标识，比如：GT1001，Lot的25片会放在同一个FOUP当中。 | Lot Type： | 1、PW：Production Wafer-产品，实际生产售卖的； | 2、Engineering-工程片，为新产品的Flow做测试，模拟生产； | 3、NPW：NonProductionWafer | ①Monitor-质检片，Process Monitor-同产品一起加工，检测良率等；Equipment Monitor-单独测试机台，检查机台状况，是否合格run货；
+[11] Stocker：临时存储FOUP的存储库。。 | Reticle：光罩，即曝光时的掩模板，上面的图像要复印到wafer的光刻胶上。 | Photoresist：光阻、光刻胶 | Particle：颗粒，主要指灰尘等，对洁净度检查时使用。 | Litho、Photolithography、Photo：光刻 | Fab In、Process Start：（wafer）入厂、开始生产
+[12] EQP/Tool: 即加工的机台，每一站都会有多台相同功能的机台以供使用。 | Fixed Buffer：机台类型，无内部存储区的机台，Foup当Load当加工 | Internal Buffer：机台类型，有内部存放Foup的缓存区，可以Load Foup后，将其Move to Shelf，等待加工，Port此时为空。 | Chamber：加工腔体，机台内部有多道工序处理，比如在A处做磨片，在B处做抛光，在C处做擦拭，那么A、B、C就成为Chamber，由A->B->C的规则叫做chamber Rule，有的产品可能会执行C->B->A的Rule，不同产品在同一机台的加工方式不同 | Port：机台放置Foup的位置，Foup被Port锁住后，机台打开Foup，抽取Wafer进入机台内部进行加工 | Loadport
+[13] 六大工艺+Clean | 光刻 Photo / Litho | 成膜 Thin Film | 扩散 Diffusion | 离子注入 Implant | 研磨 CMP
+[14] MES：Manufacturing Execution System 制造执行系统 | RTD：Real Time Dispatch 实时派工系统 | AMA：Activity Mangment Automation 自动派工管理系统（SDR/EMA） | EAP Equipment AutomationProgram 设备自动化 | FDC Fault Detection and Classification 故障检测与分类 | MCS Material Control System 物料控制系统
+[15] 术语介绍
+[16] Product: 加工的产品，每一种产品都有其专属的ID，即Product Id。 | Main PD: Main Process Definition 每一种产品对应的加工流程，即FLow。 | PD: Process Definition,这是制造加工中最小的单元概念，即站点。每一层的加工都是几个不同站点组成的，比如进入第一层加工时，第一站就是清洗晶圆，第二站烘干，第三站光刻，第四站量测，检查结果合格后进入第二层加工。 | Machine Recipe: 机台自己记录能够进行何种加工的参数集，以做菜为例，锅为机台，它的Machine Recipe为煎炒烹炸。 | Logical Recipe: 产品指定的加工工艺，仍以做菜为例，鱼是产品，到这一站他需要做煎鱼（Logical Recipe为煎），那么就要找配给这条鱼可用的锅（机台）中拥有煎（Machine Recipe）这一功能的锅来做。 | Capability：同等加工能力的机台组，可以认为是EQP Group；
+[17] Product Main PD总共大概2000个站点。
+[18] 针对Lot开通的一小段的Flow，可以在Lot当站开通，也可以提前开通好。这些站点都不在主Flow上。 | 一般分为以下两种类型： | Runcard：也叫Run Card / Run Control Card / Process Execution Card，是一段为特定Lot开通的特殊工艺加工流程，主要用于记录和监控特定批次或运行过程中的工艺参数、设备设置、材料信息、操作步骤以及质量检查点等，确保每个生产批次都符合质量标准，同时保证生产的一致性和可追溯性。主要包含以下两种类型： | SRC：Split Run Card,主要用于研发实验、制程参数调整等情况，可将一批晶圆拆分成多个子批，每个子批可以单独控制运行步骤，完成后再合并 | RRC：Recovery Run Card，是实现帐料一致的功能，由于Normal Lot、Batch Lot、Sort Lot或者Bond Lot在Track Out/EDC Track Out失败后MES会进行Running Hold，实物在这个这个时候会与MES数据不一致，此时就需要创建一个RRC做到帐料一致。 | Rework：加工过程当中，如果发现晶圆 / 芯片工艺不合格、参数异常，退回前段工序重新加工修正；
+[19] ① 首先在Bank领料（此时还为Raw Wafer阶段）Vendor Lot Receive，用要生产的Product的Source Product来领取一定片数的晶圆，例200片，此时200片晶圆为同一个Vendor Lot ID。 | ② Vendor Lot Prepare，将200片的Vendor Lot（来料批次）分成25片一个的Vendor Lot，可分出8个,此时就会将要承装每一个Lot的Foup选定 | ③ FOSB——将分好的Vendor Lot绑定它所代表的Product的Lot ID，进入该产品的Flow开始加工 | 1.Wafer Start | 3.Ship | 2.WIP Run PD
+[20] 1.Hold：当某一产品的测量数据不合格时，或者加工出现问题时，或者不能继续加工时，就需要对Lot进行Hold，即给该Lot加一个Lock，使其不能继续进行下一步动作，等待User处理。MM系统也不会在WIP的列表中显示被Hold的Lot。 | 2.Future Hold：当Lot在001000站时，其可能在001800站之前需要先检查一下实时数据，再决定后续流程进行，此时就要给001800站加一个Future Hold，当Lot到达该站后生效成为Lot Hold，使Lot到达该站后不能被该站机台约货。 | 3.Release Hold：当对Lot进行检查，确认其没有问题后，进行解除Hold动作，即Release Hold，Lot就恢复Waiting状态可继续往下进行加工。 | 操作Hold | 操作 | Future
+[21] Split：把一个Lot分成2个Lot，分为逻辑分批和物理分批。 | （lot ID=GP00099），当在Operation 003000站点测量时，发现1-20片的加工结果合格，但21-25片的数据不太好，那这5片则需要重新加工一次，对于这种情况，没有必要整个Lot（即全部25片Wafer）重新过去加工，可以把这5片分离出来，单独去加工，这一操作叫做split。单独分离的5片拥有独立lot ID=GP00099.001,称之为子批，分离子批的Lot-GP00099称之为母批。 | FOUP1 | W1 | W2 | FOUP1
+[22] Merge：把2 个Lot合并为一个Lot。上一步分批操作后，当子批加工结束，测量合格后还是要回到母批里，一起进行后面的工序，这一步操作称为Merge。lot GP00099.001变为Empty（该Lot结束），lot  GP00099变回满批25片。 | FOUP1 | Lot1 | Lot2 | FOUP1 | Lot1
+[23] 1.Rework：当测量过程中发现有缺陷的wafer时，可能需要返工，这也同Split中所提到的重新加工是相同概念，我们将该操作称之为Rework。对于一些站点我们会配置Rework入口，当量测数据不合格时，可直接选择进入Rework Flow，重新加工量测合格后再回到主Flow。依据量测结果决定是分子批进入Rework，还是整个Lot进入。返工的次数是有限制的，记录为Rework Count，以此卡控进入Rework的次数，超过设定就会进行警示（Modeling中设置）。 | 2.Branch:对于任意PD来说，可供选择的机台有很多，而对于某种机台来讲，新旧机台的加工可能会在Wafer身上体现不同的结果，所以某些情况下若使用了旧的设备，就需要一个附属过程来进行检查。这一附属过程我们用Branch进行。
+[24] Scrap：在整个加工过程中，如果有的Wafer加工坏了，具有不可恢复的缺陷时，就要对其进行报废处理，即Scrap。比如对Lot NBT1234中的第10片Wafer进行Scrap操作，那这一片就将从Lot中剔除，后面Lot NBT1234就只有24片Wafer进行加工。
+[25] 001000 | 001200 | 001400 | 001600 | 001800 | Track In
+[26] Q-Time：概念为生产路线上完成一个工艺到开始另一个工艺之间的允许的时间间隔interval time，如果在该间隔时间内没有处理结束，则该Lot会有报废的风险。 | Min QTime：最少等待的时间，如果没有到最少等待的时间，则不能派工； | Max QTime：最多等待的时间，要在这个时间内完成加工； | 触发时间：一般是QTime第一站Track Out开始触发，最后一站Track In结束触发； | 多QTime：某个站点可能同时存在多个QTime配置。 | 001000
+[27] Lot从当前站点完成加工，站点变化为下一个站点，这整个过程就叫做：Move Lot。 | 001000 | 001200 | 001400 | 001600 | 001800
+[28] AA-OX | AA-DEP | ........ | FNAL-WAT | WF-START | 002800
+[29] Shift：班次； | 晶圆厂生产产线是需要倒班生产的，一般分为白班和夜班； | 白班时间（示例）：早上8:30~晚上8:30； | 夜班时间（示例）：晚上8:30~早上8:30；
+[30] Bond：实际在生产过程当中，会将2片Wafer合并为一片Wafer；（相反的流程就是DeBond，Bond机台能也做DeBond工艺） | BW | FOUP1 | Base Lot | （Device Lot） | TW
+[31] PiRun：也叫TryRun，当产线认为工艺/机台加工稳定性不足时，为了减少损失，会先从Lot中分出一个小Lot进行加工，当小Lot加工并量测通过之后，再加工剩余Wafer，一般都加工完成之后，还会进行合批。 | 001000 | 001200 | 001400 | 001600 | 001800
+[32] 001000 | 001200 | 001400 | 001600 | 001800 | 002000
+[33] 001000 | 001200 | 001400 | 001600 | 001800 | 002000
+[34] 001000 | 001200 | 001400 | 001600 | 001800 | 002000
+[35] 由于晶圆非常昂贵，为了减少成本，NPW也会重复利用，每次重复利用，精度都会下降，所以叫做DownGrade。 | 说明：每个NPW Lot都有使用次数，使用次数达到0之后，就会触发Recycle（使用次数重置），达到一定Recycle次数之后，就需要DownGrade。 | Monitor | Season | Dummy | DownGrade
+[36] Monitor Lot：量测Lot； | 使用总体步骤：前量-加工-后量，一般通过前后量的值进行判断是否有问题； | 片数：一般都是小于3片的小Lot； | 分批类型：90%都是逻辑分批； | 001000 | 001200
+[37] Season：机台由于一段时间没有加工某一工艺（Recipe Idle）或者进行工艺（Recipe Change）切换，就触发了Season； | Season Lot：机台触发了Season，就需要Season Lot进行解Season； | 片数：一般都是小于3片的小Lot； | 分批类型：90%都是逻辑分批； | 加工方式：Season Lot和Product Lot一起预约进行加工，都要先加工Season Lot，然后再加工Product Lot； | 机台：一般是MultiChamber机台，才需要处理Season；
+[38] Dummy Lot：假片Lot，由于产品Lot的Wafer数量较少，用来填补产品Lot加工空位置的Lot； | 区域：一般包含ETCH Dummy和DIFF Dummy两种； | 使用方式：机台自动进行填充； | Alarm：Dummy Lot使用次数下降到一定阈值，机台就会触发告警，提醒产线人员提前备片；
+[39] ⑧ | Downgrade | Reuse | (Merge) | ② | ⑦
+[40] 
+[41] 
+[42] 谢谢！

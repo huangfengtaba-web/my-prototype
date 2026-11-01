@@ -8,9 +8,10 @@ const NAV = [
     ['/', '系统总览', 'dashboard'],
     ['/litho-schedule', 'Litho 排程', 'litho-schedule'],
     ['/reticle-schedule', 'Reticle 排程', 'reticle-schedule'],
-    ['/prototypes/data_zone.html', '数据接入', ''],
+    ['/data-zone', '数据接入', 'data-zone'],
     ['/config', '数据配置', 'config'],
-    ['/prototypes/model_zone.html', '模型管理', ''],
+    ['/model-control', '模型管理', 'model-control'],
+    ['/cim', 'CIM 集成', 'cim'],
     ['/logs', '系统日志', 'logs'],
   ]],
   ['智能应用（真后端）', [
@@ -24,7 +25,9 @@ const NAV = [
   ]],
   ['原型参考（mock 数据，设计基线）', [
     ['/prototypes/index.html', '系统总览（原型）', ''],
+    ['/prototypes/data_zone.html', '数据接入（原型）', ''],
     ['/prototypes/config_zone.html', '数据配置（原型）', ''],
+    ['/prototypes/model_zone.html', '模型管理（原型）', ''],
     ['/prototypes/result_litho.html', 'Litho 排程（原型）', ''],
     ['/prototypes/result_reticle.html', 'Reticle 排程（原型）', ''],
     ['/prototypes/log_zone.html', '系统日志（原型）', ''],

@@ -1,0 +1,82 @@
+
+## [Sheet] 总览 (24x5)
+litho 区域 | 页面 | barc排程
+scanner 排程
+ | Litho Overlap
+Lot加工流
+Wafer 加工时间
+Reticle 排程
+Reticle搬送
+Reticle 检测
+相关名词
+
+## [Sheet] Barc 排程 (21x13)
+时间筛选，默认当天 | LotID | ProductID | recipe | litho机台 | 是否放货
+序号 | Lotid | BatchID | ProductID | Recipe | 站点序列 | 是否放货 | 最早放货时间 | 最晚放货时间 | litho机台
+
+## [Sheet] Scanner排程 (26x16)
+列表样式
+时间筛选，默认当天 | EqpID | lotID | recipe | 机台状态 | 开始-结束时间 | Process Time | 
+
+过滤结果 | 序号 | EqpID | 机台类型 | 机台状态 | 加工类型 | recipe | reticle ID | LotID | ProductID | 站点序列 | 开始时间 | 结束时间 | Process Time
+甘特样式
+Cycle Time | 设备效能 | Move | WPH | WIP
+coming | runing | waiting
+请输入Lotid或EqpID | Lot信息 | 图例：running 、jobprepare、scheduling、down、setup、reticle
+Reticle 模式切换
+GLMMB01
+GLMMB01
+
+## [Sheet] Litho OverLap (25x16)
+时间筛选，默认当天
+过滤结果 | Process Time
+甘特样式
+Cycle Time | 设备效能 | Move | WPH | WIP
+coming | runing | waiting
+请输入Lotid或EqpID | Lot信息 | 图例：running 、jobprepare、scheduling、down、setup、reticle
+Litho OverLap | 时间，默认半小时维度，可调整粒度
+GLMMB01
+LP_01
+LP_02
+LP_03
+LP_04
+
+## [Sheet] Lot加工流 (24x13)
+列表样式
+时间筛选，默认当天 | EqpID | lotID | recipe | Priority | 开始-结束时间 | 
+
+过滤结果 | 序号 | EqpID | Priority | QTY | LotID | recipe | 开始时间 | 结束时间 | 加工时长
+时间范围 | LotID | Priority | 图例：Barc、Scanner、Etch
+Lot加工流 | 时间，默认半小时维度，可调整粒度
+GE01120
+GP04256
+
+## [Sheet] wafer加工时间（暂无数据） (1x1)
+
+## [Sheet] Reticle排程 (26x15)
+列表样式
+时间筛选，默认当天 | EqpID | lotID | recipe | ReticleID | 开始-结束时间 | 
+
+过滤结果 | 序号 | ReticleID | 状态 | lotID | ProductID | recipe | 站点序列 | EqpID | 机台组 | 开始时间 | 结束时间 | 加工时长
+甘特样式
+Cycle Time | 设备效能 | Move | WPH | WIP
+coming | runing | waiting
+时间范围 | Lot信息 | 图例：Process、inspection、Starlight、Stocker、Transport
+GLMMB01
+GLMMB01
+
+## [Sheet] Reticle搬送 (21x15)
+列表样式
+时间筛选，默认当天 | EqpID | 机台类型 | LotID | ReticleID | 起点位置 | 终点位置 | 搬送时间 | 最早到达时间 | 最晚到达时间
+
+过滤结果 | 序号 | EqpID | 机台类型 | lotID | ReticleID | 起点位置 | 终点位置 | 搬送时间 | 最早到达时间 | 最晚到达时间
+KRF
+I-Line
+ARF
+IMMERSION
+
+## [Sheet] Reticle检测 (21x15)
+列表样式
+时间筛选，默认当天 | ReticleID | 检测类型 | 检测机台 | Inspection开始时间 | Inspection结束时间 | Inspection加工时长
+
+过滤结果 | 序号 | ReticleID | 检测类型 | 检测机台 | 开始时间 | 结束时间 | 加工时长

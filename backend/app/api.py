@@ -271,3 +271,9 @@ def explain_run(req: ExplainRequest):
     """排程结果 AI 解读：Dify 工作流优先（HTTP 节点回调取数 + LLM 生成中文解读），
     未配置/不可达自动本地规则解读（mode=local_fallback）。"""
     return explain.explain_run(req.run_id)
+
+
+# ---------------------------------------------------------------- CIM 集成中心
+from backend.app.cim import router as cim_router  # noqa: E402
+
+app.include_router(cim_router)

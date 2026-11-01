@@ -1,0 +1,41 @@
+<!doctype html>
+<!-- GTX FSO Litho · 数据接入（真数据）data-zone · v1 · 2026-10-31
+     源表对接总览 + 客户字段字典（litho系统.xlsx 8 页签）。原型版 data_zone 保留在「原型参考」组。 -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GTX FSO Litho · 数据接入（真数据）</title>
+<link rel="stylesheet" href="/src/pages/_shared/shell.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sider" id="sider"></aside>
+  <div class="main">
+    <header class="header">
+      <div class="crumb">Data Integration / <b>数据接入（真数据）</b></div>
+      <div class="right"><span id="clock" class="clock"></span>
+        <button id="cmBtn" class="btn sm">💬 评论模式</button></div>
+    </header>
+    <div class="content">
+      <div class="card">
+        <div class="card-h"><div class="t">源表对接总览</div>
+          <div class="sub">与 Litho 排程的对接面（设计书数据配置章节 + 半导体 CIM 体系）</div></div>
+        <div class="tscroll"><table class="dt" id="srcTbl">
+          <thead><tr><th>源表/系统</th><th>提供内容</th><th>消费阶段</th><th>对接状态</th></tr></thead>
+          <tbody></tbody></table></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><div class="t">客户字段字典（litho系统.xlsx · 8 页签）</div>
+          <div class="sub">每个结果页的字段清单与真系统覆盖位置；点页签切换</div></div>
+        <div class="toolbar" id="pageTabs"></div>
+        <div id="dictBody"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tt" class="tt"></div>
+<script type="module" src="/src/pages/data-zone/script.js"></script>
+</body>
+</html>
