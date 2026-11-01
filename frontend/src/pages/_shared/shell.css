@@ -114,3 +114,4 @@ body.cm .q{display:inline-block}
 .drawer table.dt{margin-top:4px}
 .row-click{cursor:pointer}
 .row-click:hover{background:var(--primaryBg) !important}
+tr.row-hl{background:var(--warningBg) !important;outline:2px solid var(--colorWarning)}

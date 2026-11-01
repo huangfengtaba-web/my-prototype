@@ -6,6 +6,8 @@ mountShell('reticle-schedule')
 const C = { process: '#2D6CDF', inspection: '#F5921B', starlight: '#8B5CF6',
   stocker: '#9CA3AF', transport: '#10B981' }
 
+const state = { highlight: null }
+
 async function init() {
   try {
     await refreshRuns()
@@ -15,6 +17,10 @@ async function init() {
   $('#runSel').addEventListener('change', () => renderRun($('#runSel').value))
   $('#tabSched').addEventListener('click', () => switchTab('sched'))
   $('#tabTrans').addEventListener('click', () => switchTab('trans'))
+  // 深链支持：/reticle-schedule?tab=transport&reticle=RT-0101（孪生面板点击跳转）
+  const q = new URLSearchParams(location.search)
+  if (q.get('tab') === 'transport') switchTab('trans')
+  state.highlight = q.get('reticle')
 }
 
 function switchTab(which) {
@@ -94,9 +100,11 @@ async function renderTransport(runId, summary) {
     const lotBy = {}
     for (const r of summary.schedule || []) lotBy[`${r.reticle}|${r.eqp}`] = r
     const rows = (tl.events || []).filter((e) => e.type === 'reticle_move').map((m) => {
-      const served = lotBy[`${m.target}|${m.to}`]
+      const served = lotBy[`${m.target}|${m.to}`] ||
+        { lot: m.lot, priority: m.priority, start: m.start }
       const t1 = m.t + 240
-      return `<tr>
+      const hit = state.highlight && m.target === state.highlight
+      return `<tr class="${hit ? 'row-hl' : ''}">
         <td><b>${m.target}</b></td><td>${m.from}</td><td>${m.to}</td>
         <td><span class="tag processing">Load in</span></td>
         <td>供 ${served?.lot || '-'} 加工</td>
@@ -105,6 +113,10 @@ async function renderTransport(runId, summary) {
         <td>${fmtT(m.t)}</td><td>${served?.start || '—'}</td><td>${served?.lot || '—'}</td></tr>`
     })
     tbody.innerHTML = rows.join('') || '<tr><td colspan="10">本批次无搬送记录</td></tr>'
+    if (state.highlight) {
+      const hit = tbody.querySelector('tr.row-hl')
+      if (hit) hit.scrollIntoView({ block: 'center' })
+    }
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="10" style="color:var(--colorError)">时间轴加载失败：${e.message}</td></tr>`
   }

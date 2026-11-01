@@ -11,6 +11,8 @@
   box-shadow:var(--shadow3);padding:12px 14px;overflow:auto}
 .lot-panel h3{font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
 .lot-row{border:1px solid var(--colorBorderSecondary);border-radius:var(--radius);padding:8px 10px;margin-bottom:8px;font-size:12px}
+.row-click{cursor:pointer;transition:border-color .15s}
+.row-click:hover{border-color:var(--colorPrimary);background:var(--primaryBg)}
 .lot-row b{font-size:13px}
 .lot-row .muted{color:var(--colorTextTertiary)}
 .lot-row .busy{color:var(--colorSuccess);font-weight:600}

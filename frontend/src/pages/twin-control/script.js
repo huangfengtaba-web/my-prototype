@@ -1,10 +1,11 @@
 // 数字孪生控制页：POST /api/solve/run → GET /api/twin/timeline → gtxTwinApi.loadSchedule
 // 通过 iframe.contentWindow.gtxTwinApi（同源）驱动 play/pause/seek/setSpeed，200ms 轮询状态。
-import { API_BASE, $, mountShell } from '../_shared/shell.js'
+// 面板联动：Lot 条目 → Lot 全景抽屉；光罩搬送条目 → Reticle Transport 视图（高亮该光罩）。
+import { API_BASE, $, mountShell, openLotPanorama } from '../_shared/shell.js'
 
 mountShell('twin-control')
 
-const state = { timeline: null, busy: [], timer: null, duration: 0, dragging: false }
+const state = { timeline: null, runId: null, busy: [], timer: null, duration: 0, dragging: false }
 
 function api() {
   try {
@@ -35,6 +36,7 @@ async function loadSchedule() {
     })
     if (!solveRes.ok) throw new Error(`solve HTTP ${solveRes.status}`)
     const solve = await solveRes.json()
+    state.runId = solve.run_id
     const tlRes = await fetch(`${API_BASE}/api/twin/timeline/${solve.run_id}`)
     if (!tlRes.ok) throw new Error(`timeline HTTP ${tlRes.status}`)
     state.timeline = await tlRes.json()
@@ -71,6 +73,7 @@ function startLoop() {
 }
 
 // 光罩搬送面板：now 落在某次搬送行程 [t0,t1) 内 → 搬送中（蓝）；已完成 → 到位（绿）
+// 行可点击 → 跳 Reticle Transport 视图并高亮该光罩
 function renderMoves(now) {
   if (!state.timeline) return
   const moves = state.timeline.events.filter((e) => e.type === 'reticle_move')
@@ -80,14 +83,19 @@ function renderMoves(now) {
     let cls = 'default', label = '待出发'
     if (now >= t1) { cls = 'success'; label = '已到位' }
     else if (now >= m.t) { cls = 'processing'; label = '搬送中' }
-    return `<div class="lot-row">
+    return `<div class="lot-row row-click" data-ret="${m.target}"
+        title="点击查看 Reticle Transport 搬送记录（高亮 ${m.target}）">
       <b>${m.target}</b> <span class="tag ${cls}">${label}</span><br>
       <span class="muted">${m.vehicle} · ${m.from} → ${m.to} · 供 ${m.lot || '-'} · ${fmt(m.t)}~${fmt(t1)}</span></div>`
   })
   $('#moveList').innerHTML = rows.join('')
+  $('#moveList').querySelectorAll('.lot-row').forEach((el) =>
+    el.addEventListener('click', () => {
+      location.href = `/reticle-schedule?tab=transport&reticle=${encodeURIComponent(el.dataset.ret)}`
+    }))
 }
 
-// 当前时刻在机加工的 Lot：Busy 事件区间 [s,e) 覆盖 now
+// 当前时刻在机加工的 Lot：Busy 事件区间 [s,e) 覆盖 now（行可点击 → Lot 全景抽屉）
 function renderLots(now) {
   if (!state.timeline) return
   const busy = state.busy.length
@@ -101,10 +109,14 @@ function renderLots(now) {
         }))
   const active = busy.filter((x) => now >= x.s && now < x.e)
   $('#lotList').innerHTML = active.length
-    ? active.map((x) => `<div class="lot-row">
+    ? active.map((x) => `<div class="lot-row row-click" data-lot="${x.lot}" title="点击查看 Lot 全景（排程/BARC/光罩/六步）">
         <b>${x.lot}</b> <span class="busy">● 加工中</span><br>
         <span class="muted">${x.eqp} · ${fmt(x.s)}~${fmt(x.e)}</span></div>`).join('')
     : '<div class="empty">当前时刻无机台在加工</div>'
+  $('#lotList').querySelectorAll('.lot-row').forEach((el) =>
+    el.addEventListener('click', () => {
+      if (state.runId) openLotPanorama(state.runId, el.dataset.lot)
+    }))
 }
 
 $('#loadBtn').addEventListener('click', loadSchedule)

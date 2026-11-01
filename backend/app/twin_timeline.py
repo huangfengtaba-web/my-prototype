@@ -47,7 +47,8 @@ def build_timeline(run_summary: Dict[str, Any], run_id: str = "") -> Dict[str, A
             oht += 1
             events.append({"t": max(0, s - 300), "type": "reticle_move",
                            "target": ret, "from": "STOCKER-01", "to": eqp,
-                           "vehicle": f"OHT-{oht:02d}"})
+                           "vehicle": f"OHT-{oht:02d}", "lot": row.get("lot"),
+                           "priority": row.get("priority"), "start": row.get("start")})
             events.append({"t": max(0, s - 60), "type": "reticle_state",
                            "target": ret, "state": "装载"})
 
