@@ -316,7 +316,105 @@ print(cur.fetchall())"
 
 ---
 
-## 6. 上线验收清单（全部打勾才算部署完成）
+## 6. Dify 线上工作流接入（接口对接设置，逐步操作）
+
+> 原理：系统**不在本地装 Dify**。你在自己的线上 Dify 建好 3 个应用后，项目通过 `.env` 里的
+> App Key 调用它们；Dify 应用里的 HTTP 节点再回调本地后端拿数据。**没配置/不可达时自动
+> 本地降级**（`/api/workflow/run` 返回 `mode=local_fallback`，HTTP 恒 200），所以随时可以接。
+> 参考文档：`docs/08_DIFY_INTEGRATION.md`（接口契约）；DSL 骨架：`dify/dsl/` 三个文件。
+
+### 6.1 对应关系（先搞清楚谁对谁）
+
+| 项目模板（TEMPLATES id） | dify_key（环境变量后缀） | Dify 应用类型 | DSL 骨架 |
+|---|---|---|---|
+| `daily-scheduling` | `DIFY_KEY_DAILY_SCHEDULING` | Workflow | `dify/dsl/daily-scheduling.yaml` |
+| `scenario-compare` | `DIFY_KEY_SCENARIO_COMPARE` | Workflow | `dify/dsl/scenario-compare.yaml` |
+| （智能问答，前端暂未挂） | `DIFY_KEY_QA_CHATFLOW` | Chatflow | `dify/dsl/qa-chatflow.yaml` |
+
+运行链路：前端 `/ai-workflow` 点运行 → `POST /api/workflow/run` → 后端 `run_with_fallback()` →
+配置了 Key 且可达 → 调 Dify（`mode=dify`）；否则本地步骤引擎（`mode=local_fallback`）。
+
+### 6.2 ① 线上 Dify 创建 3 个应用（导入 DSL）
+
+1. 登录你的 Dify（SaaS：https://cloud.dify.ai；自托管：你的域名）
+2. 首页 **工作室（Studio）** → **创建应用 → 导入 DSL 文件** → 选 `dify/dsl/daily-scheduling.yaml`
+3. 同样导入 `scenario-compare.yaml`、`qa-chatflow.yaml`（共 3 个应用）
+4. 进入每个应用的**编排**页面：
+   - 每个 **LLM 节点**：点开 → 模型下拉 → 选你有额度的模型（骨架默认 gpt-4o-mini，可换 glm-4-flash/qwen-plus）
+   - **HTTP 请求节点**：URL 应显示 `{{#env.API_PUBLIC_BASE#}}/api/solve/run` —— 环境变量下一步填
+   - `qa-chatflow`：先 **知识库 → 创建知识库** → 上传 `docs/specs/01~07*.md` 与 `docs/03_ALGORITHM_DEMO.md`
+     → 回到应用编排页，**知识检索节点** → 绑定刚建的知识库
+5. 每个**发布**（右上「发布」按钮）——未发布的应用 API 调不通
+
+### 6.3 ② 配置应用内环境变量（HTTP 节点的回调地址）
+
+每个 Workflow 应用编排页 → **环境变量（ENV）** 面板 → `API_PUBLIC_BASE` → 填第 6.4 步的隧道地址
+（先起隧道再回来填，或填好后重启隧道不改值）。
+
+### 6.4 ③ 内网穿透（让线上 Dify 能访问你本机后端）
+
+```powershell
+# 安装（一次性）：winget install Cloudflare.cloudflared  或官网下载 exe
+cloudflared tunnel --url http://localhost:8000
+# 输出里找形如：https://xxx-yyy-zzz.trycloudflare.com  ← 这就是 API_PUBLIC_BASE
+```
+验证：浏览器开 `https://xxx.trycloudflare.com/api/health` → 返回 JSON 即通。
+⚠️ 隧道地址每次重启会变——变了就同步更新 Dify 应用环境变量和 `.env`。
+
+### 6.5 ④ 拿 App Key 并配置项目
+
+1. 每个应用 → 左侧 **访问 API（Access API）** → 右上 **API 密钥** → **创建** → 复制 `app-xxxx`
+2. 工程根 `.env` 追加：
+```ini
+DIFY_BASE=https://api.dify.ai/v1            # 自托管填 https://你的域名/v1
+DIFY_KEY_DAILY_SCHEDULING=app-xxxx
+DIFY_KEY_SCENARIO_COMPARE=app-yyyy
+DIFY_KEY_QA_CHATFLOW=app-zzzz
+API_PUBLIC_BASE=https://xxx-yyy.trycloudflare.com
+```
+3. 重启后端（tasks.json 的 `run:api`，或终端 Ctrl+C 后重跑）
+
+### 6.6 ⑤ 验证（三关）
+
+```bash
+# 第一关：配置识别（每个模板 dify_configured 应为 true）
+curl http://127.0.0.1:8000/api/workflow/templates
+
+# 第二关：真走 Dify（mode=dify，含 workflow_run_id 与耗时）
+curl -X POST http://127.0.0.1:8000/api/workflow/run \
+  -H "Content-Type: application/json" -d "{\"template_id\":\"daily_scheduling\"}"
+
+# 第三关：降级保护（清空 .env 的 DIFY_KEY_* 重启再调 → mode=local_fallback，HTTP 仍 200）
+```
+前端 `/ai-workflow`：右上徽章 **绿色「Dify 线上」**；运行后事件流显示 Dify 返回的
+outputs/耗时/节点数；把 Key 清空重启 → 徽章变灰「本地降级」+ 原因 tooltip。
+
+### 6.7 Dify → 项目回调接口清单（HTTP 节点可用）
+
+```
+GET  /api/health                     探活
+GET  /api/mock/data                  机台/Lot/光罩/配置
+GET  /api/cases                      Scenario 用例列表
+POST /api/solve/run                  跑六步 MILP        body {"case":"urgent-A01"}
+GET  /api/solve/result/{run_id}      取排程结果
+POST /api/sim/run                    执行态仿真          body {"case":"...","seed":42}
+GET  /api/twin/timeline/{run_id}     3D 时间轴事件流
+POST /api/doc/render                 生成文档（本地 Windows）
+```
+
+### 6.8 排错
+
+| 现象 | 原因 | 处理 |
+|---|---|---|
+| 徽章一直「本地降级」 | Key 未配/错、DIFY_BASE 错 | 核对 `.env`；`/api/workflow/templates` 看 `dify_configured` |
+| Dify 返回 4xx | 应用未发布 / Key 复制错 | 重新发布、重新生成 Key |
+| HTTP 节点超时 | 隧道断了 / blocking 超 100s | 重开 cloudflared；长流程后续可扩 streaming |
+| 回调 404 | API_PUBLIC_BASE 填错 | 外网浏览器先自测 `/api/health` |
+| Key 安全 | 写进了前端 | `grep -rn "DIFY_KEY" frontend/` 必须无输出（仓库已保持） |
+
+---
+
+## 7. 上线验收清单（全部打勾才算部署完成）
 
 - [ ] Vercel/Cloudflare 前端打开正常，17 项导航逐个点无 404
 - [ ] 前端「求解演示/排程结果」能真跑求解（走线上后端）
@@ -324,3 +422,5 @@ print(cur.fetchall())"
 - [ ] `.env` 的 `LITHO_CORS_ORIGINS` 是前端精确域名（浏览器 Console 无 CORS 报错）
 - [ ] Supabase 三张表有数据
 - [ ] （本地 Windows）文档生成页可下载 docx；云端该功能显示停用提示属正常
+- [ ] Dify：`/api/workflow/templates` 全部 `dify_configured=true`；运行返回 `mode=dify`；
+      清空 Key 后 `mode=local_fallback` 且页面徽章同步；`grep -rn "DIFY_KEY" frontend/` 无输出
