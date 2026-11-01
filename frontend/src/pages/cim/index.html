@@ -18,42 +18,49 @@
         <button id="cmBtn" class="btn sm">💬 评论模式</button></div>
     </header>
     <div class="content">
+      <div class="run-state" id="cimToast" style="display:none"></div>
       <div class="card">
         <div class="card-h"><div class="t">CIM 子系统对接状态</div>
-          <span class="q" data-cm="CIM 体系：MES 制造执行、QTMS 水位管控、ELR/APC 工艺校验、SDR/EMA 光罩搬送、FDC 故障检测、MCS 物料控制。当前 mock 数据版：对接语义与数据结构已具备，生产接入替换数据源即可。">?</span></div>
+          <span class="q" data-cm="CIM 体系：MES 制造执行、QTMS 水位管控、ELR/APC 工艺校验、SDR/EMA 光罩搬送、FDC 故障检测、MCS 物料控制。当前 mock 数据版：对接语义与数据结构已具备，生产接入替换数据源即可。本页操作（Hold/水位/OOD/下发指令）均持久化并在下一次求解生效。">?</span></div>
         <div class="tscroll"><table class="dt" id="ovTbl">
           <thead><tr><th>子系统</th><th>中文</th><th>与 Litho 的关系</th><th>对接状态</th><th>API</th></tr></thead>
           <tbody></tbody></table></div>
       </div>
 
       <div class="card">
-        <div class="card-h"><div class="t">MES 对接 · Lot 视图</div>
-          <div class="sub">MES 提供的 Priority/Hold/Queue/Pilot 标识（排程前处理直接消费）</div></div>
+        <div class="card-h"><div class="t">MES 对接 · Lot 视图（可操作）</div>
+          <div class="sub">MES 提供的 Priority/Hold/Queue/Pilot 标识；Hold 操作持久化并影响下一次求解</div></div>
+        <div class="toolbar" style="margin-bottom:10px">
+          <button id="mesSyncBtn" class="btn sm">⟳ 同步 MES</button>
+          <span id="mesSync" class="hint"></span>
+        </div>
         <div class="tscroll"><table class="dt" id="mesTbl">
           <thead><tr><th>LotId</th><th>MES Priority</th><th>Product</th><th>Step</th><th>QTY</th>
-            <th>Pilot</th><th>Queue</th><th>Hold</th><th>Tags</th></tr></thead>
+            <th>Pilot</th><th>Queue</th><th>Hold</th><th>Tags</th><th>操作</th></tr></thead>
           <tbody></tbody></table></div>
       </div>
 
       <div class="card">
-        <div class="card-h"><div class="t">QTMS 水位管控（逐 Loop）</div>
-          <div class="sub">排程后校验每个 Loop 放货量；超水位标记并卡控</div></div>
+        <div class="card-h"><div class="t">QTMS 水位管控（逐 Loop，可调整）</div>
+          <div class="sub">修改水位保存后，下一次求解对超水位 Lot 执行延后卡控</div></div>
         <div class="tscroll"><table class="dt" id="qtmsTbl">
-          <thead><tr><th>Loop</th><th>水位上限</th><th>当前放货量</th><th>状态</th><th>超水位 Lot</th></tr></thead>
+          <thead><tr><th>Loop</th><th>水位上限（可改）</th><th>当前放货量</th><th>状态</th><th>超水位 Lot</th><th>操作</th></tr></thead>
           <tbody></tbody></table></div>
       </div>
 
       <div class="card">
-        <div class="card-h"><div class="t">ELR / APC 工艺校验（24 项检查）</div>
-          <div class="sub">OOD 整批卡控；RunPath = 校验通过的 Capability 机台</div></div>
+        <div class="card-h"><div class="t">ELR / APC 工艺校验（24 项检查，可注入）</div>
+          <div class="sub">OOD 整批卡控；RunPath = 校验通过的 Capability 机台；注入/解除均持久化</div></div>
         <div class="tscroll"><table class="dt" id="elrTbl">
-          <thead><tr><th>LotId</th><th>校验类型</th><th>检查通过</th><th>OOD</th><th>失败项</th><th>RunPath</th></tr></thead>
+          <thead><tr><th>LotId</th><th>校验类型</th><th>检查通过</th><th>OOD</th><th>失败项</th><th>RunPath</th><th>操作</th></tr></thead>
           <tbody></tbody></table></div>
       </div>
 
       <div class="card">
-        <div class="card-h"><div class="t">SDR/EMA 光罩搬送指令队列</div>
-          <div class="sub">最近一次求解生成的搬送指令（全量 Scanner 接管：排程后处理规划发送时点）</div></div>
+        <div class="card-h"><div class="t">SDR/EMA 光罩搬送指令队列（可下发）</div>
+          <div class="sub">最近一次求解生成的搬送指令；「下发」后状态标记 issued（SDR 执行回执待对接）</div>
+          <div class="right"><button id="sdrIssueBtn" class="btn sm primary" style="display:none">📨 下发全部指令</button></div></div>
+        <div id="sdrMeta" class="hint" style="margin-bottom:8px"></div>
         <div class="tscroll"><table class="dt" id="sdrTbl">
           <thead><tr><th>指令号</th><th>Reticle</th><th>起点</th><th>目的地</th><th>Vehicle</th>
             <th>关联 Lot</th><th>优先级</th><th>Pod</th><th>状态</th></tr></thead>

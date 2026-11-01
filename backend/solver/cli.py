@@ -113,6 +113,17 @@ def cmd_run(args):
     from . import litho_solver as ls
 
     applied = apply_runtime_config()                        # R1: 运行时配置先于 scenario 生效
+    # CIM 运行时状态（MES Hold / ELR OOD / QTMS 水位）：作用于 mock_data，先于 scenario
+    from backend.app import runtime_state
+    state = runtime_state.load()
+    for lot_id, patch in (state.get("lot_overrides") or {}).items():
+        for l in ls.LOTS:
+            if l["lot"] == lot_id:
+                l.update(patch)
+                applied.append(f"STATE[{lot_id}]+={patch}")
+    if state.get("qtms_water"):
+        ls.CONFIG["__qtms_water"] = state["qtms_water"]
+        applied.append(f"__qtms_water={state['qtms_water']}")
     case = load_case(args.case)
     applied += apply_case(case)
     if args.out:

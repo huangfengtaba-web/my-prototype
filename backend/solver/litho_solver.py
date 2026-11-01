@@ -586,6 +586,15 @@ def main(fix=None):
         SUMMARY["monitor"].append({"lot": l["lot"],
                                    "due": fmt(l["monitor_due"]) if l.get("monitor_due") else "-",
                                    "overdue": bool(overdue)})
+    # CIM/MES：Hold 的 Lot 整批卡控（MES 侧操作 → 下一次求解生效）
+    mes_holds = [l for l in lots if l.get("hold")]
+    lots = [l for l in lots if not l.get("hold")]
+    SUMMARY["mes_holds"] = []
+    for l in mes_holds:
+        l["start"], l["end"] = None, None
+        reason = l.get("hold_reason") or "MES Hold（MES 卡控），本 Loop 不可派工"
+        l["post_note"] = reason
+        SUMMARY["mes_holds"].append({"lot": l["lot"], "reason": reason})
     assign, s2 = step2_reticle_grouping(lots)
     s3 = step3_lot_scheduling(lots, assign)
     step4_postprocess(lots)

@@ -35,3 +35,7 @@ Thumbs.db
 
 # --- 本地 Agent 工具状态 ---
 .workbuddy/
+
+# --- CIM 运行时状态（不入库）---
+backend/solver/runtime_config.json
+backend/solver/runtime_state.json
