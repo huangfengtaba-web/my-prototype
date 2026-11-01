@@ -134,6 +134,9 @@ export function showLotDrawer(title, bodyHtml) {
   document.getElementById('gtxDrawer').classList.add('show')
 }
 
+// 通用抽屉（AI 解读等非 Lot 场景复用同一容器）
+export const showDrawer = showLotDrawer
+
 // 单 Lot 全景（调 GET /api/solve/lot/{run_id}/{lot_id}）并弹出
 export async function openLotPanorama(runId, lotId) {
   showLotDrawer(`Lot 全景 · ${lotId}`, '<div class="empty">加载中…</div>')

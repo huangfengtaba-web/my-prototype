@@ -115,3 +115,6 @@ body.cm .q{display:inline-block}
 .row-click{cursor:pointer}
 .row-click:hover{background:var(--primaryBg) !important}
 tr.row-hl{background:var(--warningBg) !important;outline:2px solid var(--colorWarning)}
+.muted{color:var(--colorTextTertiary)}
+.report{background:#FAFAFA;border:1px solid var(--colorBorderSecondary);border-radius:var(--radius);
+  padding:12px;font-size:12px;white-space:pre-wrap;font-family:Consolas,monospace;line-height:1.8}

@@ -1,5 +1,5 @@
 // Litho 排程结果页（真数据）：批次选择 → run_summary → KPI/甘特/明细/六步时间线
-import { API_BASE, $, mountShell, seqGantt, statusTag, toMin, fmtMin, openLotPanorama } from '../_shared/shell.js'
+import { API_BASE, $, mountShell, seqGantt, statusTag, toMin, fmtMin, openLotPanorama, showDrawer } from '../_shared/shell.js'
 
 mountShell('litho-schedule')
 
@@ -14,6 +14,7 @@ async function init() {
   }
   $('#runSel').addEventListener('change', () => renderRun($('#runSel').value))
   $('#resolveBtn').addEventListener('click', resolveNow)
+  $('#explainBtn').addEventListener('click', explainRun)
   $('#csvBtn').addEventListener('click', exportCSV)
   // Scanner / Barc 双视图切换
   $('#tabScanner').addEventListener('click', () => switchTab('scanner'))
@@ -141,6 +142,37 @@ function renderBarc(rec, sched) {
   $('#barcTbl tbody').innerHTML = table.join('')
   $('#barcTbl tbody').querySelectorAll('tr').forEach((tr) =>
     tr.addEventListener('click', () => openLotPanorama(rec.run_id, tr.dataset.lot)))
+}
+
+// AI 解读：Dify 工作流优先（配置 DIFY_KEY_RESULT_EXPLAIN 后走线上），
+// 未配置自动本地规则解读（mode=local_fallback），两种模式都产出中文报告
+async function explainRun() {
+  const runId = $('#runSel').value
+  if (!runId) return
+  const btn = $('#explainBtn')
+  btn.disabled = true
+  btn.textContent = '🧠 解读中…'
+  try {
+    const res = await fetch(`${API_BASE}/api/explain/run`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ run_id: runId }),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const d = await res.json()
+    if (d.error) throw new Error(d.error)
+    const badge = d.mode === 'dify'
+      ? '<span class="tag success">Dify 线上</span>'
+      : `<span class="tag default">本地降级</span> <span class="muted">${d.fallback_reason || ''}</span>`
+    showDrawer(`AI 解读 · run ${runId}`, `
+      <div style="margin-bottom:8px">${badge} ${d.elapsed ? `· ${d.elapsed}s` : ''}
+        ${d.workflow_run_id ? `· ${d.workflow_run_id}` : ''}</div>
+      <div class="report">${d.report}</div>`)
+  } catch (e) {
+    showDrawer('AI 解读失败', `<div style="color:var(--colorError)">${e.message}</div>`)
+  } finally {
+    btn.disabled = false
+    btn.textContent = '🧠 AI 解读本次排程'
+  }
 }
 
 function exportCSV() {

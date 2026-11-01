@@ -16,6 +16,7 @@ _KEYS = {
     "daily_scheduling": os.getenv("DIFY_KEY_DAILY_SCHEDULING", ""),
     "scenario_compare": os.getenv("DIFY_KEY_SCENARIO_COMPARE", ""),
     "qa_chatflow":      os.getenv("DIFY_KEY_QA_CHATFLOW", ""),
+    "result_explain":   os.getenv("DIFY_KEY_RESULT_EXPLAIN", ""),
 }
 
 

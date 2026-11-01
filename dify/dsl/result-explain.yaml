@@ -1,0 +1,70 @@
+# Dify DSL 骨架 · 排程结果解读（仅供线上 Dify「导入 DSL」使用，不含任何 Key）
+# 节点链：开始(run_id) → HTTP(GET /api/solve/result/{run_id}) → LLM 中文解读 → 结束
+# 这是 Dify 在本系统最典型的接入点：确定性取数 + LLM 解释。
+app:
+  mode: workflow
+  name: gtx-result-explain
+  version: 0.1.5
+kind: app
+version: 0.1.5
+workflow:
+  graph:
+    nodes:
+      - id: start
+        type: start
+        position: { x: 60, y: 200 }
+        data:
+          title: 开始
+          variables:
+            - variable: run_id
+              label: 求解运行 ID
+              type: text-input
+              required: true
+              max_length: 32
+      - id: fetch-result
+        type: http-request
+        position: { x: 380, y: 200 }
+        data:
+          title: 取排程结果
+          method: get
+          url: "{{#env.API_PUBLIC_BASE#}}/api/solve/result/{{#start.run_id#}}"
+          authorization: { type: no-auth }
+          headers: []
+          params: []
+          timeout: &timeout 30
+      - id: explain
+        type: llm
+        position: { x: 700, y: 200 }
+        data:
+          title: 排程中文解读
+          model:
+            provider: openai_api_compatible
+            name: gpt-4o-mini
+            mode: chat
+          prompt_template:
+            - role: system
+              text: >-
+                你是光刻排程专家。基于排程结果 JSON 输出中文解读，必须覆盖：
+                1) MILP 求解状态；2) 急货 LOT-A01 上机时间与光罩就绪链路（IRIS 20+搬送10+装载5=35min）；
+                3) 机台负载分布；4) 卡控与校准事件（QTMS 超水位/放货间隔/计片 IRIS/Chuck 不相容）；
+                5) 光罩温层跳变风险；6) 给计划员的两条可执行建议。300 字以内，用条目。
+            - role: user
+              text: "{{#fetch-result.body#}}"
+          vision: { enabled: false }
+      - id: end
+        type: end
+        position: { x: 1020, y: 200 }
+        data:
+          title: 结束
+          outputs:
+            - variable: explanation
+              value_selector: [explain, text]
+    edges:
+      - { source: start, target: fetch-result }
+      - { source: fetch-result, target: explain }
+      - { source: explain, target: end }
+  environment_variables:
+    - variable: API_PUBLIC_BASE
+      value: ""
+      description: 内网穿透地址（cloudflared tunnel --url http://localhost:8000）
+  features: {}
