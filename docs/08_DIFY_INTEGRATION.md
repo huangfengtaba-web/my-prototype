@@ -13,13 +13,14 @@
 ⑤ /ai-workflow 页点运行 → 徽章变「Dify 线上」即接通
 ```
 
-## 2. 第①步：线上建 3 个应用
+## 2. 第①步：线上建 4 个应用
 
 | 应用 | 类型 | 导入文件（dify/dsl/） | 对应环境变量 |
 |---|---|---|---|
 | 日计划排程 | Workflow | `daily-scheduling.yaml` | `DIFY_KEY_DAILY_SCHEDULING` |
 | 场景对比 | Workflow | `scenario-compare.yaml` | `DIFY_KEY_SCENARIO_COMPARE` |
 | 智能问答 | Chatflow | `qa-chatflow.yaml` | `DIFY_KEY_QA_CHATFLOW` |
+| **排程结果 AI 解读**（已接入 `/litho-schedule`「🧠 AI 解读」按钮） | Workflow | `result-explain.yaml` | `DIFY_KEY_RESULT_EXPLAIN` |
 
 操作：Dify 控制台 → 创建应用 → **导入 DSL** → 选上面文件 → 进入编排页：
 - 给 LLM 节点选一个你有额度的模型（骨架默认 `gpt-4o-mini`，可换 glm-4-flash / qwen-plus 等）
@@ -59,6 +60,7 @@ DIFY_BASE=https://api.dify.ai/v1        # 或你的自托管 Dify 域名 + /v1
 DIFY_KEY_DAILY_SCHEDULING=app-xxxx
 DIFY_KEY_SCENARIO_COMPARE=app-yyyy
 DIFY_KEY_QA_CHATFLOW=app-zzzz
+DIFY_KEY_RESULT_EXPLAIN=app-wwww
 API_PUBLIC_BASE=https://xxx-yyy.trycloudflare.com
 ```
 
