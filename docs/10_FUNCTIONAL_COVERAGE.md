@@ -12,6 +12,7 @@
 |---|---|
 | 结果页面六件套（培训手册 P11） | ✅ 全部真数据化：Scanner Schedule（/litho-schedule）、Reticle Schedule（/reticle-schedule）、**Barc Schedule（本次新增 Tab）**、**Reticle Transport（本次新增 Tab）**、**Scheduling Log + Error Management（本次新增 /logs）** |
 | 排程功能点 33 项 | ✅ 19 项 ｜ 🟡 10 项 ｜ ❌ 0 项 ｜ 🔗 4 项需外部数据（2026-10-31 R1~R3 实现后） |
+| 设计书表47 前处理属性 40 项 | ✅ 36 项 ｜ 🟡 4 项（Recipe维度/Doma Chamber WIP/上游CycleTime/在制UnFinished 需真数据）｜ 2026-11-01 审查补齐：Monitor Lot 隔离、MES Queue 插队（绑定机台+First排位）、Lot WaitTime、Reticle 温层关系校验、Normal Bullet 超时提档、FIX_LOT_COUNT/MIN_TIME 范围 |
 | UI 功能点 3 项 | ✅ 2 项（结果界面/基本配置=真配置页 /config）｜ 🟡 1 项（模型参数 UI） |
 | 工程化 3 项 | ✅ 3 项（中间结果 CSV/JSON、功能开关=CONFIG、集成=REST+时间轴） |
 | 算法主链 | 六步全部可运行（PuLP+CBC，4 场景 Optimal，pytest 23/23） |
@@ -34,7 +35,7 @@
 | 10 | Reticle Purge/IRIS/StarLight 计时计片卡控 | 2.1.8 | ✅/🟡 | iris_at/StarLight 到期已作开工下界（光罩就绪耦合）✓；**剩余片数/动态余量未实现** |
 | 11 | 连续同 Recipe 连批 | 2.1.7 | ❌ | 加工时长按 wph 统一假设，无 Recipe 维度 |
 | 12 | 连续同 Reticle 连批 | 2.1.7 | 🟡 | 同光罩换罩代价 w_changeover 进目标函数（等效连批激励）✓；窗口内连续 M 批片数阈值未实现 |
-| 13 | Monitor Lot 与时效 | 基本需求 | ❌ | 未建模 |
+| 13 | Monitor Lot 与时效 | 基本需求 | ✅ | 主排程前隔离（不占机时）+ Monitor 时效检查；scenario monitor |
 | 14 | BARC 同 Stage 放货间隔 2h（可配置） | 2.1.1 | ✅ | release_gap_min=120 后处理卡控（SHR 豁免），有场景覆盖 |
 | 15 | MoveTarget 优先派工 | 2.1.6 | ✅ | 无该属性 |
 | 16 | MES Queue 插队 Flag | 2.1.6 | ✅ | |

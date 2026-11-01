@@ -1,0 +1,8 @@
+# 设计书表47：MES Queue 插队——LOT-E03 绑定 IMM01 且 First 排位（先于同机台所有 Lot）
+name: MES Queue 插队
+desc: LOT-E03 插队到 IMM01 第一顺位，验证 Queue 绑定机台 + First 排位约束。
+lots:
+  LOT-E03:
+    queue:
+      eqp: IMM01
+      pos: 1

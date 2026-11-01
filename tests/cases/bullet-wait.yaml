@@ -1,0 +1,8 @@
+# Bullet Config 场景：Normal Bullet 等待超时提档（NORMAL_BULLET_MAX_WAIT_TIME）
+# LOT-B02 到站提前至 03:20（等待 220min > 默认 240？改为 ready 200 → wait 340 > 240 触发提档到档1）
+name: Normal Bullet 等待超时
+desc: LOT-B02（NormalBullet）等待 340min 超过 NORMAL_BULLET_MAX_WAIT_TIME(240)，提档到 PRI1。
+lots:
+  LOT-B02:
+    ready: 200
+    tags: [NormalBullet]

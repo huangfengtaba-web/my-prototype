@@ -65,19 +65,19 @@ LOTS = [
 RETICLES = {
     "RT-0101": {"status": "Stocker", "location": "IMMLIB", "wafer_to_iris": 0,
                 "life_remain_min": 0, "need_iris": True, "iris_at": 550,      # 外部 IRIS 09:10
-                "note": "急货预留（Super）外部光罩"},
+                "temp": "T2", "note": "急货预留（Super）外部光罩"},
     "RT-0102": {"status": "Process", "location": "IMM02", "wafer_to_iris": 30,
                 "life_remain_min": 600, "need_iris": False, "iris_at": None,
-                "note": "内部 IRIS（IMM02），本机直用"},
+                "temp": "T2", "note": "内部 IRIS（IMM02），本机直用"},
     "RT-0203": {"status": "Stocker", "location": "IMMLIB", "wafer_to_iris": 8,
                 "life_remain_min": 480, "need_iris": False, "iris_at": None,
-                "note": "机台间接力（IMM03→IMM04）"},
+                "temp": "T1", "note": "机台间接力（IMM03→IMM04）"},
     "RT-0204": {"status": "StarLight", "location": "IMM06", "wafer_to_iris": 5,
                 "life_remain_min": 78, "need_iris": False, "iris_at": 678,    # 11:18 计时到期
-                "note": "StarLight 计时到期后可用"},
+                "temp": "T2", "note": "StarLight 计时到期后可用"},
     "RT-0305": {"status": "Stocker", "location": "IMMLIB", "wafer_to_iris": 12,
                 "life_remain_min": 300, "need_iris": False, "iris_at": None,
-                "note": "常规储位"},
+                "temp": "T1", "note": "常规储位"},
 }
 
 # ---------- 工艺/配置参数（FSO_CFG_PARAM / capability_temperature_change） ----------
@@ -96,6 +96,16 @@ CONFIG = {
     "time_limit_s": 30,        # CBC 求解时限
     "iris_reset_wafers": 100,  # R2：IRIS 检测后光罩恢复的可用片数
     "chuck_penalty": 15,       # R2：Chuck 首尾片不相容的相邻惩罚（目标函数）
+    # --- 设计书配置页参数（Reticle Config / Bullet Config / 放货管理）---
+    "fix_lot_count": 3,        # FIX_LOT_COUNT：冻结 Lot 最小个数（Fix Lot）
+    "fix_lot_min_time": 60,    # FIX_LOT_MIN_TIME：冻结 Lot 最小排程时间（分钟）
+    "normal_bullet_max_wait": 240,      # NORMAL_BULLET_MAX_WAIT_TIME：普通 Bullet 最大等待
+    "super_bullet_advance_reserve": 120,  # SUPER_BULLET_ADVANCE_RESERVE_TIME
+    "reticle_clean_min": 30,   # CLEAN_COST_TIME：光罩清洁耗时
+    "starlight_cost_min": 25,  # STARLIGHT_COST_TIME：StarLight 动作耗时
+    "offline_iris_min": 40,    # OFFLINE_IRIS_COST_TIME：离线 IRIS 耗时
+    "advance_notify_min": 15,  # RETICLE_ADVANCE_NOTIFY_TIME：提前通知时间
+    "lot_trans_cost": 5,       # LOT_TRANS_COST_TIME：Lot 搬送上机台平均耗时
 }
 
 # 求解运行批次标识（对齐 FSO_MID_RUN_BATCH / 原型中间结果页）

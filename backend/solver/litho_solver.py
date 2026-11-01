@@ -111,6 +111,12 @@ def step1_preprocess():
         if boost:
             eff = max(1, eff - boost)
             src.append(f"Hungry({l['product']})+{boost}")
+        # 前处理属性（设计书表47）：Lot WaitTime / Lot Type / Normal Bullet 最大等待提档
+        l["wait_time"] = max(0, 540 - l["ready"])
+        l["lot_type"] = l.get("lot_type", "Production")         # Production / Monitor
+        if "NormalBullet" in l["tags"] and \
+                l["wait_time"] > CONFIG.get("normal_bullet_max_wait", 240) and eff > 1:
+            eff, src = 1, src + [f"NormalBullet等待{l['wait_time']}min超限→档1"]
         l["priority"], l["priority_src"] = eff, "+".join(src)
         l["pri_w"] = CONFIG["pri_flow_w"][eff]
         l["tag_str"] = "/".join(l["tags"]) if l["tags"] else "Normal"
@@ -122,13 +128,13 @@ def step1_preprocess():
         l["apc"] = apc
         if apc["ood"]:
             apc_holds.append(l["lot"])
-    rows = [[l["lot"], l["tag_str"], f"PRI{l['priority']}({l['priority_src']})", l["temp"],
-             str(l["remain_qt"]) if l["remain_qt"] else "-",
-             l["reticle"], fmt(l["ready"]), str(l["dur_est"]),
+    rows = [[l["lot"], l["lot_type"], l["tag_str"], f"PRI{l['priority']}({l['priority_src']})",
+             l["temp"], str(l["remain_qt"]) if l["remain_qt"] else "-",
+             str(l["wait_time"]), l["reticle"], fmt(l["ready"]), str(l["dur_est"]),
              "APC OOD 卡控" if l["apc"]["ood"] else "完成"] for l in LOTS]
     save_csv("step1_preprocess.csv",
-             ["LotId", "属性打标", "Priority(推导)", "温层", "RemainQTime(min)",
-              "ReticleId", "预计到站", "加工时长估(min)", "状态"], rows)
+             ["LotId", "LotType", "属性打标", "Priority(推导)", "温层", "RemainQTime(min)",
+              "WaitTime(min)", "ReticleId", "预计到站", "加工时长估(min)", "状态"], rows)
     log_step(1, "① 预处理", "完成", 0.001,
              f"{len(LOTS)} lots 打标+计时, APC OOD 卡控 {len(apc_holds)} 批")
     SUMMARY["apc"] = {l["lot"]: {"type": l["apc"]["type"], "ood": l["apc"]["ood"],
@@ -177,6 +183,9 @@ def step2_reticle_grouping(lots):
             fe = freeze[l["lot"]]["eqp"]
             if (l["lot"], fe) in x:
                 prob += x[l["lot"], fe] == 1
+        q = l.get("queue")                                  # 设计书表47：Queue 插队绑定机台
+        if q and (l["lot"], q["eqp"]) in x:
+            prob += x[l["lot"], q["eqp"]] == 1
     for e in mach:                                          # MakeSpan = 最大机台负载
         prob += C >= pulp.lpSum(x[l["lot"], e] * l["dur_est"] for l in lots
                                 if (l["lot"], e) in x)
@@ -277,6 +286,16 @@ def step3_lot_scheduling(lots, assign):
                         key=lambda l: freeze[l["lot"]]["start"])
         for a, b in zip(frozen, frozen[1:]):
             prob += s[b["lot"]] >= s[a["lot"]] + dur_on(a, e)
+    # 设计书表47：MES Queue 插队——绑定机台 + First 排位（先于同机台所有其他 Lot）
+    for l in lots:
+        q = l.get("queue")
+        if not q:
+            continue
+        for j in by_m.get(q["eqp"], []):
+            if j["lot"] == l["lot"]:
+                continue
+            if (l["lot"], j["lot"]) in o:
+                prob += o[l["lot"], j["lot"]] == 1
     solver = _pick_solver()
     prob.solve(solver)
     status = pulp.LpStatus[prob.status]
@@ -393,13 +412,17 @@ def step45_reticle_calibration(lots):
             "expiry": expiry_of(meta), "free": 0, "last_eqp": None,
         })
         notes = []
-        # 1) 计时：寿命到期 → 触发 IRIS 重置
+        # 1) 计时：寿命到期 → 按光罩类型执行动作（StarLight/清洁/IRIS）+ 搬送装载
         if l["start"] > st["expiry"]:
+            act = (CONFIG["iris_min"] if meta.get("need_iris")
+                   else CONFIG["starlight_cost_min"] if meta["status"] == "StarLight"
+                   else CONFIG["reticle_clean_min"])
             st["remain"] = reset_wafers
             st["expiry"] = 10 ** 9 if meta.get("need_iris") else l["start"] + meta.get("life_remain_min", 0)
-            l["start"] = max(l["start"], st["free"]) + chain
+            l["start"] = max(l["start"], st["free"]) + act + CONFIG["transport_min"] + CONFIG["load_min"]
             l["end"] = l["start"] + dur_on(l, l["assign"])
-            notes.append(f"光罩寿命到期，IRIS 重置 +{chain}min")
+            notes.append(f"光罩寿命到期，{('StarLight' if meta['status'] == 'StarLight' else 'IRIS/Clean')}动作重置 "
+                         f"+{act + CONFIG['transport_min'] + CONFIG['load_min']}min")
         # 2) 计片：剩余可用片数不足本 Lot → 触发 IRIS 重置
         elif st["remain"] < l["qty"]:
             pre = st["remain"]
@@ -551,10 +574,35 @@ def main(fix=None):
         CONFIG["__freeze"] = fix        # R1: Fix Lot 冻结（相邻版本机台与顺序保持）
     print(f"=== GTX FSO Litho 六步算法链 Demo · {RUN['model']} {RUN['version']} · {RUN['batch']} ===")
     lots = step1_preprocess()
+    # 设计书表47：Monitor Lot 与 MES Queue Lot 在主排程算法之前处理——
+    # Monitor Lot 不占产线机时，隔离后单独记录（含 Monitor 时效检查）
+    monitor = [l for l in lots if l.get("lot_type") == "Monitor"]
+    lots = [l for l in lots if l.get("lot_type") != "Monitor"]
+    SUMMARY["monitor"] = []
+    for l in monitor:
+        l["start"], l["end"] = None, None
+        l["post_note"] = "Monitor Lot：主排程前已单独处理（不占产线机时）"
+        overdue = l.get("monitor_due") is not None and l["monitor_due"] < 540
+        SUMMARY["monitor"].append({"lot": l["lot"],
+                                   "due": fmt(l["monitor_due"]) if l.get("monitor_due") else "-",
+                                   "overdue": bool(overdue)})
     assign, s2 = step2_reticle_grouping(lots)
     s3 = step3_lot_scheduling(lots, assign)
     step4_postprocess(lots)
     step45_reticle_calibration(lots)
+    # RFP 2.1.7（轻量）：同机台相邻 Lot 的光罩温层关系校验（跳变即告警，供 Reticle Hold 分析）
+    by_e = {}
+    for l in sorted([x for x in lots if x.get("start") is not None], key=lambda x: x["start"]):
+        by_e.setdefault(l["assign"], []).append(l)
+    temp_warn = []
+    for e, ls in by_e.items():
+        for a, b in zip(ls, ls[1:]):
+            ta = RETICLES.get(a["reticle"], {}).get("temp")
+            tb = RETICLES.get(b["reticle"], {}).get("temp")
+            if ta and tb and ta != tb:
+                temp_warn.append({"eqp": e, "pair": [a["lot"], b["lot"]],
+                                  "detail": f"{a['reticle']}({ta}) → {b['reticle']}({tb}) 温层跳变"})
+    SUMMARY["reticle_temp_warn"] = temp_warn
     step5_barc(lots)
     step6_reticle_deduction(lots)
 

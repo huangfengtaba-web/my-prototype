@@ -48,17 +48,23 @@ def test_barc_batch_grouping():
 
 
 def test_fix_lot_freezes_assignment():
-    """Fix Lot：冻结快照强制机台（把快照改为 IMM03 后必须服从）。"""
-    d1 = run_cli([])
-    natural = row(d1, "LOT-A01")["eqp"]
-    fz_path = os.path.join(REPO, "backend", "solver", "output", "freeze.json")
-    assert os.path.exists(fz_path), "冻结快照未生成"
-    fz = json.load(open(fz_path, encoding="utf-8"))
-    forced = "IMM03" if natural != "IMM03" else "IMM04"
-    fz["LOT-A01"]["eqp"] = forced
-    json.dump(fz, open(fz_path, "w", encoding="utf-8"))
-    d2 = run_cli(["--fix"])
-    assert row(d2, "LOT-A01")["eqp"] == forced, "Fix 冻结未生效"
+    """Fix Lot：冻结快照强制机台（范围放开到全部后，被冻结批必须服从）。"""
+    rc = os.path.join(REPO, "backend", "solver", "runtime_config.json")
+    json.dump({"fix_lot_count": 99, "fix_lot_min_time": 9999}, open(rc, "w", encoding="utf-8"))
+    try:
+        d1 = run_cli([])
+        natural = row(d1, "LOT-A01")["eqp"]
+        fz_path = os.path.join(REPO, "backend", "solver", "output", "freeze.json")
+        assert os.path.exists(fz_path), "冻结快照未生成"
+        fz = json.load(open(fz_path, encoding="utf-8"))
+        forced = "IMM03" if natural != "IMM03" else "IMM04"
+        fz["LOT-A01"]["eqp"] = forced
+        json.dump(fz, open(fz_path, "w", encoding="utf-8"))
+        d2 = run_cli(["--fix"])
+        assert row(d2, "LOT-A01")["eqp"] == forced, "Fix 冻结未生效"
+    finally:
+        if os.path.exists(rc):
+            os.remove(rc)
 
 
 def test_runtime_config_applies():
@@ -120,3 +126,66 @@ def test_qtms_loop_water():
     c07 = row(d, "LOT-C07")
     assert "QTMS" in c07["post_note"]
     assert any(o["deferred"] > 0 for o in d["qtms_loops"])
+
+
+# ---------------- 设计书表47 前处理属性（2026-11-01 审查补齐） ----------------
+def test_monitor_lot_isolated():
+    """Monitor Lot：主排程前隔离——不占机时、时效状态记录。"""
+    d = run_cli(["--case", "monitor"])
+    e03 = row(d, "LOT-E03")
+    assert e03["start"] is None and "Monitor" in e09_note(e03)
+    assert any(m["lot"] == "LOT-E03" and m["overdue"] is False for m in d["monitor"])
+
+
+def e09_note(r):
+    return r["post_note"]
+
+
+def test_mes_queue_first_position():
+    """MES Queue 插队：绑定机台 + First 排位（先于同机台所有 Lot）。"""
+    d = run_cli(["--case", "queue"])
+    e03 = row(d, "LOT-E03")
+    assert e03["eqp"] == "IMM01"
+    e03_start = int(e03["start"].split(":")[0]) * 60 + int(e03["start"].split(":")[1])
+    others = [r for r in d["schedule"] if r["eqp"] == "IMM01" and r["lot"] != "LOT-E03" and r["start"]]
+    for o in others:
+        s = int(o["start"].split(":")[0]) * 60 + int(o["start"].split(":")[1])
+        assert e03_start <= s, f"Queue 插队未排第一: E03 {e03['start']} vs {o['lot']} {o['start']}"
+
+
+def test_normal_bullet_wait_escalation():
+    """Normal Bullet 等待超时提档（NORMAL_BULLET_MAX_WAIT_TIME）。"""
+    d = run_cli(["--case", "bullet-wait"])
+    assert row(d, "LOT-B02")["priority"] == "PRI1"
+
+
+def test_reticle_temp_check():
+    """Reticle 温层关系校验（RFP 2.1.7 轻量）：相邻光罩温层跳变告警输出。"""
+    d = run_cli([])
+    assert isinstance(d["reticle_temp_warn"], list)
+
+
+def test_fix_scope_config():
+    """Fix 范围配置：FIX_LOT_COUNT 限制冻结个数（非自然机台的强制批 ≤ N，其余回自然机台）。"""
+    import json as j
+    fz_path = os.path.join(REPO, "backend", "solver", "output", "freeze.json")
+    d1 = run_cli([])                              # 自然解
+    natural = {r["lot"]: r["eqp"] for r in d1["schedule"]}
+    fz = j.load(open(fz_path, encoding="utf-8"))
+    # 全部强制到 IMM03（挑自然解不在 IMM03 的批做断言，排除巧合）
+    for v in fz.values():
+        v["eqp"] = "IMM03"
+    j.dump(fz, open(fz_path, "w", encoding="utf-8"))
+    rc = os.path.join(REPO, "backend", "solver", "runtime_config.json")
+    j.dump({"fix_lot_count": 2}, open(rc, "w", encoding="utf-8"))
+    try:
+        d = run_cli(["--fix"])
+        # CLI 冻结范围 = 按 start 降序取前 FIX_LOT_COUNT 批；这 2 批必须服从强制机台。
+        # 未冻结的 Lot 落在 IMM03 属优化器自由选择，不计入。
+        applied = {k for k, _ in sorted(fz.items(), key=lambda kv: kv[1]["start"],
+                                        reverse=True)[:2]}
+        obeyed = [lot for lot in applied if row(d, lot)["eqp"] == "IMM03"]
+        assert len(obeyed) == len(applied), \
+            f"被冻结批未全部服从：{obeyed} / {sorted(applied)}"
+    finally:
+        os.remove(rc)

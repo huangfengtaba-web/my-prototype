@@ -130,7 +130,14 @@ def cmd_run(args):
         if os.path.exists(freeze_path):
             with open(freeze_path, encoding="utf-8") as f:
                 fix = json.load(f)
-            print(f"[fix] Fix Lot 冻结 {len(fix)} 批（来自上一次运行）")
+            # 设计书 Fix Lot 配置：冻结范围按 FIX_LOT_COUNT（最近 N 批）或 FIX_LOT_MIN_TIME（时间窗）
+            n = ls.CONFIG.get("fix_lot_count", 3)
+            min_t = ls.CONFIG.get("fix_lot_min_time", 60)
+            max_start = max((v["start"] for v in fix.values()), default=0)
+            fix = {k: v for k, v in
+                   sorted(fix.items(), key=lambda kv: kv[1]["start"], reverse=True)[:n]
+                   if v["start"] >= max_start - min_t}
+            print(f"[fix] Fix Lot 冻结 {len(fix)} 批（count≤{n}, 窗口≥{min_t}min）")
         else:
             print("[fix] 无可用的冻结快照，按无冻结执行")
 

@@ -1,0 +1,7 @@
+# R3/设计书表47：Monitor Lot 前处理隔离（Monitor Lot 不占产线机时，含时效检查）
+name: Monitor Lot 隔离
+desc: LOT-E03 标记为 Monitor Lot（时效 09:30 前需处理），验证主排程前隔离——不占机时、单独记录。
+lots:
+  LOT-E03:
+    lot_type: Monitor
+    monitor_due: 570
