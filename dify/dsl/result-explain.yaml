@@ -1,70 +1,197 @@
-# Dify DSL 骨架 · 排程结果解读（仅供线上 Dify「导入 DSL」使用，不含任何 Key）
-# 节点链：开始(run_id) → HTTP(GET /api/solve/result/{run_id}) → LLM 中文解读 → 结束
-# 这是 Dify 在本系统最典型的接入点：确定性取数 + LLM 解释。
 app:
+  description: GTX FSO 排程结果 AI 解读——按 run_id 取数，LLM 生成中文解读报告（/litho-schedule「AI 解读」按钮的线上模式）
+  icon: 🧠
+  icon_background: '#E6F4FF'
   mode: workflow
   name: gtx-result-explain
-  version: 0.1.5
+  use_icon_as_answer_icon: false
 kind: app
 version: 0.1.5
 workflow:
-  graph:
-    nodes:
-      - id: start
-        type: start
-        position: { x: 60, y: 200 }
-        data:
-          title: 开始
-          variables:
-            - variable: run_id
-              label: 求解运行 ID
-              type: text-input
-              required: true
-              max_length: 32
-      - id: fetch-result
-        type: http-request
-        position: { x: 380, y: 200 }
-        data:
-          title: 取排程结果
-          method: get
-          url: "{{#env.API_PUBLIC_BASE#}}/api/solve/result/{{#start.run_id#}}"
-          authorization: { type: no-auth }
-          headers: []
-          params: []
-          timeout: &timeout 30
-      - id: explain
-        type: llm
-        position: { x: 700, y: 200 }
-        data:
-          title: 排程中文解读
-          model:
-            provider: openai_api_compatible
-            name: gpt-4o-mini
-            mode: chat
-          prompt_template:
-            - role: system
-              text: >-
-                你是光刻排程专家。基于排程结果 JSON 输出中文解读，必须覆盖：
-                1) MILP 求解状态；2) 急货 LOT-A01 上机时间与光罩就绪链路（IRIS 20+搬送10+装载5=35min）；
-                3) 机台负载分布；4) 卡控与校准事件（QTMS 超水位/放货间隔/计片 IRIS/Chuck 不相容）；
-                5) 光罩温层跳变风险；6) 给计划员的两条可执行建议。300 字以内，用条目。
-            - role: user
-              text: "{{#fetch-result.body#}}"
-          vision: { enabled: false }
-      - id: end
-        type: end
-        position: { x: 1020, y: 200 }
-        data:
-          title: 结束
-          outputs:
-            - variable: explanation
-              value_selector: [explain, text]
-    edges:
-      - { source: start, target: fetch-result }
-      - { source: fetch-result, target: explain }
-      - { source: explain, target: end }
+  conversation_variables: []
   environment_variables:
-    - variable: API_PUBLIC_BASE
-      value: ""
-      description: 内网穿透地址（cloudflared tunnel --url http://localhost:8000）
-  features: {}
+  - description: 内网穿透地址（cloudflared tunnel --url http://localhost:8000）
+    id: env-api-base
+    name: API_PUBLIC_BASE
+    selector:
+    - env
+    - API_PUBLIC_BASE
+    value: ''
+    value_type: string
+  features:
+    file_upload:
+      enabled: false
+  graph:
+    edges:
+    - data: {isInIteration: false, sourceType: start, targetType: http-request}
+      id: e1
+      source: start
+      sourceHandle: source
+      target: fetch-result
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data: {isInIteration: false, sourceType: http-request, targetType: code}
+      id: e2
+      source: fetch-result
+      sourceHandle: source
+      target: parse-result
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data: {isInIteration: false, sourceType: code, targetType: llm}
+      id: e3
+      source: parse-result
+      sourceHandle: source
+      target: explain
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data: {isInIteration: false, sourceType: llm, targetType: end}
+      id: e4
+      source: explain
+      sourceHandle: source
+      target: end
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: 来自 /litho-schedule 或 /api/solve/list
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - {label: 求解运行 ID, max_length: 32, options: [], required: true, type: text-input,
+           variable: run_id}
+      height: 116
+      id: start
+      position: {x: 60, y: 200}
+      positionAbsolute: {x: 60, y: 200}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 回调本地后端取完整 run_summary
+        method: get
+        selected: false
+        title: 取排程结果
+        timeout: {connect: 10, max_connect_timeout: 0, max_read_timeout: 0, max_write_timeout: 0,
+                  read: 30, write: 10}
+        type: http-request
+        url: '{{#env.API_PUBLIC_BASE#}}/api/solve/result/{{#start.run_id#}}'
+        variables: []
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: ''
+          type: none
+        headers: []
+        params: []
+      height: 90
+      id: fetch-result
+      position: {x: 380, y: 200}
+      positionAbsolute: {x: 380, y: 200}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import json\n\ndef main(http_body: str) -> dict:\n    d = json.loads(http_body)\n\
+          \    s = d.get('summary') or {}\n    milp = s.get('milp_status') or {}\n    sched = [r\
+          \ for r in s.get('schedule') or [] if r.get('start')]\n    a01 = next((r for r in\
+          \ sched if r.get('lot') == 'LOT-A01'), {})\n    loads = {}\n    for r in sched:\n\
+          \        loads[r.get('eqp') or '?'] = loads.get(r.get('eqp') or '?', 0) + int((r.get('end')\
+          \ or '0:00').split(':')[0]) * 60 + int((r.get('end') or '0:0').split(':')[1]) - int((r.get('start')\
+          \ or '0:0').split(':')[1])\n    top3 = sorted(loads.items(), key=lambda kv: -kv[1])[:3]\n\
+          \    notes = [f\"{r['lot']}：{r['post_note']}\" for r in sched if r.get('post_note',\
+          \ '-') != '-']\n    warns = ['；'.join(w['pair']) + ' ' + w['detail'] for w in (s.get('reticle_temp_warn')\
+          \ or [])]\n    monitor = s.get('monitor') or []\n    return {\n        'run_id': d.get('run_id',\
+          \ ''),\n        'milp': f\"{milp.get('step2')} / {milp.get('step3')}\",\n       \
+          \ 'story': '；'.join(f\"{k}：{v}\" for k, v in (s.get('story_check') or {}).items()),\n\
+          \        'loads': '；'.join(f\"{e} {m}min\" for e, m in top3),\n        'notes': '｜'.join(notes)\
+          \ or '无',\n        'temp_warn': '；'.join(warns) or '无',\n        'monitor': '；'.join(f\"\
+          {m['lot']}（时效{m['due']}）\" for m in monitor) or '无',\n    }\n"
+        code_language: python3
+        desc: 压缩 run_summary 为 LLM 可读摘要
+        outputs:
+          loads: {children: null, type: string}
+          milp: {children: null, type: string}
+          monitor: {children: null, type: string}
+          notes: {children: null, type: string}
+          run_id: {children: null, type: string}
+          story: {children: null, type: string}
+          temp_warn: {children: null, type: string}
+        selected: false
+        title: 解析排程摘要
+        type: code
+        variables:
+        - {value_selector: [fetch-result, body], variable: http_body}
+      height: 200
+      id: parse-result
+      position: {x: 700, y: 200}
+      positionAbsolute: {x: 700, y: 200}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params: {max_tokens: 1024, temperature: 0.3}
+          mode: chat
+          name: gpt-4o-mini
+          provider: openai_api_compatible
+        prompt_template:
+        - id: sys1
+          role: system
+          text: '你是光刻排程专家。基于排程摘要输出中文解读，必须覆盖：1) MILP 求解状态；2) 急货
+            LOT-A01 上机时间与光罩就绪链路（IRIS 20+搬送10+装载5=35min）；3) 机台负载分布；4) 卡控与校准事件逐条解释（QTMS
+            超水位/放货间隔/计片 IRIS/Chuck 不相容）；5) 光罩温层跳变风险；6) 给计划员的两条可执行建议。300
+            字以内，用条目。'
+        - id: usr1
+          role: user
+          text: "run_id: {{#parse-result.run_id#}}\nMILP: {{#parse-result.milp#}}\n急货故事线:\
+            \ {{#parse-result.story#}}\n机台负载 Top3: {{#parse-result.loads#}}\n卡控与校准: {{#parse-result.notes#}}\n\
+            温层跳变: {{#parse-result.temp_warn#}}\nMonitor Lot: {{#parse-result.monitor#}}"
+        selected: false
+        title: 排程中文解读
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 98
+      id: explain
+      position: {x: 1020, y: 200}
+      positionAbsolute: {x: 1020, y: 200}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - {value_selector: [explain, text], variable: explanation}
+        selected: false
+        title: 结束
+        type: end
+        variables: []
+      height: 90
+      id: end
+      position: {x: 1340, y: 200}
+      positionAbsolute: {x: 1340, y: 200}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+  viewport: {x: 0, y: 0, zoom: 0.7}

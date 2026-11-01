@@ -1,81 +1,235 @@
-# Dify DSL 骨架 · 场景对比工作流（仅供线上 Dify「导入 DSL」使用，不含任何 Key）
-# 节点链：开始 → 并行 HTTP ×2（基线 / 急货）→ LLM 差异分析 → 结束
 app:
+  description: GTX FSO 场景对比——基线与急货插单各跑一次六步 MILP，LLM 输出差异分析与结论
+  icon: 🔀
+  icon_background: '#FFF7E6'
   mode: workflow
   name: gtx-scenario-compare
-  version: 0.1.5
+  use_icon_as_answer_icon: false
 kind: app
 version: 0.1.5
 workflow:
-  graph:
-    nodes:
-      - id: start
-        type: start
-        position: { x: 60, y: 220 }
-        data:
-          title: 开始
-          variables: []
-      - id: call-baseline
-        type: http-request
-        position: { x: 360, y: 120 }
-        data:
-          title: 求解基线
-          method: post
-          url: "{{#env.API_PUBLIC_BASE#}}/api/solve/run"
-          authorization: { type: no-auth }
-          headers:
-            - { key: Content-Type, value: application/json }
-          body:
-            type: json
-            data: '{"case": null}'
-          timeout: &timeout 30
-      - id: call-urgent
-        type: http-request
-        position: { x: 360, y: 320 }
-        data:
-          title: 求解急货场景
-          method: post
-          url: "{{#env.API_PUBLIC_BASE#}}/api/solve/run"
-          authorization: { type: no-auth }
-          headers:
-            - { key: Content-Type, value: application/json }
-          body:
-            type: json
-            data: '{"case": "urgent-A01"}'
-          timeout: *timeout
-      - id: diff-llm
-        type: llm
-        position: { x: 700, y: 220 }
-        data:
-          title: 差异分析
-          model:
-            provider: openai_api_compatible
-            name: gpt-4o-mini
-            mode: chat
-          prompt_template:
-            - role: system
-              text: >-
-                对比两次六步 MILP 排程结果：基线 vs 急货插单（urgent-A01）。
-                输出差异表（MakeSpan / 急货 LOT-A01 开工 / 受推移的 Lot）与一句话结论。
-            - role: user
-              text: "基线：{{#call-baseline.body#}}\n\n急货：{{#call-urgent.body#}}"
-          vision: { enabled: false }
-      - id: end
-        type: end
-        position: { x: 1020, y: 220 }
-        data:
-          title: 结束
-          outputs:
-            - variable: comparison
-              value_selector: [diff-llm, text]
-    edges:
-      - { source: start, target: call-baseline }
-      - { source: start, target: call-urgent }
-      - { source: call-baseline, target: diff-llm }
-      - { source: call-urgent, target: diff-llm }
-      - { source: diff-llm, target: end }
+  conversation_variables: []
   environment_variables:
-    - variable: API_PUBLIC_BASE
-      value: ""
-      description: 内网穿透地址（cloudflared tunnel --url http://localhost:8000）
-  features: {}
+  - description: 内网穿透地址（cloudflared tunnel --url http://localhost:8000）
+    id: env-api-base
+    name: API_PUBLIC_BASE
+    selector:
+    - env
+    - API_PUBLIC_BASE
+    value: ''
+    value_type: string
+  features:
+    file_upload:
+      enabled: false
+  graph:
+    edges:
+    - data: {isInIteration: false, sourceType: start, targetType: http-request}
+      id: e1
+      source: start
+      sourceHandle: source
+      target: call-baseline
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data: {isInIteration: false, sourceType: start, targetType: http-request}
+      id: e2
+      source: start
+      sourceHandle: source
+      target: call-urgent
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data: {isInIteration: false, sourceType: http-request, targetType: code}
+      id: e3
+      source: call-baseline
+      sourceHandle: source
+      target: merge
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data: {isInIteration: false, sourceType: http-request, targetType: code}
+      id: e4
+      source: call-urgent
+      sourceHandle: source
+      target: merge
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data: {isInIteration: false, sourceType: code, targetType: llm}
+      id: e5
+      source: merge
+      sourceHandle: source
+      target: diff-llm
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data: {isInIteration: false, sourceType: llm, targetType: end}
+      id: e6
+      source: diff-llm
+      sourceHandle: source
+      target: end
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables: []
+      height: 90
+      id: start
+      position: {x: 60, y: 220}
+      positionAbsolute: {x: 60, y: 220}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 基线场景（case 留空）
+        method: post
+        selected: false
+        title: 求解基线
+        timeout: {connect: 10, max_connect_timeout: 0, max_read_timeout: 0, max_write_timeout: 0,
+                  read: 60, write: 20}
+        type: http-request
+        url: '{{#env.API_PUBLIC_BASE#}}/api/solve/run'
+        variables: []
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: '{"case": null}'
+          type: json
+        headers:
+        - {id: h1, key: Content-Type, type: text, value: application/json}
+        params: []
+      height: 118
+      id: call-baseline
+      position: {x: 360, y: 120}
+      positionAbsolute: {x: 360, y: 120}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 急货插单场景
+        method: post
+        selected: false
+        title: 求解急货场景
+        timeout: {connect: 10, max_connect_timeout: 0, max_read_timeout: 0, max_write_timeout: 0,
+                  read: 60, write: 20}
+        type: http-request
+        url: '{{#env.API_PUBLIC_BASE#}}/api/solve/run'
+        variables: []
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: '{"case": "urgent-A01"}'
+          type: json
+        headers:
+        - {id: h2, key: Content-Type, type: text, value: application/json}
+        params: []
+      height: 118
+      id: call-urgent
+      position: {x: 360, y: 320}
+      positionAbsolute: {x: 360, y: 320}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import json\n\ndef main(baseline_body: str, urgent_body: str) -> dict:\n\
+          \    def digest(body):\n        d = json.loads(body)\n        s = d.get('summary')\
+          \ or {}\n        sched = [r for r in s.get('schedule') or [] if r.get('start')]\n\
+          \        a01 = next((r for r in sched if r.get('lot') == 'LOT-A01'), {})\n       \
+          \    return {\n            'run_id': d.get('run_id', ''),\n            'milp':\
+          \ f\"{(s.get('milp_status') or {}).get('step2')} / {(s.get('milp_status') or {}).get('step3')}\"\
+          ,\n            'a01': a01.get('start', '-'),\n            'a01_eqp': a01.get('eqp',\
+          \ '-'),\n            'makespan': max((r.get('end') or '00:00' for r in sched),\
+          \ default='-'),\n        }\n    b, u = digest(baseline_body), digest(urgent_body)\n\
+          \    moves = []\n    ub = {r['lot']: r for r in json.loads(urgent_body).get('summary',\
+          \ {}).get('schedule', []) if r.get('start')}\n    for r in json.loads(baseline_body).get('summary',\
+          \ {}).get('schedule', []):\n        if r.get('start') and r['lot'] in ub and r['start']\
+          \ != ub[r['lot']].get('start'):\n            moves.append(f\"{r['lot']} {r['start']}→{ub[r['lot']].get('start')}\"\
+          )\n    return {\n        'baseline': json.dumps(b, ensure_ascii=False),\n        'urgent':\
+          \ json.dumps(u, ensure_ascii=False),\n        'moved': '；'.join(moves) or '无',\n\
+          \    }\n"
+        code_language: python3
+        desc: 汇总两次结果并计算开工变化
+        outputs:
+          baseline: {children: null, type: string}
+          moved: {children: null, type: string}
+          urgent: {children: null, type: string}
+        selected: false
+        title: 汇总对比数据
+        type: code
+        variables:
+        - {value_selector: [call-baseline, body], variable: baseline_body}
+        - {value_selector: [call-urgent, body], variable: urgent_body}
+      height: 200
+      id: merge
+      position: {x: 700, y: 220}
+      positionAbsolute: {x: 700, y: 220}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params: {max_tokens: 1024, temperature: 0.3}
+          mode: chat
+          name: gpt-4o-mini
+          provider: openai_api_compatible
+        prompt_template:
+        - id: sys1
+          role: system
+          text: '你是光刻排程专家。对比基线与急货插单（urgent-A01）两次排程，输出中文差异分析：1)
+            两次 MILP 状态；2) 急货 LOT-A01 开工与机台变化；3) MakeSpan 变化及原因；4) 开工时间变化的
+            Lot 逐条列出；5) 一句话结论（急货插单的代价）。250 字以内，用条目。'
+        - id: usr1
+          role: user
+          text: "基线：{{#merge.baseline#}}\n急货：{{#merge.urgent#}}\n开工变化：{{#merge.moved#}}"
+        selected: false
+        title: 差异分析
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 98
+      id: diff-llm
+      position: {x: 1020, y: 220}
+      positionAbsolute: {x: 1020, y: 220}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        outputs:
+        - {value_selector: [diff-llm, text], variable: comparison}
+        selected: false
+        title: 结束
+        type: end
+        variables: []
+      height: 90
+      id: end
+      position: {x: 1340, y: 220}
+      positionAbsolute: {x: 1340, y: 220}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+  viewport: {x: 0, y: 0, zoom: 0.7}

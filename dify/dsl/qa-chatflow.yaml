@@ -1,68 +1,147 @@
-# Dify DSL 骨架 · 智能问答 Chatflow（仅供线上 Dify「导入 DSL」使用，不含任何 Key）
-# 节点链：开始 → 知识库检索（排程规则/工艺文档/API 说明）→ LLM → 结束
-# 导入后需在 Dify 知识库上传 docs/specs/*.md 与 docs/03_ALGORITHM_DEMO.md，并在节点里绑定。
 app:
+  description: GTX FSO 排程知识问答——知识库检索 + LLM 回答（排程规则/工艺/API 说明）
+  icon: 💬
+  icon_background: '#E6F4FF'
   mode: advanced-chat
   name: gtx-qa-chatflow
-  version: 0.1.5
+  use_icon_as_answer_icon: false
 kind: app
 version: 0.1.5
 workflow:
-  graph:
-    nodes:
-      - id: start
-        type: start
-        position: { x: 60, y: 220 }
-        data:
-          title: 开始
-          variables:
-            - variable: query
-              label: 用户问题
-              type: text-input
-              required: true
-              max_length: 512
-      - id: retrieval
-        type: knowledge-retrieval
-        position: { x: 360, y: 220 }
-        data:
-          title: 排程知识库检索
-          dataset_ids: []          # 导入后绑定你的知识库
-          retrieval_mode: single
-          multiple_retrieval_config:
-            top_k: 4
-            score_threshold: 0.5
-          query_variable_selector: [start, query]
-      - id: answer
-        type: llm
-        position: { x: 700, y: 220 }
-        data:
-          title: 依据知识库回答
-          model:
-            provider: openai_api_compatible
-            name: gpt-4o-mini
-            mode: chat
-          prompt_template:
-            - role: system
-              text: >-
-                你是 GTX 光刻排程系统的问答助手。只依据检索到的知识库片段回答；
-                检索不到就直说不知道并指引查阅 docs/ 目录。中文回答，给出依据出处文件名。
-            - role: user
-              text: "问题：{{#start.query#}}\n\n知识片段：{{#retrieval.result#}}"
-          vision: { enabled: false }
-      - id: end
-        type: end
-        position: { x: 1020, y: 220 }
-        data:
-          title: 结束
-          outputs:
-            - variable: answer
-              value_selector: [answer, text]
-    edges:
-      - { source: start, target: retrieval }
-      - { source: retrieval, target: answer }
-      - { source: answer, target: end }
+  conversation_variables: []
   environment_variables:
-    - variable: API_PUBLIC_BASE
-      value: ""
-      description: 如需回查本地数据接口则填内网穿透地址，纯 RAG 可留空
-  features: {}
+  - description: 如需回查本地数据接口则填内网穿透地址，纯 RAG 可留空
+    id: env-api-base
+    name: API_PUBLIC_BASE
+    selector:
+    - env
+    - API_PUBLIC_BASE
+    value: ''
+    value_type: string
+  features:
+    opening_statement: 你好，我是 GTX 光刻排程知识助手。可以问我排程规则、QTime/BARC、光罩五态、Fix Lot 等问题。
+    retriever_resource:
+      enabled: true
+    suggested_questions:
+    - BARC 放货窗口怎么算？
+    - 光罩 IRIS 和 StarLight 有什么区别？
+    - Fix Lot 的作用是什么？
+    suggested_questions_after_answer:
+      enabled: false
+    speech_to_text:
+      enabled: false
+  graph:
+    edges:
+    - data: {isInIteration: false, sourceType: start, targetType: knowledge-retrieval}
+      id: e1
+      source: start
+      sourceHandle: source
+      target: retrieval
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data: {isInIteration: false, sourceType: knowledge-retrieval, targetType: llm}
+      id: e2
+      source: retrieval
+      sourceHandle: source
+      target: answer
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data: {isInIteration: false, sourceType: llm, targetType: answer}
+      id: e3
+      source: answer
+      sourceHandle: source
+      target: answer-node
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - {label: 用户问题, max_length: 512, options: [], required: false, type: text-input,
+           variable: query}
+      height: 116
+      id: start
+      position: {x: 60, y: 220}
+      positionAbsolute: {x: 60, y: 220}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        dataset_ids: []
+        desc: 导入后在此绑定知识库（docs/specs 全部 md + docs/03_ALGORITHM_DEMO.md）
+        multiple_retrieval_config:
+          reranking_enable: false
+          score_threshold: 0.5
+          top_k: 4
+        query_variable_selector: [sys, query]
+        retrieval_mode: multiple
+        selected: false
+        title: 排程知识库检索
+        type: knowledge-retrieval
+      height: 122
+      id: retrieval
+      position: {x: 360, y: 220}
+      positionAbsolute: {x: 360, y: 220}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector: [retrieval, result]
+        desc: ''
+        model:
+          completion_params: {max_tokens: 1024, temperature: 0.3}
+          mode: chat
+          name: gpt-4o-mini
+          provider: openai_api_compatible
+        prompt_template:
+        - id: sys1
+          role: system
+          text: '你是 GTX 光刻排程系统的知识助手。只依据检索到的知识片段回答；检索不到就直说不知道并指引查阅
+            docs/ 目录。回答需给出依据出处文件名。中文，300 字以内。'
+        - id: usr1
+          role: user
+          text: '问题：{{#sys.query#}}'
+        selected: false
+        title: 知识问答
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 98
+      id: answer
+      position: {x: 700, y: 220}
+      positionAbsolute: {x: 700, y: 220}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#answer.text#}}'
+        desc: ''
+        selected: false
+        title: 直接回复
+        type: answer
+        variables: []
+      height: 90
+      id: answer-node
+      position: {x: 1020, y: 220}
+      positionAbsolute: {x: 1020, y: 220}
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+  viewport: {x: 0, y: 0, zoom: 0.7}

@@ -334,17 +334,41 @@ print(cur.fetchall())"
 运行链路：前端 `/ai-workflow` 点运行 → `POST /api/workflow/run` → 后端 `run_with_fallback()` →
 配置了 Key 且可达 → 调 Dify（`mode=dify`）；否则本地步骤引擎（`mode=local_fallback`）。
 
-### 6.2 ① 线上 Dify 创建 3 个应用（导入 DSL）
+### 6.2 ① 线上 Dify 创建 4 个应用（导入完整 DSL）
+
+> DSL 已是**完整工作流**（含代码节点解析 JSON、完整节点与连线），导入后只需做 4 件事：
+> 选模型、填环境变量、绑知识库（仅问答）、发布。
 
 1. 登录你的 Dify（SaaS：https://cloud.dify.ai；自托管：你的域名）
-2. 首页 **工作室（Studio）** → **创建应用 → 导入 DSL 文件** → 选 `dify/dsl/daily-scheduling.yaml`
-3. 同样导入 `scenario-compare.yaml`、`qa-chatflow.yaml`（共 3 个应用）
-4. 进入每个应用的**编排**页面：
-   - 每个 **LLM 节点**：点开 → 模型下拉 → 选你有额度的模型（骨架默认 gpt-4o-mini，可换 glm-4-flash/qwen-plus）
-   - **HTTP 请求节点**：URL 应显示 `{{#env.API_PUBLIC_BASE#}}/api/solve/run` —— 环境变量下一步填
-   - `qa-chatflow`：先 **知识库 → 创建知识库** → 上传 `docs/specs/01~07*.md` 与 `docs/03_ALGORITHM_DEMO.md`
-     → 回到应用编排页，**知识检索节点** → 绑定刚建的知识库
-5. 每个**发布**（右上「发布」按钮）——未发布的应用 API 调不通
+2. 首页 **工作室（Studio）** → **创建应用 → 导入 DSL 文件** → 依次选 `dify/dsl/` 下的文件（共 4 个）：
+
+| 应用 | DSL 文件 | 模式 | 工作流节点链 |
+|---|---|---|---|
+| 日计划排程 | `daily-scheduling.yaml` | Workflow | 开始 → HTTP(POST /api/solve/run) → 代码解析 → LLM 中文解读 → 结束 |
+| 场景对比 | `scenario-compare.yaml` | Workflow | 开始 → 并行 HTTP×2（基线/急货）→ 代码汇总+开工变化 → LLM 差异分析 → 结束 |
+| 智能问答 | `qa-chatflow.yaml` | Chatflow | 开始 → 知识库检索 → LLM → 直接回复 |
+| 排程结果 AI 解读 | `result-explain.yaml` | Workflow | 开始(run_id) → HTTP(GET result) → 代码解析摘要 → LLM 中文解读 → 结束 |
+
+3. 每个应用的编排页逐节点检查/设置（导入后已自动生成，逐项确认）：
+
+**通用两步（每个应用都做）**
+- **LLM 节点**（「排程中文解读」/「差异分析」/「知识问答」）：点开节点 → 模型下拉 →
+  选你有额度的模型（默认 gpt-4o-mini，可换 glm-4-flash / qwen-plus / deepseek-chat）→
+  温度保持 0.3（解读要稳）
+- **环境变量**：编排页右侧 **ENV** 面板 → `API_PUBLIC_BASE` → 填第 6.4 步的隧道地址
+  （HTTP 节点 URL 引用的就是 `{{#env.API_PUBLIC_BASE#}}`）
+
+**按应用补设**
+- `daily-scheduling`：无需额外设置；开始节点的 `case` 变量留空=基线
+- `scenario-compare`：无需额外设置；两个 HTTP 节点已分别写死 基线/urgent-A01
+- `qa-chatflow`：
+  ① 左侧 **知识库 → 创建知识库** → 上传 `docs/specs/01~07*.md` + `docs/03_ALGORITHM_DEMO.md` + `docs/10_FUNCTIONAL_COVERAGE.md`
+  ② 回到编排页 → 「排程知识库检索」节点 → **添加**刚建的知识库 → 检索模式 multiple、Top K=4
+- `result-explain`：无需额外设置；开始节点的 `run_id` 由前端自动传入
+
+4. 每个**发布**（右上「发布」按钮）——未发布的应用 API 调不通
+5. Dify 内自测：应用页右上 **「运行」**（Workflow）或右侧对话（Chatflow）→
+   手动填 `run_id`（从 `/api/solve/list` 复制一个）→ 看每个节点绿勾、末节点输出中文解读
 
 ### 6.3 ② 配置应用内环境变量（HTTP 节点的回调地址）
 
