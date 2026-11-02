@@ -1,7 +1,7 @@
-# 04 · 部署指南（Vercel 前端 + Railway 后端）
+# 04 · 部署指南（Vercel 前端 + Render 后端）
 
 > 前置：MVP 档已本地跑通（见 [`03_ALGORITHM_DEMO.md`](03_ALGORITHM_DEMO.md) 第 5 节验收四项）。
-> 需要用户授权 Vercel / Railway 账号。
+> 需要用户授权 Vercel / Render 账号。Railway 2026-11 起新用户注册受限，已降为备选。
 
 ---
 
@@ -12,7 +12,7 @@
   │
   ├──→ Vercel（静态）     frontend/dist/      9 页原型 + 求解演示页
   │
-  └──→ Railway（容器）    backend/            FastAPI + PuLP/CBC
+  └──→ Render（容器）     backend/            FastAPI + PuLP/CBC
          │
          └─ subprocess: python -m backend.solver run
 ```
@@ -58,61 +58,45 @@ API 地址不能硬编码，从环境变量读：
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 ```
 
-这样本地开发走 localhost，生产走 Railway。
+这样本地开发走 localhost，生产走 Render。
 
 ---
 
-## 3. 后端部署（Railway）
+## 3. 后端部署（Render —— 主推；Railway 因注册限制降为备选）
 
-### 3.1 配置文件
+> **逐步点击级操作见 [`docs/11_VSCODE_DEPLOY_SUPABASE.md` §4](11_VSCODE_DEPLOY_SUPABASE.md)**
+> （含 Blueprint 一键部署 / 手动创建 / Docker 兜底三种方式、环境变量表、报错排查、免费层限制）。
+> 本节只保留要点与差异。
 
-`backend/Procfile`（或 Railway 的 Start Command）：
+### 3.1 为什么是 Render
 
-```
-web: uvicorn backend.app.api:app --host 0.0.0.0 --port $PORT
-```
+- **免信用卡**、GitHub 登录即用（Railway 2026-11 起新用户注册受限）
+- 免费层 750 实例小时/月；15 分钟无请求休眠（演示前 curl 一次 `/api/health` 唤醒）
+- 仓库根已提供 **`render.yaml`**（Blueprint）：构建/启动命令、健康检查、环境变量全版本化
 
-`backend/runtime.txt`：
+### 3.2 Render 逐步（Blueprint 方式，2 分钟）
 
-```
-python-3.11.9
-```
-
-`backend/nixpacks.toml`（Railway 用 Nixpacks 构建，需装 CBC）：
-
-```toml
-[phases.setup]
-aptPkgs = ["coinor-cbc", "coinor-libcbc-dev"]
-
-[phases.install]
-cmds = ["pip install -r backend/requirements.txt"]
-
-[start]
-cmd = "uvicorn backend.app.api:app --host 0.0.0.0 --port $PORT"
-```
-
-> PuLP 自带 CBC 二进制，通常不需要 apt 装。若报 `PulpSolverError`，再加上 `coinor-cbc`。
-
-### 3.2 部署步骤
-
-1. 登录 <https://railway.app> → New Project → Deploy from GitHub repo
-2. 选 `gtx-fso-litho`
-3. **Root Directory 设为仓库根**（因为要用 `backend.` 包路径）
-4. Start Command：`uvicorn backend.app.api:app --host 0.0.0.0 --port $PORT`
-5. Environment Variables：
-   - `LITHO_CORS_ORIGINS` = `https://你的前端域名.vercel.app`
-   - `LITHO_SOLVER` = `CBC`
-6. Deploy
+1. https://dashboard.render.com → **New + → Blueprint** → 连接 `my-prototype` 仓库（分支 `feat/gtx-fab-fusion`）
+2. Render 解析 `render.yaml` → 弹出环境变量表单（`sync: false` 的项）：
+   - `LITHO_CORS_ORIGINS` = `https://你的前端域名.vercel.app`（精确域名，不要 `*`）
+   - `SUPABASE_DB_URL` = §5.3 的连接串（可后补）
+   - `DIFY_BASE` / `DIFY_KEY_*` / `API_PUBLIC_BASE`（可后补）
+3. **Apply** → 构建约 5~10 分钟 → 域名 `https://gtx-fso-litho-api.onrender.com`
 
 ### 3.3 验证
 
 ```bash
-curl https://你的后端域名.railway.app/api/health
-# {"ok":true,"solver":"CBC"}
+curl https://gtx-fso-litho-api.onrender.com/api/health
+# {"ok":true,"solver":"CBC","agent_mode":"rule",...}
 
-curl -X POST https://你的后端域名.railway.app/api/solve/run \
-     -H "Content-Type: application/json" -d '{}'
+curl -X POST https://gtx-fso-litho-api.onrender.com/api/solve/run      -H "Content-Type: application/json" -d '{}'
+# 首次调用含冷启动，等 30~60 秒属正常
 ```
+
+### 3.4 Railway（备选）
+
+若你已有可用 Railway 账号：Start Command `uvicorn backend.app.api:app --host 0.0.0.0 --port $PORT`、
+Root Directory=仓库根、`nixpacks.toml` 已备。新用户注册受限，详见 docs/11 §4.5 平台对比。
 
 ---
 
@@ -138,9 +122,9 @@ app.add_middleware(CORSMiddleware, allow_origins=origins,
 | 变量 | 位置 | 默认值 | 说明 |
 |---|---|---|---|
 | `VITE_API_BASE_URL` | Vercel | `http://127.0.0.1:8000` | 前端调后端地址 |
-| `LITHO_CORS_ORIGINS` | Railway | `http://localhost:5173` | 逗号分隔白名单 |
-| `LITHO_SOLVER` | Railway | `CBC` | 预留 Gurobi/COPT 切换 |
-| `LITHO_TIME_LIMIT_S` | Railway | `60` | 单次求解超时 |
+| `LITHO_CORS_ORIGINS` | Render/Railway | `http://localhost:5173` | 逗号分隔白名单 |
+| `LITHO_SOLVER` | Render/Railway | `CBC` | 预留 Gurobi/COPT 切换 |
+| `LITHO_TIME_LIMIT_S` | Render/Railway | `60` | 单次求解超时 |
 
 `.env.example` 需包含以上四项（无值或默认值）。
 
