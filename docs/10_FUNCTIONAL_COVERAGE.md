@@ -128,3 +128,6 @@ SDR 指令下发——操作持久化到 runtime_state.json，下一次求解真
 
 115 项用例：导航 24 + 链接爬取 26 + API 18 + pytest 38 + script 断言 9，**通过 114，1 项为验收标准笔误**（
 /api/workflow/templates 预期写 3 实为 2 个本地模板 + 2 个直连 Dify 应用 = 4 个 Dify 应用，行为正确）。
+
+
+
