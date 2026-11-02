@@ -1,6 +1,4 @@
 {
-  // GTX FSO Litho · 一键任务（Ctrl+Shift+P → Tasks: Run Task）
-  // 全部走 .venv 解释器；venv 未建时先跑 venv:create
   "version": "2.0.0",
   "tasks": [
     {
@@ -28,6 +26,7 @@
       "args": ["-m", "backend.solver", "run"],
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": [],
+      "group": "build",
       "detail": "命令行跑六步 MILP，输出到 backend/solver/output/"
     },
     {
@@ -36,9 +35,31 @@
       "command": "${workspaceFolder}/.venv/Scripts/python.exe",
       "args": ["-m", "uvicorn", "backend.app.api:app", "--reload", "--port", "8000"],
       "options": { "cwd": "${workspaceFolder}" },
-      "isBackground": true,
       "problemMatcher": [],
-      "detail": "起 FastAPI 后端 http://127.0.0.1:8000（前端另开 npm run dev）"
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "detail": "启动 FastAPI 后端 http://127.0.0.1:8000（Ctrl+Shift+B 默认跑这个，终端会一直占着）"
+    },
+    {
+      "label": "run:web",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "dev"],
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "problemMatcher": [],
+      "detail": "启动前端 Vite http://localhost:5173"
+    },
+    {
+      "label": "run:pytest",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["-m", "pytest", "tests/", "-q"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "test",
+      "detail": "跑全部测试，期望全绿"
     }
   ]
 }

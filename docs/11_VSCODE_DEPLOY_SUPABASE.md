@@ -17,7 +17,7 @@
 | 代理 | `http://127.0.0.1:10808` 在运行 | GitHub / 部分网站需要 |
 | Vercel 账号 | https://vercel.com（用 GitHub 登录） | 前端部署 |
 | Cloudflare 账号 | https://dash.cloudflare.com（可选） | 前端备选部署 |
-| Railway 账号 | https://railway.app（用 GitHub 登录） | 后端部署 |
+| **Render 账号** | https://dashboard.render.com（用 GitHub 登录，**免信用卡**） | 后端部署（2026-11 唯一可长期免费的常驻平台） |
 | Supabase 账号 | https://supabase.com（用 GitHub 登录） | 数据库 |
 
 ---
@@ -159,48 +159,159 @@ git -c http.proxy=http://127.0.0.1:10808 push origin main
 
 ---
 
-## 4. 后端部署（Railway，必须容器平台）
+## 4. 后端部署（Render 免费层，常驻进程平台）
 
 > 为什么不能放 Vercel/Cloudflare Workers：CBC 求解器是编译好的本地二进制 + 常驻进程 +
-> 子进程调用，Serverless 函数模型跑不了。Railway / Render / Fly.io 这类容器平台都可以。
+> 子进程调用，Serverless 函数模型跑不了。必须用能跑常驻进程的平台。
+>
+> **2026-11 免费平台现状（已核实）**：
+> - **Render** — 750 实例小时/月，512MB/0.1CPU，**免信用卡**，15 分钟休眠 → ✅ **本手册主推**
+> - Railway — 新账号只有 **30 天 $5 试用**，之后 Free 计划每月仅 $1 额度 → ⚠️ 这就是注册不上的原因
+> - Koyeb — 2026-02 起需 **$29 预授权**（等同要卡）→ ❌
+> - Fly.io — 2024-10 起**取消免费额度** → ❌
+> - Hugging Face Spaces — **Docker Spaces 已转付费** → ❌
 
-### 4.1 Railway 逐步
+### 4.0 先修一个会卡住部署的坑（必做）
 
-1. https://railway.app → **New Project → Deploy from GitHub repo** → 选 `my-prototype`
-2. 服务卡片 → **Settings**：
-   - **Root Directory**：`/`（留空，仓库根——`backend.` 包路径依赖它）
-   - Custom Start Command：`uvicorn backend.app.api:app --host 0.0.0.0 --port $PORT`
-3. **Variables** 标签加环境变量：
-   - `LITHO_CORS_ORIGINS` = `https://xxx.vercel.app`（前端域名，精确值，不要 `*`）
-   - `SUPABASE_DB_URL` = `postgresql://…`（§5.3 拿到后再填，可后补）
-   - `LITHO_SOLVER` = `CBC`
-4. **Deploy** → 部署完在 Settings → Networking → **Generate Domain** → 拿到 `https://xxx.up.railway.app`
-5. 验证：
-   ```bash
-   curl https://xxx.up.railway.app/api/health
-   # {"ok":true,"solver":"CBC","agent_mode":"rule","docgen_enabled":false,...}
-   ```
-   ⚠️ 部署后如果报 `PulpSolverError`：Settings → Build 里加 Nixpacks 配置装 `coinor-cbc`（backend/nixpacks.toml 已写好注释）。
-6. **运行时状态说明（重要）**：容器文件系统是临时的。以下两个文件在**重新部署/重启容器后会清空**：
-   - `backend/solver/runtime_config.json` —— 「数据配置」页保存的参数覆盖
-   - `backend/solver/runtime_state.json` —— 「CIM 集成」页的操作状态（MES Hold / ELR OOD / QTMS 水位）
-   影响：容器重启后这两类设置回到默认值（求解结果本身已持久化到 Supabase，不受影响）。
-   演示环境可接受；生产使用需将 runtime_state 迁移到 Supabase（store.py 同款模式，已在路线图）。
-6. 回到 Vercel/Cloudflare 把 `VITE_API_BASE_URL` 改成这个后端域名 → 重新部署前端 → 前后端联调完成
+`backend/requirements.txt` 里 `psycopg2-binary` 原本被限定只能 Windows 安装：
 
-### 4.2 Render（备选，免费层有 15 分钟冷启动）
+```diff
+- psycopg2-binary>=2.9 ; sys_platform == "win32"
++ psycopg2-binary>=2.9
+```
 
-New → Web Service → 连仓库 → Root Directory 留空 → Build：`pip install -r backend/requirements.txt` →
-Start：`uvicorn backend.app.api:app --host 0.0.0.0 --port $PORT` → 环境变量同上。
+不改的后果：Linux 云端根本不会装这个包，`store.py` 连 Supabase 时直接 `ModuleNotFoundError`，
+求解结果永远写不进库。**仓库里已改好，直接推代码即可；如果你是旧版本代码请手动改这一行。**
 
-### 4.3 免费额度提醒
+> `pywin32>=306 ; sys_platform == "win32"` 保持原样不用动 —— 它在 Linux 上会被 pip 自动跳过。
 
-| 平台 | 免费限制 | 表现 |
+### 4.1 Render 逐步（主推，免信用卡）
+
+#### 方式 A：Blueprint 一键部署（推荐，配置已版本化）
+
+仓库根已提供 `render.yaml`，里面把构建命令、启动命令、健康检查、环境变量全写好了。
+
+1. https://dashboard.render.com → 右上 **New +** → 选 **Blueprint**
+2. **Connect GitHub** → 选仓库 `my-prototype` → 分支选 `feat/gtx-fab-fusion`
+3. Render 解析 `render.yaml`，列出服务 `gtx-fso-litho-api` → 点 **Apply**
+4. 弹出 **Environment Variables** 表单（`sync: false` 的项需要你填）：
+   - `LITHO_CORS_ORIGINS` = `https://xxx.vercel.app`（**前端精确域名，不要 `*`**）
+   - `SUPABASE_DB_URL` = §5.3 的 pooler 连接串（可先留空，后补）
+   - `DIFY_BASE` / `DIFY_KEY_*` / `API_PUBLIC_BASE`（可先留空，后补）
+5. 点 **Apply** → 开始构建（首次 5~10 分钟，matplotlib 装得慢）
+6. 构建完拿到域名：`https://gtx-fso-litho-api.onrender.com`
+
+#### 方式 B：手动创建（不想用 Blueprint）
+
+1. **New +** → **Web Service** → 连 `my-prototype` 仓库
+2. 按下表填（**每个字段都不要错，尤其 Root Directory**）：
+
+   | 字段 | 值 |
+   |---|---|
+   | Name | `gtx-fso-litho-api` |
+   | Region | **Singapore**（离国内最近） |
+   | Branch | `feat/gtx-fab-fusion` |
+   | **Root Directory** | **留空**（仓库根 —— `backend.` 包路径依赖它以仓库根为工作目录） |
+   | Language / Runtime | **Python 3** |
+   | Build Command | `pip install -r backend/requirements.txt` |
+   | Start Command | `uvicorn backend.app.api:app --host 0.0.0.0 --port $PORT` |
+   | **Health Check Path** | `/api/health` |
+   | Instance Type | **Free** |
+
+3. 展开 **Advanced → Environment Variables**，逐条加：
+
+   | 变量 | 值 | 说明 |
+   |---|---|---|
+   | `PYTHON_VERSION` | `3.11.9` | 与本地一致 |
+   | `LITHO_SOLVER` | `CBC` | PuLP 自带，Linux 无需另装 |
+   | `LITHO_TIME_LIMIT_S` | `60` | 单次求解超时 |
+   | `DOCGEN_ENABLED` | `0` | **必须 0**，WPS COM 只能在本地 Windows |
+   | `LITHO_CORS_ORIGINS` | `https://xxx.vercel.app` | 前端精确域名 |
+   | `SUPABASE_DB_URL` | §5.3 连接串 | 可后补 |
+   | `DIFY_BASE` 等 4 个 | — | 可后补 |
+
+4. **Create Web Service**
+
+#### 方式 C：Docker（仅当 方式 A/B 都报 PulpSolverError 时用）
+
+在仓库根新建 `Dockerfile`：
+
+```dockerfile
+FROM python:3.11-slim
+
+# 求解器兜底：某些精简镜像缺 CBC 的 C 依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    coinor-cbc && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY backend/requirements.txt ./backend/requirements.txt
+RUN pip install --no-cache-dir -r backend/requirements.txt
+
+COPY . .
+
+ENV PYTHONUNBUFFERED=1
+CMD uvicorn backend.app.api:app --host 0.0.0.0 --port ${PORT:-8000}
+```
+
+然后 Render → New + → Web Service → Runtime 选 **Docker** → Root Directory 留空。
+
+### 4.2 验证后端
+
+```bash
+curl https://gtx-fso-litho-api.onrender.com/api/health
+```
+
+期望返回：
+
+```json
+{"ok":true,"solver":"CBC","agent_mode":"rule","docgen_enabled":false,"version":"..."}
+```
+
+⚠️ **首次访问要等 30~60 秒**（免费层休眠唤醒），浏览器转圈是正常的，不是挂了。
+用 `curl -w "\n耗时 %{time_total}s\n"` 可以看到确实在冷启动。
+
+再验一次求解是否真能跑：
+
+```bash
+curl -X POST https://gtx-fso-litho-api.onrender.com/api/solve/run \
+  -H "Content-Type: application/json" -d "{}"
+# 期望：{"run_id":"xxxxxxxx","status":"done","milp_status":{"step2":"Optimal","step3":"Optimal"},...}
+```
+
+### 4.3 报错排查
+
+| 报错 / 现象 | 原因 | 处理 |
 |---|---|---|
-| Vercel Hobby | 100GB 带宽/月 | 演示足够 |
-| Cloudflare Pages | 无限请求 | 演示足够 |
-| Railway | $5 额度/月 | 额度尽会停机，注意用量 |
-| Render 免费 | 15 分钟无请求休眠 | 首次访问等 ~30s |
+| 构建卡在 `pip install` 超时 | matplotlib/psycopg2 编译慢 | 重试一次；仍失败改用 §4.1 方式 C 的 Docker |
+| `PulpSolverError: Pulp: Error trying to execute .../cbc` | 镜像缺 CBC 依赖 | 用 Docker 方式装 `coinor-cbc`（见方式 C） |
+| `ModuleNotFoundError: No module named 'psycopg2'` | §4.0 那行没改 | 改 `requirements.txt` 去掉 win32 限定后重新部署 |
+| `ModuleNotFoundError: No module named 'backend'` | Root Directory 填错了 | 必须**留空**，指向仓库根 |
+| 502 / 一直转圈 | 免费层休眠中 | 等 30~60 秒；或先 curl 一次 `/api/health` 唤醒 |
+| 前端报 CORS 错 | `LITHO_CORS_ORIGINS` 没填或写成 `*` | 填前端**完整域名**（带 `https://`），不要 `*` |
+| 部署成功但 `/api/doc/render` 返回 503 | 正常 | 云端 `DOCGEN_ENABLED=0`，文档生成只能在本地 Windows 做 |
+
+### 4.4 免费层三个硬限制（必须知道）
+
+1. **15 分钟无请求休眠** → 演示前先访问一次 `/api/health` 唤醒；或前端加「后端唤醒中」提示
+2. **磁盘不持久** → 容器重启/重新部署后这两个文件清空：
+   - `backend/solver/runtime_config.json`（数据配置页保存的参数覆盖）
+   - `backend/solver/runtime_state.json`（CIM 集成页的 MES Hold / ELR OOD / QTMS 水位）
+   - **求解结果不受影响**（已持久化到 Supabase，见 §5）
+3. **带宽 5 GB/月**（2026-04 起从 100 GB 下调）→ 纯 API 调用足够，别在云端传大文件
+
+### 4.5 其他平台对比（2026-11 核实）
+
+| 平台 | 免费政策 | 信用卡 | 休眠 | 结论 |
+|---|---|---|---|---|
+| **Render** | 750 实例小时/月，512MB/0.1CPU，5GB 带宽 | **不需要** | 15 分钟 | ✅ **主推** |
+| Railway | 30 天 $5 试用 → 每月 $1 额度 | 不需要 | 不休眠 | ⚠️ 注册有门槛、额度会超 |
+| Koyeb | 1 实例 512MB/0.1CPU | **需 $29 预授权** | 1 小时 | ❌ 要卡 |
+| Fly.io | 无免费额度（2024-10 取消） | 需要 | — | ❌ |
+| Hugging Face Spaces | Docker Spaces 已付费 | — | — | ❌ |
+| Oracle Cloud Always Free | 永久免费 ARM 实例 | 需要 | 不休眠 | 备选（配置复杂） |
+| Hetzner VPS | €4/月，不免费 | 需要 | 不休眠 | 💰 长期最省心 |
+
+**结论：演示阶段用 Render 免费层足够；需要常驻不休眠时，升 Render Starter（$7/月）或上 Hetzner VPS。**
 
 ---
 
@@ -290,7 +401,7 @@ where l.lot_id = 'LOT-A01';
 ```ini
 SUPABASE_DB_URL=postgresql://postgres.abcdefgh:你的密码@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
 ```
-本地重启后端；Railway/Render 上把同样内容加到 Variables。
+本地重启后端；Render 上把同样内容加到 **Environment → Environment Variables**（见 §4.1）。
 
 ### 5.5 验证
 
@@ -447,11 +558,15 @@ POST /api/doc/render                 生成文档（本地 Windows）
 
 - [ ] Vercel/Cloudflare 前端打开正常，17 项导航逐个点无 404
 - [ ] 前端「求解演示/排程结果」能真跑求解（走线上后端）
-- [ ] `https://<后端域名>/api/health` 返回 200
+- [ ] `https://gtx-fso-litho-api.onrender.com/api/health` 返回 200
+      （**首次要等 30~60 秒冷启动**，见 §4.2；连续第二次应 1 秒内返回）
+- [ ] `POST https://gtx-fso-litho-api.onrender.com/api/solve/run` 返回 `milp_status.step2=Optimal`
 - [ ] `.env` 的 `LITHO_CORS_ORIGINS` 是前端精确域名（浏览器 Console 无 CORS 报错）
+- [ ] 云端 `DOCGEN_ENABLED=0` 已设（`/api/health` 里 `docgen_enabled:false`）
 - [ ] Supabase 三张表有数据
 - [ ] （本地 Windows）文档生成页可下载 docx；云端该功能显示停用提示属正常
 - [ ] Dify：`/api/workflow/templates` 全部 `dify_configured=true`；运行返回 `mode=dify`；
       清空 Key 后 `mode=local_fallback` 且页面徽章同步；`grep -rn "DIFY_KEY" frontend/` 无输出
 - [ ] （可选）CIM 功能验证：`/cim` 页对任一 Lot 点 Hold → `/litho-schedule` 重新求解 →
-      该 Lot 从甘特消失且标注 MES Hold（注意 §4.1 第 6 条：容器重启会清空此类操作状态）
+      该 Lot 从甘特消失且标注 MES Hold
+      （注意 §4.4 第 2 条：容器重启会清空 runtime_state，属免费层预期行为）

@@ -1,0 +1,47 @@
+# Render Blueprint · GTX FSO Litho 后端
+# 用法：Render Dashboard → New + → Blueprint → 选本仓库 → 自动识别本文件 → Apply
+# 说明文档：docs/11_VSCODE_DEPLOY_SUPABASE.md §4
+#
+# 为什么用 Render：2026-11 唯一免信用卡、可长期免费跑 Web 服务的平台。
+#   Railway 新账号只有 30 天 $5 试用；Koyeb 需 $29 预授权；Fly.io 已取消免费。
+
+services:
+  - type: web
+    name: gtx-fso-litho-api
+    runtime: python
+    plan: free
+    region: singapore
+    branch: feat/gtx-fab-fusion
+    # 必须留空（仓库根）：backend. 包路径依赖它以仓库根为工作目录
+    rootDir: .
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.app.api:app --host 0.0.0.0 --port $PORT
+    # 健康检查：非 200 会被 Render 重启，指向 /api/health 可及早发现问题
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      # 求解器：CBC 随 PuLP 自带，Linux 无需额外安装
+      - key: LITHO_SOLVER
+        value: CBC
+      - key: LITHO_TIME_LIMIT_S
+        value: "60"
+      # 云端必须 0：WPS COM 只能在本地 Windows 桌面会话运行
+      - key: DOCGEN_ENABLED
+        value: "0"
+      # 以下项在 Render 创建服务时弹窗填写（sync: false = 不写进仓库）
+      - key: LITHO_CORS_ORIGINS
+        sync: false
+      - key: SUPABASE_DB_URL
+        sync: false
+      - key: DIFY_BASE
+        sync: false
+      - key: DIFY_KEY_DAILY_SCHEDULING
+        sync: false
+      - key: DIFY_KEY_SCENARIO_COMPARE
+        sync: false
+      - key: DIFY_KEY_QA_CHATFLOW
+        sync: false
+      - key: API_PUBLIC_BASE
+        sync: false
