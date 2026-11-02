@@ -181,6 +181,11 @@ git -c http.proxy=http://127.0.0.1:10808 push origin main
    # {"ok":true,"solver":"CBC","agent_mode":"rule","docgen_enabled":false,...}
    ```
    ⚠️ 部署后如果报 `PulpSolverError`：Settings → Build 里加 Nixpacks 配置装 `coinor-cbc`（backend/nixpacks.toml 已写好注释）。
+6. **运行时状态说明（重要）**：容器文件系统是临时的。以下两个文件在**重新部署/重启容器后会清空**：
+   - `backend/solver/runtime_config.json` —— 「数据配置」页保存的参数覆盖
+   - `backend/solver/runtime_state.json` —— 「CIM 集成」页的操作状态（MES Hold / ELR OOD / QTMS 水位）
+   影响：容器重启后这两类设置回到默认值（求解结果本身已持久化到 Supabase，不受影响）。
+   演示环境可接受；生产使用需将 runtime_state 迁移到 Supabase（store.py 同款模式，已在路线图）。
 6. 回到 Vercel/Cloudflare 把 `VITE_API_BASE_URL` 改成这个后端域名 → 重新部署前端 → 前后端联调完成
 
 ### 4.2 Render（备选，免费层有 15 分钟冷启动）
@@ -448,3 +453,5 @@ POST /api/doc/render                 生成文档（本地 Windows）
 - [ ] （本地 Windows）文档生成页可下载 docx；云端该功能显示停用提示属正常
 - [ ] Dify：`/api/workflow/templates` 全部 `dify_configured=true`；运行返回 `mode=dify`；
       清空 Key 后 `mode=local_fallback` 且页面徽章同步；`grep -rn "DIFY_KEY" frontend/` 无输出
+- [ ] （可选）CIM 功能验证：`/cim` 页对任一 Lot 点 Hold → `/litho-schedule` 重新求解 →
+      该 Lot 从甘特消失且标注 MES Hold（注意 §4.1 第 6 条：容器重启会清空此类操作状态）

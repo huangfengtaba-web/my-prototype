@@ -117,6 +117,11 @@ Lot Control / Priority Config / Data Parameter / Transport Config / Temperature 
 
 新增真数据页：`/model-control`（Eqp Group/Data Parameter/Schedule Model 三页签）、
 `/data-zone`（源表对接总览 + **客户字段字典**，覆盖 litho系统.xlsx 全部 8 页签字段）、`/cim`。
+
+**CIM 页面为可操作系统**（2026-11-01）：MES Hold/释放、QTMS 水位调整、ELR OOD 注入/解除、
+SDR 指令下发——操作持久化到 runtime_state.json，下一次求解真实生效
+（Hold/整批卡控不占机时；超水位延后；OOD 卡控；指令状态 planned→issued）。
+容器部署注意：该状态文件为临时的，重启清空（docs/11 §4.1 第 6 条）。
 生产数据接入时，仅需将 cim.py 中 mock 数据源替换为真实对接（数据结构已对齐）。
 
 ## 8. 全量验收记录（2026-11-01，子 agent 独立测试）
