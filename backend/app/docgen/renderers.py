@@ -11,7 +11,10 @@ import os
 import sys
 from typing import Any, Dict
 
-from cli_anything.wps.core.export import export
+# 【重要】不要在此处 import cli_anything。
+# 该包只存在于本地 Windows（pip install -e <交付物>/tools/harness-anything），
+# 云端 Render/Linux 没有 → 顶层 import 会让后端启动即崩（ModuleNotFoundError）。
+# 实际导入放在 _export() 内延迟执行，见下方。
 
 # pptengine 不是 pip 包，位于交付物 harness-anything 内（仅本地 Windows）
 _PPT_ENGINE = os.getenv(
@@ -66,6 +69,16 @@ def _mk_project(summary: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _export(project, path, preset):
+    # 延迟导入：cli_anything 仅本地 Windows 可装（WPS COM 依赖桌面会话）。
+    # 云端（Render / Linux 容器）没有该包，必须延迟到真正调用的那一刻，
+    # 否则整个 FastAPI 应用 import 阶段就会失败。
+    try:
+        from cli_anything.wps.core.export import export
+    except ImportError as exc:
+        raise RuntimeError(
+            "cli_anything 未安装：WPS 文档生成仅支持本地 Windows；"
+            "云端请设置 DOCGEN_ENABLED=0 关闭该功能。"
+        ) from exc
     result = export(project, path, preset=preset, overwrite=True)
     return result["output"]
 
