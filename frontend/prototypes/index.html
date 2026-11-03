@@ -558,7 +558,9 @@ renderArch();renderRfp();
 
 /* KPI 真实数据填充（替代硬编码） */
 (function () {
-  var API = window.__API_BASE__ || 'http://127.0.0.1:8000';
+  var _LOCAL = ['localhost', '127.0.0.1', '0.0.0.0', ''].indexOf(location.hostname) >= 0;
+  var API = window.__API_BASE__ ||
+            (_LOCAL ? 'http://127.0.0.1:8000' : 'https://gtx-fso-litho-api.onrender.com');
   function txt(id, s) { var e = document.getElementById(id); if (e) e.textContent = s; }
   function val(id, n, u) {
     var e = document.getElementById(id);

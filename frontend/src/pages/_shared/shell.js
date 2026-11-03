@@ -68,7 +68,15 @@ export function mountShell(active) {
   }
 }
 
-export const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+// 后端地址解析（三级兜底，不依赖 Vercel 环境变量是否注入成功）：
+//   1) VITE_API_BASE_URL —— 显式覆盖（可选）
+//   2) 本地/内网访问 → http://127.0.0.1:8000
+//   3) 线上（Vercel 等）→ 生产后端 Render
+export const PROD_API_BASE = 'https://gtx-fso-litho-api.onrender.com'
+const _LOCAL_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '']
+const _isLocalHost = typeof location !== 'undefined' && _LOCAL_HOSTS.includes(location.hostname)
+export const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || (_isLocalHost ? 'http://127.0.0.1:8000' : PROD_API_BASE)
 export const $ = (s) => document.querySelector(s)
 
 export function statusTag(st) {

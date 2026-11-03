@@ -1,7 +1,12 @@
 // GTX FSO Litho · 求解演示页逻辑
 // 数据流（docs/02_INTEGRATION_GUIDE.md §5.2）：
 //   选 case → POST /api/solve/run → 子进程跑六步 MILP → 渲染 KPI/甘特/列表
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+// 后端地址解析（与 _shared/shell.js 同逻辑）：线上自动走生产后端，本地走 127.0.0.1
+const _PROD_API_BASE = 'https://gtx-fso-litho-api.onrender.com'
+const _LOCAL_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '']
+const _isLocalHost = _LOCAL_HOSTS.includes(location.hostname)
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL || (_isLocalHost ? 'http://127.0.0.1:8000' : _PROD_API_BASE)
 
 const $ = (s) => document.querySelector(s)
 const state = { cases: [], lastSummary: null, history: [] }
