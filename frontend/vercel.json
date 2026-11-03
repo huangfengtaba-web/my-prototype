@@ -22,6 +22,6 @@
     { "source": "/config", "destination": "/src/pages/config" },
     { "source": "/cim", "destination": "/src/pages/cim" },
     { "source": "/model-control", "destination": "/src/pages/model-control" },
-    { "source": "/data-zone", "destination": "/src/pages/data-zone" },
+    { "source": "/data-zone", "destination": "/src/pages/data-zone" }
   ]
 }
