@@ -157,6 +157,189 @@ git -c http.proxy=http://127.0.0.1:10808 push origin main
 
 > 改前端代码后：`git push` 会**自动触发**两家重新部署（不用手动点）。
 
+### 3.3 前端部署排错（6 个真实踩坑，2026-11 实测）
+
+> 下面 6 条全部在真实部署中卡住过整条流程，按出现顺序排列。遇到问题先对照这里。
+
+#### 坑 1　`Invalid frontend/vercel.json file provided`
+
+**现象**：点 Deploy 后右下角弹红色 `Invalid frontend/vercel.json file provided`，无法继续。
+
+**原因**：`vercel.json` 最后一个数组元素/test 对象后面留了**多余的逗号**（trailing comma）。JSON 标准不允许，Vercel 校验严格，直接判定整份文件无效。
+
+```json
+    { "source": "/data-zone", "destination": "/src/pages/data-zone" },
+  ]                                                    ↑ 这个逗号必须删掉
+```
+
+**排查**：
+
+```bash
+python -c "import json; json.load(open('frontend/vercel.json', encoding='utf-8-sig')); print('OK')"
+```
+
+**解法**：删掉尾逗号 → `git commit` → `git push` → Vercel 重新部署。
+
+> ⚠️ 关键：Vercel 读的是 **GitHub 上的文件**，本地改完不 push 等于没改。
+
+---
+
+#### 坑 2　Root Directory 选择器里看不到 `frontend`
+
+**现象**：点 Root Directory 弹出目录树，里面只有 `src`，没有 `frontend`，没法选。
+
+**原因**：**不是索引坏了**。Vercel 检测到这是 monorepo（根目录下同时有 `frontend/` 和 `backend/`），把普通的目录选择器换成了「单项目 / 多服务」选择界面。
+
+**解法**：不要点 Root Directory，直接在仓库列表里找到：
+
+```
+📁 frontend
+   🎨 frontend  [Vite]  /        [ Import single project → ]   ← 点这个
+```
+
+点 **`Import single project →`**，Vercel 会自动把 Root Directory 设成 `frontend`。
+
+> `backend` 那行不要点 —— 后端在 Render，不在 Vercel 部署。
+
+---
+
+#### 坑 3　环境变量类型选成了 `Secret`
+
+**现象**：环境变量明明配了，`/api/` 请求却发到 `http://127.0.0.1:8000`。
+
+**原因**：Vercel 环境变量有两种类型，`Secret` **不会打包进前端产物**：
+
+| 类型 | 用途 | 会不会进前端代码 |
+|---|---|---|
+| **Secret** | 数据库密码、API Key | ❌ 不会 |
+| **Config** | 公开配置（如后端地址） | ✅ 会 |
+
+`VITE_` 前缀本身就是「允许暴露给浏览器」的标记，和 `Secret` 冲突，会被拦掉。
+
+**解法**：Type 选 **`Config`**。弹窗底部如果出现这段红字，说明选错了：
+
+> Remove the public framework prefix to keep this value private. Public prefixes expose values to the browser. If that's safe, **change the variable to Config**.
+
+---
+
+#### 坑 4　改了环境变量但页面还是连不上
+
+**原因**：`VITE_*` 变量是**构建时固化**，不是运行时读取。Vite 在 `npm run build` 那一刻就把变量替换成字面量：
+
+```js
+// 源码
+import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+
+// 构建时读到了 → 产物里是字符串
+"https://gtx-fso-litho-api.onrender.com"
+
+// 构建时没读到 → 产物里是兜底值
+"http://127.0.0.1:8000"
+```
+
+产物一旦生成就固定了，再改环境变量对旧产物毫无影响。
+
+对比一下：
+
+| 变量 | 读取时机 | 改完要做什么 |
+|---|---|---|
+| Vercel 的 `VITE_*` | **构建时** | 必须**重新构建** |
+| Render 的 `LITHO_CORS_ORIGINS` | **运行时**（进程启动） | 重启服务即可 |
+
+**解法**：改完变量必须 **Redeploy**。如果 Redeploy 后还没变，用 **`Clear build cache and redeploy`**（Redeploy 默认会复用构建缓存）。
+
+---
+
+#### 坑 5　部署显示 Ready，但主域名还是旧内容
+
+**现象**：Deployments 里最新一条是绿色 `Ready`，但打开主域名看到的还是旧版。
+
+**原因**：看 Environment 那一列：
+
+```
+fix: xxx ...    Ready    ● Preview       ← 部署到了预览环境（1m ago）
+fix: yyy ...    Ready    ● Production    ← 主域名用的是这条（9m ago）
+```
+
+因为 Vercel 项目的 **Production Branch 还是 `main`**，往 `feat/xxx` 分支 push 只会触发 **Preview** 部署，主域名不更新。
+
+**解法（二选一）**：
+
+- **一次性**：最新那条 `⋯` → **`Promote to Production`**
+- **长期**：Settings → **Build and Deployment** → **Production Branch** 改成 `feat/gtx-fab-fusion`
+
+> 以后判断部署是否生效，**不能只看 Ready，要看 Environment 是不是 Production**。
+
+---
+
+#### 坑 6　CORS 报错 `No 'Access-Control-Allow-Origin' header is present`
+
+**现象**：页面能开，但所有 `/api/` 请求被拦，Console 报：
+
+```
+Access to fetch at 'https://gtx-fso-litho-api.onrender.com/api/cases'
+from origin 'https://gtx-fso-litho.vercel.app'
+has been blocked by CORS policy:
+No 'Access-Control-Allow-Origin' header is present on the requested resource.
+```
+
+**原因**：Render 的 `LITHO_CORS_ORIGINS` 里配的域名和**实际域名不一致**（常见于项目改名、新建项目、或配了旧域名）。
+
+**排查**（两个域名各测一次，对比结果）：
+
+```bash
+for O in "https://你的实际域名.vercel.app" "https://你配的旧域名.vercel.app"; do
+  echo "=== $O ==="
+  curl -s -I -X OPTIONS "https://gtx-fso-litho-api.onrender.com/api/cases" \
+    -H "Origin: $O" -H "Access-Control-Request-Method: GET" | grep -i "access-control-allow-origin"
+done
+```
+
+- 返回 `HTTP 400` 且无 `access-control-allow-origin` → **该域名不在白名单**
+- 返回 `HTTP 200` 且有 `access-control-allow-origin: ...` → 该域名已放行
+
+**解法**：Render → 服务 → **Environment** → `LITHO_CORS_ORIGINS` 填完整域名列表（**英文逗号分隔、不要带结尾斜杠、不要带路径**）：
+
+```
+http://localhost:5173,https://gtx-fso-litho.vercel.app,https://my-prototype-frontend-vercel.vercel.app
+```
+
+保存后等约 60 秒（服务重启）再刷新前端。
+
+---
+
+#### 附加：生产后端地址的最稳写法（推荐）
+
+既然 `VITE_*` 变量容易因构建缓存/类型问题失效，可以直接在代码里按 hostname 自动判定，**不依赖任何环境变量**：
+
+```js
+// frontend/src/pages/_shared/shell.js
+export const PROD_API_BASE = 'https://gtx-fso-litho-api.onrender.com'
+const _LOCAL_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '']
+const _isLocalHost = typeof location !== 'undefined' && _LOCAL_HOSTS.includes(location.hostname)
+
+export const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ||                       // ① 有变量就用（可选覆盖）
+  (_isLocalHost ? 'http://127.0.0.1:8000' : PROD_API_BASE)   // ② 本机 / ③ 线上
+```
+
+同样的写法要同步改这三处（否则个别页面会退回 `127.0.0.1`）：
+
+| 文件 | 说明 |
+|---|---|
+| `frontend/src/pages/_shared/shell.js` | 所有智能页共用 |
+| `frontend/src/pages/scheduling-test/script.js` | 求解演示页（原为独立写死） |
+| `frontend/prototypes/index.html` | 原型总览页 KPI 填充 |
+
+**验证产物里确实带上了生产地址**：
+
+```bash
+cd frontend && npm run build
+grep -l "gtx-fso-litho-api.onrender.com" dist/assets/*.js
+```
+
+有输出即成功。
+
 ---
 
 ## 4. 后端部署（Render 免费层，常驻进程平台）
@@ -286,9 +469,37 @@ curl -X POST https://gtx-fso-litho-api.onrender.com/api/solve/run \
 | `PulpSolverError: Pulp: Error trying to execute .../cbc` | 镜像缺 CBC 依赖 | 用 Docker 方式装 `coinor-cbc`（见方式 C） |
 | `ModuleNotFoundError: No module named 'psycopg2'` | §4.0 那行没改 | 改 `requirements.txt` 去掉 win32 限定后重新部署 |
 | `ModuleNotFoundError: No module named 'backend'` | Root Directory 填错了 | 必须**留空**，指向仓库根 |
+| **`ModuleNotFoundError: No module named 'cli_anything'`** | 本地 `pip -e` 安装的私有包被放在**模块顶层 import**，云端没有该包 → **启动即崩，整个服务起不来** | 改成**延迟导入**（放进函数内 + try/except），见下方说明 |
 | 502 / 一直转圈 | 免费层休眠中 | 等 30~60 秒；或先 curl 一次 `/api/health` 唤醒 |
-| 前端报 CORS 错 | `LITHO_CORS_ORIGINS` 没填或写成 `*` | 填前端**完整域名**（带 `https://`），不要 `*` |
+| 前端报 CORS 错 | `LITHO_CORS_ORIGINS` 里的域名与实际域名**不一致**（最常见） | 见 §3.3 坑 6：逐域名 curl 对比，填入**实际完整域名**，不要 `*`、不要结尾斜杠 |
 | 部署成功但 `/api/doc/render` 返回 503 | 正常 | 云端 `DOCGEN_ENABLED=0`，文档生成只能在本地 Windows 做 |
+
+> **本地私有包必须延迟导入（真实踩坑，一度导致整个后端起不来）**
+>
+> `cli_anything`（WPS CLI）和 `pptengine` 只在本地执行过
+> `pip install -e <交付物>/tools/harness-anything` 后才存在，Render 容器里没有。
+>
+> ❌ 错误写法（顶层 import，云端启动直接 `ModuleNotFoundError`）：
+> ```python
+> from cli_anything.wps.core.export import export
+> ```
+>
+> ✅ 正确写法（函数内延迟导入，启动不受影响）：
+> ```python
+> def _export(project, path, preset):
+>     try:
+>         from cli_anything.wps.core.export import export
+>     except ImportError as exc:
+>         raise RuntimeError(
+>             "cli_anything 未安装：WPS 文档生成仅支持本地 Windows；"
+>             "云端请设置 DOCGEN_ENABLED=0 关闭该功能。"
+>         ) from exc
+>     result = export(project, path, preset=preset, overwrite=True)
+>     return result["output"]
+> ```
+>
+> **通用规则**：任何「只有本地装了」的包（`cli_anything`、`pptengine`、`win32com`），
+> 都必须在**真正用到的那一行**再 import，不能写在文件顶部。
 
 ### 4.4 免费层三个硬限制（必须知道）
 
