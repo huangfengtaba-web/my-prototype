@@ -19,6 +19,7 @@ import os
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
 from backend.app import sim_runner, solver_runner, workflow
@@ -77,6 +78,71 @@ def solve_run(req: SolveRequest):
     if req.case and req.case not in cli.list_cases():
         raise HTTPException(404, detail=f"未知用例 {req.case}，可用：{', '.join(cli.list_cases()) or '无'}")
     return solver_runner.run_solve(req.case, fix=bool(req.fix))
+
+
+def _digest_of(record: dict) -> str:
+    """把一次求解结果压成一段人类可读纯文本。
+
+    为什么放在后端：Dify 工作流的 code 节点在「输入类型 / 输出 schema / 变量绑定」
+    任何一环出问题都会静默失败，导致 LLM 收到空输入而自由发挥。
+    改由后端直接产出文本，Dify 只需「HTTP 取文本 → LLM 解读」两个环节。
+    """
+    d = record or {}
+    s = d.get("summary") or {}
+    milp = s.get("milp_status") or {}
+    sched = [r for r in (s.get("schedule") or []) if r.get("start")]
+    a01 = next((r for r in sched if r.get("lot") == "LOT-A01"), {})
+    ends = [r.get("end") for r in sched if r.get("end")]
+    notes = [f"{r.get('lot')}：{r.get('post_note')}" for r in sched
+             if r.get("post_note") and r.get("post_note") not in ("-", "")]
+    loads = {}
+    for r in sched:
+        eqp = r.get("eqp") or "?"
+        loads[eqp] = loads.get(eqp, 0) + 1
+    top = sorted(loads.items(), key=lambda kv: (-kv[1], kv[0]))
+    lines = [
+        f"run_id: {d.get('run_id', '-')}",
+        f"求解状态: {d.get('status', '-')}",
+        f"场景: {d.get('case') or '基线'}",
+        f"MILP: {milp.get('step2', '-')} / {milp.get('step3', '-')}",
+        f"MakeSpan（最后完工）: {max(ends) if ends else '-'}",
+        f"急货 LOT-A01 上机: {a01.get('start', '-')} @ {a01.get('eqp', '-')}",
+        f"排产 Lot 数: {len(sched)}",
+        "机台负载: " + ("；".join(f"{e} {n}批" for e, n in top) or "无"),
+        "卡控与校准: " + ("｜".join(notes) if notes else "无"),
+    ]
+    return "\n".join(lines)
+
+
+@app.get("/api/solve/digest", response_class=PlainTextResponse)
+def solve_digest(case: str = ""):
+    """跑一次求解，直接返回可读摘要纯文本（供 Dify LLM 节点消费）。"""
+    case = (case or "").strip() or None
+    if case and case not in cli.list_cases():
+        raise HTTPException(404, detail=f"未知用例 {case}，可用：{', '.join(cli.list_cases()) or '无'}")
+    return _digest_of(solver_runner.run_solve(case))
+
+
+@app.get("/api/solve/compare-digest", response_class=PlainTextResponse)
+def solve_compare_digest(case: str = "urgent-A01"):
+    """跑基线 + 指定场景两次求解，返回对比摘要纯文本（供 Dify LLM 节点消费）。"""
+    case = (case or "").strip() or "urgent-A01"
+    if case not in cli.list_cases():
+        raise HTTPException(404, detail=f"未知用例 {case}，可用：{', '.join(cli.list_cases()) or '无'}")
+    b = solver_runner.run_solve(None)
+    u = solver_runner.run_solve(case)
+
+    def _start_map(rec):
+        sched = (rec.get("summary") or {}).get("schedule") or []
+        return {r.get("lot"): r.get("start") for r in sched if r.get("start")}
+
+    bs, us = _start_map(b), _start_map(u)
+    moves = [f"{lot} {bs[lot]}→{us[lot]}" for lot in sorted(bs)
+             if lot in us and bs[lot] != us[lot]]
+    moved = "；".join(moves) if moves else "无"
+    return ("【基线】\n" + _digest_of(b) +
+            "\n\n【场景 " + case + "】\n" + _digest_of(u) +
+            "\n\n开工时间变化: " + moved)
 
 
 # ---------------------------------------------------------------- 配置管理（R1）

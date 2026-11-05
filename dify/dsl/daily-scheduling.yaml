@@ -23,38 +23,39 @@ workflow:
       enabled: false
   graph:
     edges:
-    - data: {isInIteration: false, sourceType: start, targetType: http-request}
-      id: e1
+    - id: e1
       source: start
-      sourceHandle: source
       target: call-solve
+      sourceHandle: source
       targetHandle: target
       type: custom
       zIndex: 0
-    - data: {isInIteration: false, sourceType: http-request, targetType: code}
-      id: e2
+      data:
+        isInIteration: false
+        sourceType: start
+        targetType: http-request
+    - id: e2
       source: call-solve
-      sourceHandle: source
-      target: parse-result
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data: {isInIteration: false, sourceType: code, targetType: llm}
-      id: e3
-      source: parse-result
-      sourceHandle: source
       target: explain
-      targetHandle: target
-      type: custom
-      zIndex: 0
-    - data: {isInIteration: false, sourceType: llm, targetType: end}
-      id: e4
-      source: explain
       sourceHandle: source
-      target: end
       targetHandle: target
       type: custom
       zIndex: 0
+      data:
+        isInIteration: false
+        sourceType: http-request
+        targetType: llm
+    - id: e3
+      source: explain
+      target: end
+      sourceHandle: source
+      targetHandle: target
+      type: custom
+      zIndex: 0
+      data:
+        isInIteration: false
+        sourceType: llm
+        targetType: end
     nodes:
     - data:
         desc: 场景用例名可留空（基线）
@@ -62,12 +63,21 @@ workflow:
         title: 开始
         type: start
         variables:
-        - {label: 场景用例名, max_length: 48, options: [], required: false, type: text-input,
-           variable: case, default: ''}
+        - label: 场景用例名
+          max_length: 48
+          options: []
+          required: false
+          type: text-input
+          variable: case
+          default: ''
       height: 116
       id: start
-      position: {x: 60, y: 200}
-      positionAbsolute: {x: 60, y: 200}
+      position:
+        x: 60
+        y: 200
+      positionAbsolute:
+        x: 60
+        y: 200
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -77,11 +87,16 @@ workflow:
         desc: 调本地后端六步 MILP（子进程隔离，约 3~5s）
         method: post
         selected: false
-        title: 六步 MILP 求解
-        timeout: {connect: 10, max_connect_timeout: 0, max_read_timeout: 0, max_write_timeout: 0,
-                  read: 60, write: 20}
+        title: 调用后端摘要接口
+        timeout:
+          connect: 10
+          max_connect_timeout: 0
+          max_read_timeout: 0
+          max_write_timeout: 0
+          read: 60
+          write: 20
         type: http-request
-        url: '{{#env.API_PUBLIC_BASE#}}/api/solve/run'
+        url: '{{#env.API_PUBLIC_BASE#}}/api/solve/digest'
         variables: []
         authorization:
           config: null
@@ -89,46 +104,16 @@ workflow:
         body:
           data: '{"case": "{{#start.case#}}"}'
           type: json
-        headers:
-        - {id: h1, key: Content-Type, type: text, value: application/json}
-        params: []
+        headers: ''
+        params: ''
       height: 118
       id: call-solve
-      position: {x: 380, y: 200}
-      positionAbsolute: {x: 380, y: 200}
-      selected: false
-      sourcePosition: right
-      targetPosition: left
-      type: custom
-      width: 244
-    - data:
-        code: "import json\n\ndef main(http_body: str) -> dict:\n    d = json.loads(http_body)\n\
-          \    s = d.get('summary') or {}\n    milp = s.get('milp_status') or {}\n    sched = [r\
-          \ for r in s.get('schedule') or [] if r.get('start')]\n    a01 = next((r for r in\
-          \ sched if r.get('lot') == 'LOT-A01'), {})\n    notes = [r['post_note'] for r in sched\
-          \ if r.get('post_note', '-') != '-']\n    return {\n        'run_id': d.get('run_id',\
-          \ ''),\n        'milp': f\"{milp.get('step2')} / {milp.get('step3')}\",\n       \
-          \ 'urgent_start': a01.get('start', '-'),\n        'lot_count': len(sched),\n     \
-          \   'makespan': max((r.get('end') or '00:00' for r in sched), default='-'),\n     \
-          \   'notes': '；'.join(notes) or '无',\n    }\n"
-        code_language: python3
-        desc: 从 JSON 提取关键字段，压缩后交给 LLM
-        outputs:
-          lot_count: {children: null, type: number}
-          makespan: {children: null, type: string}
-          milp: {children: null, type: string}
-          notes: {children: null, type: string}
-          run_id: {children: null, type: string}
-          urgent_start: {children: null, type: string}
-        selected: false
-        title: 解析求解结果
-        type: code
-        variables:
-        - {value_selector: [call-solve, body], variable: http_body}
-      height: 200
-      id: parse-result
-      position: {x: 700, y: 200}
-      positionAbsolute: {x: 700, y: 200}
+      position:
+        x: 380
+        y: 200
+      positionAbsolute:
+        x: 380
+        y: 200
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -140,21 +125,21 @@ workflow:
           variable_selector: []
         desc: ''
         model:
-          completion_params: {max_tokens: 1024, temperature: 0.3}
+          completion_params:
+            max_tokens: 1024
+            temperature: 0.3
           mode: chat
           name: gpt-4o-mini
           provider: openai_api_compatible
         prompt_template:
         - id: sys1
           role: system
-          text: '你是光刻排程专家。基于给定字段输出中文解读，必须覆盖：1) MILP 求解状态；2) 急货 LOT-A01
-            上机时间与光罩就绪链路（IRIS 20+搬送10+装载5=35min）；3) 机台负载分布；4) 卡控与校准事件逐条解释（QTMS
-            超水位/放货间隔/计片 IRIS/Chuck 不相容）；5) 给计划员的两条可执行建议。300 字以内，用条目。'
+          text: 你是光刻排程专家。基于给定字段输出中文解读，必须覆盖：1) MILP 求解状态；2) 急货 LOT-A01 上机时间与光罩就绪链路（IRIS
+            20+搬送10+装载5=35min）；3) 机台负载分布；4) 卡控与校准事件逐条解释（QTMS 超水位/放货间隔/计片 IRIS/Chuck
+            不相容）；5) 给计划员的两条可执行建议。300 字以内，用条目。
         - id: usr1
           role: user
-          text: "run_id: {{#parse-result.run_id#}}\nMILP: {{#parse-result.milp#}}\n急货 LOT-A01\
-            \ 上机: {{#parse-result.urgent_start#}}\nMakeSpan: {{#parse-result.makespan#}}\n\
-            排产 Lot 数: {{#parse-result.lot_count#}}\n卡控与校准: {{#parse-result.notes#}}"
+          text: '{{#call-solve.body#}}'
         selected: false
         title: 排程中文解读
         type: llm
@@ -163,8 +148,12 @@ workflow:
           enabled: false
       height: 98
       id: explain
-      position: {x: 1020, y: 200}
-      positionAbsolute: {x: 1020, y: 200}
+      position:
+        x: 1020
+        y: 200
+      positionAbsolute:
+        x: 1020
+        y: 200
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -173,19 +162,28 @@ workflow:
     - data:
         desc: ''
         outputs:
-        - {value_selector: [explain, text], variable: explanation}
-        - {value_selector: [parse-result, run_id], variable: run_id}
+        - value_selector:
+          - explain
+          - text
+          variable: explanation
         selected: false
         title: 结束
         type: end
         variables: []
       height: 90
       id: end
-      position: {x: 1340, y: 200}
-      positionAbsolute: {x: 1340, y: 200}
+      position:
+        x: 1340
+        y: 200
+      positionAbsolute:
+        x: 1340
+        y: 200
       selected: false
       sourcePosition: right
       targetPosition: left
       type: custom
       width: 244
-  viewport: {x: 0, y: 0, zoom: 0.7}
+  viewport:
+    x: 0
+    y: 0
+    zoom: 0.7
