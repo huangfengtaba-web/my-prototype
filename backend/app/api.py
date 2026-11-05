@@ -115,8 +115,13 @@ def _digest_of(record: dict) -> str:
 
 
 @app.get("/api/solve/digest", response_class=PlainTextResponse)
+@app.post("/api/solve/digest", response_class=PlainTextResponse)
 def solve_digest(case: str = ""):
-    """跑一次求解，直接返回可读摘要纯文本（供 Dify LLM 节点消费）。"""
+    """跑一次求解，直接返回可读摘要纯文本（供 Dify LLM 节点消费）。
+
+    同时注册 GET 与 POST：Dify 的 HTTP 请求节点默认 method=post，
+    若只提供 GET 会返回 405 Method Not Allowed。
+    """
     case = (case or "").strip() or None
     if case and case not in cli.list_cases():
         raise HTTPException(404, detail=f"未知用例 {case}，可用：{', '.join(cli.list_cases()) or '无'}")
@@ -124,6 +129,7 @@ def solve_digest(case: str = ""):
 
 
 @app.get("/api/solve/compare-digest", response_class=PlainTextResponse)
+@app.post("/api/solve/compare-digest", response_class=PlainTextResponse)
 def solve_compare_digest(case: str = "urgent-A01"):
     """跑基线 + 指定场景两次求解，返回对比摘要纯文本（供 Dify LLM 节点消费）。"""
     case = (case or "").strip() or "urgent-A01"
