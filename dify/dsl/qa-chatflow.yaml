@@ -32,7 +32,10 @@ workflow:
       enabled: false
   graph:
     edges:
-    - data: {isInIteration: false, sourceType: start, targetType: knowledge-retrieval}
+    - data:
+        isInIteration: false
+        sourceType: start
+        targetType: knowledge-retrieval
       id: e1
       source: start
       sourceHandle: source
@@ -40,7 +43,10 @@ workflow:
       targetHandle: target
       type: custom
       zIndex: 0
-    - data: {isInIteration: false, sourceType: knowledge-retrieval, targetType: llm}
+    - data:
+        isInIteration: false
+        sourceType: knowledge-retrieval
+        targetType: llm
       id: e2
       source: retrieval
       sourceHandle: source
@@ -48,11 +54,14 @@ workflow:
       targetHandle: target
       type: custom
       zIndex: 0
-    - data: {isInIteration: false, sourceType: llm, targetType: answer}
+    - data:
+        isInIteration: false
+        sourceType: llm
+        targetType: answer
       id: e3
       source: answer
       sourceHandle: source
-      target: answer-node
+      target: answernode
       targetHandle: target
       type: custom
       zIndex: 0
@@ -63,12 +72,20 @@ workflow:
         title: 开始
         type: start
         variables:
-        - {label: 用户问题, max_length: 512, options: [], required: false, type: text-input,
-           variable: query}
+        - label: 用户问题
+          max_length: 512
+          options: []
+          required: false
+          type: text-input
+          variable: query
       height: 116
       id: start
-      position: {x: 60, y: 220}
-      positionAbsolute: {x: 60, y: 220}
+      position:
+        x: 60
+        y: 220
+      positionAbsolute:
+        x: 60
+        y: 220
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -81,15 +98,21 @@ workflow:
           reranking_enable: false
           score_threshold: 0.5
           top_k: 4
-        query_variable_selector: [sys, query]
+        query_variable_selector:
+        - sys
+        - query
         retrieval_mode: multiple
         selected: false
         title: 排程知识库检索
         type: knowledge-retrieval
       height: 122
       id: retrieval
-      position: {x: 360, y: 220}
-      positionAbsolute: {x: 360, y: 220}
+      position:
+        x: 360
+        y: 220
+      positionAbsolute:
+        x: 360
+        y: 220
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -98,21 +121,25 @@ workflow:
     - data:
         context:
           enabled: true
-          variable_selector: [retrieval, result]
+          variable_selector:
+          - retrieval
+          - result
         desc: ''
         model:
-          completion_params: {max_tokens: 1024, temperature: 0.3}
+          completion_params:
+            max_tokens: 1024
+            temperature: 0.3
           mode: chat
           name: gpt-4o-mini
           provider: openai_api_compatible
         prompt_template:
         - id: sys1
           role: system
-          text: '你是 GTX 光刻排程系统的知识助手。只依据检索到的知识片段回答；检索不到就直说不知道并指引查阅
-            docs/ 目录。回答需给出依据出处文件名。中文，300 字以内。'
+          text: 你是 GTX 光刻排程系统的知识助手。只依据检索到的知识片段回答；检索不到就直说不知道并指引查阅 docs/ 目录。回答需给出依据出处文件名。中文，300
+            字以内。
         - id: usr1
           role: user
-          text: '问题：{{#sys.query#}}'
+          text: 问题：{{#sys.query#}}
         selected: false
         title: 知识问答
         type: llm
@@ -121,8 +148,12 @@ workflow:
           enabled: false
       height: 98
       id: answer
-      position: {x: 700, y: 220}
-      positionAbsolute: {x: 700, y: 220}
+      position:
+        x: 700
+        y: 220
+      positionAbsolute:
+        x: 700
+        y: 220
       selected: false
       sourcePosition: right
       targetPosition: left
@@ -136,12 +167,19 @@ workflow:
         type: answer
         variables: []
       height: 90
-      id: answer-node
-      position: {x: 1020, y: 220}
-      positionAbsolute: {x: 1020, y: 220}
+      id: answernode
+      position:
+        x: 1020
+        y: 220
+      positionAbsolute:
+        x: 1020
+        y: 220
       selected: false
       sourcePosition: right
       targetPosition: left
       type: custom
       width: 244
-  viewport: {x: 0, y: 0, zoom: 0.7}
+  viewport:
+    x: 0
+    y: 0
+    zoom: 0.7

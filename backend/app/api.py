@@ -266,19 +266,68 @@ def workflow_templates():
     return workflow.list_templates()
 
 
+_LLM_SYSTEM = (
+    "你是光刻排程专家。基于给定字段输出中文解读，必须覆盖："
+    "1) MILP 求解状态；2) 急货 LOT-A01 上机时间与光罩就绪链路（IRIS 20+搬送10+装载5=35min）；"
+    "3) 机台负载分布；4) 卡控与校准事件逐条解释（QTMS 超水位/放货间隔/计片 IRIS/Chuck 不相容）；"
+    "5) 给计划员的两条可执行建议。300 字以内，用条目。"
+)
+
+
+def _augment_with_local_llm(res: dict, params: dict | None) -> dict:
+    """Dify 未回传有效内容时，用本地 LLM 生成等价解读（不依赖 Dify 的变量传递）。
+
+    触发条件：mode=local_fallback，或 outputs.explanation 为空/仍含未替换的 {{#...#}} 占位符。
+    这样即使 Dify 工作流跑通但变量没注入，也能拿到真实数据驱动的解读。
+    """
+    from backend.app.agent import llm
+
+    if not llm.llm_config()["enabled"]:
+        return res
+    try:
+        case = ((params or {}).get("case") or "").strip() or None
+        rec = solver_runner.run_solve(case)
+        digest = _digest_of(rec)
+        # llm.chat 返回单个 message dict（{"role":..,"content":..}），不是元组
+        msg = llm.chat(
+            [{"role": "system", "content": _LLM_SYSTEM},
+             {"role": "user", "content": digest}],
+            timeout=90,
+        )
+        content = msg.get("content") if isinstance(msg, dict) else str(msg)
+        outs = dict(res.get("outputs") or {})
+        outs["explanation"] = (content or "").strip()
+        outs["digest"] = digest
+        outs["run_id"] = rec.get("run_id")
+        res["outputs"] = outs
+        res["mode"] = "local_llm"
+        res["status"] = "succeeded"
+        res["fallback_reason"] = "Dify 未回传有效内容，已用本地 LLM 生成等价解读"
+    except Exception as e:                                   # noqa: BLE001
+        res["fallback_reason"] = ((res.get("fallback_reason") or "") +
+                                  f" | 本地 LLM 解读失败: {e}").strip(" |")
+    return res
+
+
 @app.post("/api/workflow/run")
 def workflow_run(req: WorkflowRunRequest):
-    """优先线上 Dify，未配置/不可达自动 local_fallback（响应含 mode，HTTP 恒 200）。
-
-    本地模式保留原 record 字段（wf_id/steps/...），可继续用 status 接口轮询。
-    """
+    """优先线上 Dify；未配置/不可达/Dify 未回传有效内容时，用本地 LLM 生成等价解读。"""
     tid = req.template or req.template_id
     if not tid:
         raise HTTPException(400, detail="template / template_id 二选一必填")
     try:
-        return workflow.run_with_fallback(tid, req.params)
+        res = workflow.run_with_fallback(tid, req.params)
     except KeyError as e:
         raise HTTPException(404, detail=str(e))
+
+    # 判断 Dify 是否回传了「有效内容」：任一输出非空且不含未替换的 {{#...#}} 占位符
+    # 注意：不同模板的输出字段名不同（daily-scheduling→explanation，scenario-compare→comparison），
+    # 所以必须遍历所有 outputs，不能只看 explanation。
+    outs = res.get("outputs") or {}
+    valid = {k: v for k, v in outs.items() if str(v).strip() and "{{#" not in str(v)}
+    if res.get("mode") == "local_fallback" or not valid:
+        res = _augment_with_local_llm(res, req.params)
+    return res
 
 
 @app.get("/api/workflow/status/{wf_id}")

@@ -25,7 +25,7 @@ workflow:
     edges:
     - id: e1
       source: start
-      target: fetch-result
+      target: fetchresult
       sourceHandle: source
       targetHandle: target
       type: custom
@@ -35,7 +35,7 @@ workflow:
         sourceType: start
         targetType: http-request
     - id: e2
-      source: fetch-result
+      source: fetchresult
       target: explain
       sourceHandle: source
       targetHandle: target
@@ -106,7 +106,7 @@ workflow:
         headers: ''
         params: ''
       height: 90
-      id: fetch-result
+      id: fetchresult
       position:
         x: 380
         y: 200
@@ -138,7 +138,7 @@ workflow:
             不相容）；5) 光罩温层跳变风险；6) 给计划员的两条可执行建议。300 字以内，用条目。
         - id: usr1
           role: user
-          text: '{{#fetch-result.body#}}'
+          text: '{{#fetchresult.body#}}'
         selected: false
         title: 排程中文解读
         type: llm

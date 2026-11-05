@@ -25,7 +25,7 @@ workflow:
     edges:
     - id: e1
       source: start
-      target: call-solve
+      target: callsolve
       sourceHandle: source
       targetHandle: target
       type: custom
@@ -35,7 +35,7 @@ workflow:
         sourceType: start
         targetType: http-request
     - id: e2
-      source: call-solve
+      source: callsolve
       target: explain
       sourceHandle: source
       targetHandle: target
@@ -107,7 +107,7 @@ workflow:
         headers: ''
         params: ''
       height: 118
-      id: call-solve
+      id: callsolve
       position:
         x: 380
         y: 200
@@ -139,7 +139,7 @@ workflow:
             不相容）；5) 给计划员的两条可执行建议。300 字以内，用条目。
         - id: usr1
           role: user
-          text: '{{#call-solve.body#}}'
+          text: '{{#callsolve.body#}}'
         selected: false
         title: 排程中文解读
         type: llm

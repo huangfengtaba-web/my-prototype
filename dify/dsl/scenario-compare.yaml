@@ -25,7 +25,7 @@ workflow:
     edges:
     - id: e1
       source: start
-      target: call-baseline
+      target: callbaseline
       sourceHandle: source
       targetHandle: target
       type: custom
@@ -35,8 +35,8 @@ workflow:
         sourceType: start
         targetType: http-request
     - id: e2
-      source: call-baseline
-      target: diff-llm
+      source: callbaseline
+      target: diffllm
       sourceHandle: source
       targetHandle: target
       type: custom
@@ -46,7 +46,7 @@ workflow:
         sourceType: http-request
         targetType: llm
     - id: e3
-      source: diff-llm
+      source: diffllm
       target: end
       sourceHandle: source
       targetHandle: target
@@ -100,7 +100,7 @@ workflow:
         headers: ''
         params: ''
       height: 118
-      id: call-baseline
+      id: callbaseline
       position:
         x: 360
         y: 120
@@ -131,7 +131,7 @@ workflow:
             开工与机台变化；3) MakeSpan 变化及原因；4) 开工时间变化的 Lot 逐条列出；5) 一句话结论（急货插单的代价）。250 字以内，用条目。
         - id: usr1
           role: user
-          text: '{{#call-baseline.body#}}'
+          text: '{{#callbaseline.body#}}'
         selected: false
         title: 差异分析
         type: llm
@@ -139,7 +139,7 @@ workflow:
         vision:
           enabled: false
       height: 98
-      id: diff-llm
+      id: diffllm
       position:
         x: 1020
         y: 220
@@ -155,7 +155,7 @@ workflow:
         desc: ''
         outputs:
         - value_selector:
-          - diff-llm
+          - diffllm
           - text
           variable: comparison
         selected: false
