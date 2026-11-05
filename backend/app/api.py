@@ -114,24 +114,26 @@ def _digest_of(record: dict) -> str:
     return "\n".join(lines)
 
 
-@app.get("/api/solve/digest", response_class=PlainTextResponse)
-@app.post("/api/solve/digest", response_class=PlainTextResponse)
+@app.get("/api/solve/digest")
+@app.post("/api/solve/digest")
 def solve_digest(case: str = ""):
-    """跑一次求解，直接返回可读摘要纯文本（供 Dify LLM 节点消费）。
+    """跑一次求解，返回可读摘要（供 Dify LLM 节点消费）。
 
-    同时注册 GET 与 POST：Dify 的 HTTP 请求节点默认 method=post，
-    若只提供 GET 会返回 405 Method Not Allowed。
+    同时注册 GET 与 POST：Dify 的 HTTP 请求节点默认 method=post。
+    返回 JSON 而非 text/plain：Dify 的 HTTP 节点只会把 JSON 响应写入
+    `body` 变量，text/plain 会导致 body 为空（LLM 拿不到内容）。
     """
     case = (case or "").strip() or None
     if case and case not in cli.list_cases():
         raise HTTPException(404, detail=f"未知用例 {case}，可用：{', '.join(cli.list_cases()) or '无'}")
-    return _digest_of(solver_runner.run_solve(case))
+    text = _digest_of(solver_runner.run_solve(case))
+    return {"digest": text}
 
 
-@app.get("/api/solve/compare-digest", response_class=PlainTextResponse)
-@app.post("/api/solve/compare-digest", response_class=PlainTextResponse)
+@app.get("/api/solve/compare-digest")
+@app.post("/api/solve/compare-digest")
 def solve_compare_digest(case: str = "urgent-A01"):
-    """跑基线 + 指定场景两次求解，返回对比摘要纯文本（供 Dify LLM 节点消费）。"""
+    """跑基线 + 指定场景两次求解，返回对比摘要（供 Dify LLM 节点消费）。"""
     case = (case or "").strip() or "urgent-A01"
     if case not in cli.list_cases():
         raise HTTPException(404, detail=f"未知用例 {case}，可用：{', '.join(cli.list_cases()) or '无'}")
@@ -146,9 +148,9 @@ def solve_compare_digest(case: str = "urgent-A01"):
     moves = [f"{lot} {bs[lot]}→{us[lot]}" for lot in sorted(bs)
              if lot in us and bs[lot] != us[lot]]
     moved = "；".join(moves) if moves else "无"
-    return ("【基线】\n" + _digest_of(b) +
-            "\n\n【场景 " + case + "】\n" + _digest_of(u) +
-            "\n\n开工时间变化: " + moved)
+    return {"digest": ("【基线】\n" + _digest_of(b) +
+                       "\n\n【场景 " + case + "】\n" + _digest_of(u) +
+                       "\n\n开工时间变化: " + moved)}
 
 
 # ---------------------------------------------------------------- 配置管理（R1）
