@@ -73,10 +73,18 @@ def run_solve(case=None, fix=False):
     if fix:
         cmd += ["--fix"]
 
+    # 求解器会用 print() 输出 ═ ─ 等制表符。Windows 控制台默认 cp936/cp1252，
+    # 这些字符无法编码会抛 UnicodeEncodeError 直接崩掉整个求解。
+    # 强制子进程用 UTF-8 输出，与父进程用哪个解释器无关。
+    env = dict(os.environ)
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONUTF8"] = "1"
+
     try:
         proc = subprocess.run(
             cmd, cwd=REPO_ROOT, capture_output=True, text=True,
             encoding="utf-8", errors="replace", timeout=SOLVER_TIMEOUT_S,
+            env=env,
         )
     except subprocess.TimeoutExpired:
         record.update(status="timeout",

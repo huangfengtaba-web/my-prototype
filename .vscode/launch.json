@@ -1,6 +1,10 @@
 {
   // GTX FSO Litho · 调试配置（见 docs/03_ALGORITHM_DEMO.md §4）
   // 断点建议：step2 求解前/结果处、step3 l["start"] 赋值处、main() story_check 处
+  //
+  // ⚠️ 每个配置都显式指定 "python"，不要依赖 VSCode 当前选中的解释器。
+  //    本机 PATH 中 miniconda 排在前面，不指定会用到 miniconda，
+  //    导致缺 pulp / python-dotenv、求解 failed、.env 读不到。
   "version": "0.2.0",
   "configurations": [
     {
@@ -10,6 +14,7 @@
       "module": "backend.solver",
       "args": ["run"],
       "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
       "console": "integratedTerminal",
       "justMyCode": false
     },
@@ -20,6 +25,7 @@
       "module": "uvicorn",
       "args": ["backend.app.api:app", "--reload", "--port", "8000"],
       "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
       "console": "integratedTerminal",
       "justMyCode": false
     },
@@ -30,6 +36,7 @@
       "module": "pytest",
       "args": ["${file}", "-v"],
       "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
       "console": "integratedTerminal"
     }
   ]
