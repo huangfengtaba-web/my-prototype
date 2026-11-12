@@ -12,16 +12,48 @@ import re
 import threading
 import uuid
 
-from backend.app.agent import llm, tools
+from backend.app.agent import context, llm, session_store, tools
+from backend.app.registry import get as get_skill
+from backend.app.registry import system_prompt_fragment
 
 MAX_ITER = 6
 SESSIONS: dict = {}
 _LOCK = threading.Lock()
 
-SYSTEM_PROMPT = """你是光刻排程系统的 AI 助手（GTX FSO Litho）。你可以调用工具：
-- list_cases / run_solve / run_sim / run_workflow / list_workflows / get_mock_data / get_result
-回答要求：中文、简洁、给出关键数字（MILP 状态、MakeSpan、急货 LOT-A01 开工、准时率）；
-用户让你"跑/算/试"时直接调工具执行，不要只给建议。"""
+
+def _session(sid: str) -> dict:
+    """写穿缓存：内存命中直接用；未命中先从 Store 恢复。
+
+    保持 SESSIONS 仍是普通 dict（tests/test_agent.py::test_session_memory 依赖），
+    只是在首次访问时多一步「从持久层补水」。
+    """
+    if sid in SESSIONS:
+        SESSIONS[sid].setdefault("summary", "")
+        return SESSIONS[sid]
+    loaded = None
+    try:
+        loaded = session_store.get_store().load(sid)
+    except Exception:                      # noqa: BLE001  持久层故障不影响对话
+        loaded = None
+    sess = loaded or {"messages": [], "mode": None}
+    sess.setdefault("summary", "")
+    SESSIONS[sid] = sess
+    return sess
+
+
+def _persist(sid: str, session: dict) -> None:
+    try:
+        session_store.get_store().save(sid, session)
+    except Exception:                      # noqa: BLE001
+        pass
+
+# 能力清单由注册表生成，避免手写工具名与真实注册表脱节
+SYSTEM_PROMPT = (
+    "你是光刻排程系统的 AI 助手（GTX FSO Litho）。\n\n"
+    + system_prompt_fragment()
+    + "\n\n回答要求：中文、简洁、给出关键数字（MILP 状态、MakeSpan、急货 LOT-A01 开工、准时率）；"
+      "用户让你\"跑/算/试\"时直接调工具执行，不要只给建议。"
+)
 
 
 # ---------------------------------------------------------------------
@@ -75,6 +107,16 @@ def _fmt_tool_result(name, result):
                 f"（计划 {k['makespan_planned']}，偏差 {k['makespan_delta_min']}min），"
                 f"故障 {k['breakdowns']} 次 / 返工 {k['rework_count']} 次 / QTime 违约 {k['qtime_violations']}。")
     if name == "run_workflow":
+        # 两种返回结构：本地执行有 steps；Dify 执行有 outputs（无 steps）
+        if "steps" not in result:
+            mode = result.get("mode") or "dify"
+            outs = result.get("outputs") or {}
+            text = (outs.get("explanation") or outs.get("comparison")
+                    or outs.get("digest") or "")
+            head = f"工作流（{mode}）完成" if result.get("status") == "succeeded" \
+                else f"工作流（{mode}）状态 {result.get('status')}"
+            return head + ("：" + str(text)[:400] if text else
+                           f"，原因：{str(result.get('fallback_reason') or '')[:200]}")
         steps = " → ".join(f"{s['name']}:{s['status']}" for s in result["steps"])
         if result["status"] == "done" and result.get("steps") and \
                 result["steps"][-1]["name"] == "生成报告":
@@ -110,7 +152,7 @@ def _call_tool(name, args):
 def chat(message, session_id=None):
     sid = session_id or uuid.uuid4().hex[:8]
     with _LOCK:
-        session = SESSIONS.setdefault(sid, {"messages": [], "mode": None})
+        session = _session(sid)
 
     mode = "llm" if llm.llm_config()["enabled"] else "rule"
     session["mode"] = mode
@@ -121,9 +163,15 @@ def chat(message, session_id=None):
     else:
         reply, tool_trace = _chat_rule(message)
 
-    session["messages"] = (session["messages"] + [
+    # 按 token 预算压缩（替代原来的 messages[-20:] 条数硬截断）
+    merged = session["messages"] + [
         {"role": "user", "content": message},
-        {"role": "assistant", "content": reply}])[-20:]
+        {"role": "assistant", "content": reply}]
+    kept, summary = context.compress(merged, summary=session.get("summary"))
+    session["messages"] = [m for m in kept if m.get("role") != "system"]
+    session["summary"] = summary
+    _persist(sid, session)
+
     return {"session_id": sid, "mode": mode, "reply": reply, "tool_calls": tool_trace}
 
 
@@ -146,6 +194,8 @@ def _chat_rule(message):
 def _chat_llm(session, message):
     msgs = [{"role": "system", "content": SYSTEM_PROMPT}] + session["messages"] + [
         {"role": "user", "content": message}]
+    # 历史过长时先压一次，避免把超长上下文整个塞给模型
+    msgs, _ = context.compress(msgs, summary=session.get("summary"))
     specs = tools.tool_specs_for_llm()
     trace = []
     for _ in range(MAX_ITER):
@@ -166,8 +216,11 @@ def _chat_llm(session, message):
             trace.append({"name": name, "args": args, "reason": "LLM 决策",
                           "ok": "error" not in result,
                           "summary": _fmt_tool_result(name, result)})
+            # 按技能声明的 max_result_chars 裁剪（替代固定 [:2000]）
+            skill = get_skill(name)
+            limit = skill.max_result_chars if skill else 2000
             msgs.append({"role": "tool", "tool_call_id": c.get("id", ""),
-                         "content": str(result)[:2000]})
+                         "content": str(result)[:limit]})
     return "（已达最大工具调用轮次，先汇报以上结果）", trace
 
 

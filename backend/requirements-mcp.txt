@@ -1,0 +1,13 @@
+# MCP Server 可选依赖（不进主 requirements.txt）
+#
+# 为什么单独一个文件：
+#   - Render 免费层 512MB，MCP 进程常驻约 70-100MB，不部署到云端
+#   - 主 requirements.txt 保持零新增，镜像体积不变
+#
+# 安装：
+#   .venv/Scripts/python.exe -m pip install -r backend/requirements-mcp.txt \
+#       -i https://pypi.tuna.tsinghua.edu.cn/simple
+#
+# 验证：
+#   .venv/Scripts/python.exe -m backend.mcp_server --selftest
+mcp>=1.2,<2

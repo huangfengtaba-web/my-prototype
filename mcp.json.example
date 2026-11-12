@@ -1,0 +1,14 @@
+{
+  "_comment": "复制本文件为 .cursor/mcp.json（Cursor）或合并到 %APPDATA%\\Claude\\claude_desktop_config.json（Claude Desktop）。路径按本机实际情况改。",
+  "mcpServers": {
+    "gtx-fso-litho": {
+      "command": "D:\\codex\\2026-10-28-23-35-39\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "backend.mcp_server", "--transport", "stdio"],
+      "cwd": "D:\\codex\\2026-10-28-23-35-39",
+      "env": {
+        "PYTHONIOENCODING": "utf-8",
+        "PYTHONUTF8": "1"
+      }
+    }
+  }
+}

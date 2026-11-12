@@ -597,6 +597,28 @@ from solve_runs r join solve_lots l on l.run_id = r.run_id
 where l.lot_id = 'LOT-A01';
 ```
 
+#### 5.2.1 Agent 会话表（阶段三 · 上下文工程）
+
+`backend/app/agent/session_store.py::PgStore` 使用。没有这两张表时 `PgStore` 会自动降级
+（load 返回 None、save 静默失败），不影响对话主链路。
+
+```sql
+-- Agent 会话（一对一会话头 + 消息体用 jsonb 存，避免消息表爆炸）
+create table if not exists agent_sessions (
+  session_id text primary key,
+  messages   jsonb not null default '[]'::jsonb,   -- [{role, content, ...}]
+  summary    text  not null default '',            -- 上下文压缩产生的滚动摘要
+  mode       text,                                 -- llm | rule
+  updated_at timestamptz not null default now()
+);
+create index if not exists idx_agent_sessions_updated
+  on agent_sessions(updated_at desc);
+```
+
+> 为什么消息用 `jsonb` 而不是独立 `agent_messages` 表：
+> 每次写入都是「整段覆盖」，独立表要 delete+insert 全量，反而更慢且产生大量死元组。
+> 若后续需要按消息检索（如检索历史工具调用），再拆表并加 `GIN` 索引。
+
 ### 5.3 拿连接串
 
 1. Supabase → **Project Settings → Database → Connection string → URI**

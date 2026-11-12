@@ -355,6 +355,29 @@ def agent_status():
     return agent.agent_status()
 
 
+# ---------------------------------------------------------------- 能力清单（Skill Registry）
+@app.get("/api/capabilities")
+def capabilities():
+    """全部可被 Agent 调用的能力，按分类分组。前端 AI 助手页的能力面板消费。"""
+    from backend.app import registry
+
+    return {
+        "count": len(registry.REGISTRY),
+        "categories": registry.to_panel(),
+    }
+
+
+@app.get("/api/capabilities/{name}")
+def capability_detail(name: str):
+    """单个能力的完整声明（含 JSON Schema 与示例）。"""
+    from backend.app import registry
+
+    skill = registry.get(name)
+    if skill is None:
+        raise HTTPException(404, detail=f"未知能力 {name}，可用：{', '.join(registry.names())}")
+    return skill.to_panel()
+
+
 @app.post("/api/agent/chat")
 def agent_chat(req: AgentChatRequest):
     if not req.message.strip():
