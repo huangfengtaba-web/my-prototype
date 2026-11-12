@@ -8,14 +8,18 @@ from backend.solver import cli
 
 def _summarize_solve(r):
     s = r.get("summary") or {}
-    sched = s.get("schedule") or []
-    a01 = next((x for x in sched if x["lot"] == "LOT-A01"), {})
+    sched = [x for x in (s.get("schedule") or []) if x.get("start")]
+    a01 = next((x for x in sched if x.get("lot") == "LOT-A01"), {})
+    ends = [x.get("end") for x in sched if x.get("end")]
     return {
         "run_id": r["run_id"],
         "status": r["status"],
         "case": r.get("case"),
         "milp": s.get("milp_status"),
         "urgent_a01_start": a01.get("start"),
+        "urgent_a01_eqp": a01.get("eqp"),
+        "makespan": max(ends) if ends else None,     # Loop 的目标判定需要
+        "lots": len(sched),                          # Loop 的目标判定需要
         "schedule_preview": sched[:4],
     }
 

@@ -46,6 +46,7 @@
       <div class="right"><span id="clock" class="clock"></span>
         <span id="modeBadge" class="mode-badge rule">检测中…</span>
         <button id="capBtn" class="btn sm">🧰 能力与调试</button>
+        <button id="loopBtn" class="btn sm">🎯 自主规划</button>
         <button id="cmBtn" class="btn sm">💬 评论模式</button></div>
     </header>
     <div class="content chat-card">
@@ -64,6 +65,18 @@
           <div id="capTools"></div>
           <div class="cap-tip">调试：每轮对话的 🔧 chip 即真实工具调用轨迹（name/args/summary）；
             扩展能力改 backend/app/agent/tools.py（注册即生效），详见 docs/06_AI_CAPABILITIES.md §3.5-3.8。</div>
+        </div>
+        <div class="cap-panel" id="loopPanel" style="display:none">
+          <div class="cap-h">自主规划 <span class="muted">Plan → Act → Observe → Reflect → Replan</span></div>
+          <div style="display:flex;gap:8px;margin:8px 0">
+            <input id="loopGoal" style="flex:1;padding:6px 8px;border:1px solid #d8dae0;border-radius:6px"
+              placeholder="例如：让急货 10 点前上机 / MakeSpan 不晚于 12:35 / 准时率 95% 以上">
+            <button id="loopRun" class="btn primary sm">执行</button>
+          </div>
+          <div id="loopOut" class="muted" style="font-size:12px;line-height:1.7"></div>
+          <div class="cap-tip">目标判定是确定性的（goals.evaluate），LLM 只解释差距、不参与判定。
+            轨迹逐行落盘在 .runtime/traces/，可用 GET /api/agent/trace/{trace_id} 审计。
+            默认关闭，需 AGENT_LOOP_ENABLED=1 或单次传 enabled=true。</div>
         </div>
         <div class="inputbar">
           <textarea id="input" placeholder="例如：跑一下 urgent-A01 看看急货排得怎么样（Enter 发送，Shift+Enter 换行）"></textarea>

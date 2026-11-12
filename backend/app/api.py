@@ -385,6 +385,50 @@ def agent_chat(req: AgentChatRequest):
     return agent.chat(req.message, req.session_id)
 
 
+# ---------------------------------------------------------------- Loop Engineering（阶段四）
+class LoopRequest(BaseModel):
+    goal: str
+    max_rounds: int | None = None
+    budget_tokens: int | None = None
+    enabled: bool | None = None
+
+
+@app.post("/api/agent/loop")
+def agent_loop(req: LoopRequest):
+    """自主规划循环：Plan → Act → Observe → Reflect → Replan。
+
+    默认关闭（AGENT_LOOP_ENABLED=0）。调用时传 enabled=true 可单次开启，
+    或设置环境变量后重启后端。关闭时返回 status=disabled 与开启提示。
+    """
+    if not (req.goal or "").strip():
+        raise HTTPException(400, detail="目标不能为空")
+    from backend.app.agent import loop as loop_mod
+
+    return loop_mod.run_loop(req.goal, enabled=req.enabled,
+                             max_rounds=req.max_rounds,
+                             budget_tokens=req.budget_tokens)
+
+
+@app.get("/api/agent/loop/{trace_id}")
+def agent_loop_status(trace_id: str):
+    """从轨迹文件重建一次循环的状态（跨进程可查，服务重启不丢）。"""
+    from backend.app.agent import loop as loop_mod
+
+    return loop_mod.loop_status(trace_id)
+
+
+@app.get("/api/agent/trace/{trace_id}")
+def agent_trace(trace_id: str):
+    """原始事件流，用于审计「为什么判定达成 / 卡在哪一轮」。"""
+    from backend.app.agent import trace as trace_mod
+
+    events = trace_mod.read_trace(trace_id)
+    if not events:
+        raise HTTPException(404, detail=f"轨迹 {trace_id} 不存在")
+    return {"trace_id": trace_id, "events": events,
+            "summary": trace_mod.summarize(events)}
+
+
 # ---------------------------------------------------------------- 3D 孪生时间轴
 from backend.app.twin_timeline import build_timeline  # noqa: E402
 

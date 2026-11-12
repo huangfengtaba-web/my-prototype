@@ -1,0 +1,85 @@
+# 评测用例（golden set）
+#
+# 设计原则：
+#   1. 全部在**规则模式**下跑（不依赖 LLM、不烧 token）
+#   2. 每个用例断言「结果性质」而非具体数值，避免求解器微调后集体失败
+#   3. 覆盖：可达目标 / 不可达目标 / 需要重规划 / 需要仿真 / 硬闸 / 非法参数
+#
+# 字段：
+#   id            用例标识
+#   goal          自然语言目标
+#   config        传给 run_loop 的覆盖参数
+#   plan_override 可选：替换规则计划（用于测试异常路径），元素是 {skill, args}
+#   expect        断言集合
+
+- id: urgent_first
+  desc: 可达目标 —— 急货 10 点前上机，应 1~2 轮内达成
+  goal: 让急货 10 点前上机
+  config: { max_rounds: 3 }
+  expect:
+    status: done
+    goal_met: true
+    max_rounds: 2
+    min_observations: 1
+
+- id: makespan_ok
+  desc: 可达目标 —— MakeSpan 不晚于 12:35
+  goal: MakeSpan 不晚于 12:35
+  config: { max_rounds: 3 }
+  expect:
+    status: done
+    goal_met: true
+    max_rounds: 2
+
+- id: on_time_sim
+  desc: 需要仿真 —— 准时率 70% 以上（实测 77.8%），必须先跑 run_sim
+  goal: 准时率要达到 70% 以上
+  config: { max_rounds: 3 }
+  expect:
+    status: done
+    goal_met: true
+    must_call: run_sim
+
+- id: on_time_unreachable
+  desc: 收紧准时率到 95% —— 带故障只有 77.8% 不可达，重规划关掉故障后应达成（证明重规划真的换了方案）
+  goal: 准时率要达到 95% 以上
+  config: { max_rounds: 4, max_replans: 2 }
+  expect:
+    status: done
+    goal_met: true
+    min_replans: 1
+    min_distinct_plans: 2
+
+- id: replan_unreachable
+  desc: 不可达目标 —— 急货 9 点前（实际 10:00），应重规划并如实停止
+  goal: 让急货 9 点前上机
+  config: { max_rounds: 5, max_replans: 3 }
+  expect:
+    status: stopped
+    goal_met: false
+    min_replans: 2
+    stopped_contains: 重规划
+    # 重规划必须是「换方案」而不是原地打转
+    min_distinct_plans: 2
+
+- id: wall_clock_stop
+  desc: 墙钟硬闸 —— max_wall_s=0 应立刻停止，不执行任何求解
+  goal: 让急货 9 点前上机
+  config: { max_rounds: 5, max_wall_s: 0 }
+  expect:
+    status: stopped
+    goal_met: false
+    stopped_contains: 墙钟
+
+- id: bad_args_handled
+  desc: 非法参数 —— 规则计划被替换成 case=999，工具应返回 error 而非崩溃
+  goal: 让急货 9 点前上机
+  config: { max_rounds: 2, max_replans: 0 }
+  plan_override:
+    - skill: run_solve
+      args: { case: "999-does-not-exist" }
+  expect:
+    status: stopped
+    goal_met: false
+    # 关键：异常被转成 {"error": ...}，循环继续跑完而不是抛异常
+    no_exception: true
