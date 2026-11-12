@@ -167,7 +167,43 @@ python -m harness.run_eval -k on_time   # 只跑匹配的
 
 ---
 
-## 9. 已知限制
+## 9. 云端（Render）配置
+
+**先看有没有 `SUPABASE_DB_URL`**，两种情况的配置完全不同：
+
+| 你的环境 | `AGENT_SESSION_STORE` | 结果 |
+|---|---|---|
+| **有** `SUPABASE_DB_URL` | **删掉这个变量**（用 `auto`）或设 `pg` | 会话存 Postgres，重启/休眠不丢 |
+| **没有** DSN | 设 `memory` | 纯内存，重启丢会话（与改造前行为一致） |
+
+> ⚠️ 有 DSN 时**不要**设 `memory` —— 那会主动放弃阶段三刚做好的持久化能力。
+
+用 `pg` 之前必须先建表（DDL 见 `docs/11_VSCODE_DEPLOY_SUPABASE.md` §5.2.1）：
+
+```sql
+create table if not exists agent_sessions (
+  session_id text primary key,
+  messages   jsonb not null default '[]'::jsonb,
+  summary    text  not null default '',
+  mode       text,
+  updated_at timestamptz not null default now()
+);
+```
+
+**表没建时不会报错**：`PgStore.load/save` 的异常被吞掉，等价于「无持久化」。
+所以要么建表后用 `auto`/`pg`，要么明确设 `memory`，别指望它能自动降级成功。
+
+### 自主规划开关
+
+| 位置 | 建议 | 原因 |
+|---|---|---|
+| Render | `AGENT_LOOP_ENABLED=0` 或不加 | 防止误触发烧 token |
+| 本地 `.env` | `AGENT_LOOP_ENABLED=1` | 演示/调试用 |
+| 前端「🎯 自主规划」面板 | 无需配置 | 请求体里已写死 `enabled: true` |
+
+---
+
+## 10. 已知限制
 
 - **求解是确定性的**：同 `(case, fix)` 结果完全一样，所以重规划只能「换场景 / 换参数 / 关扰动」，不能指望微调运气。这是物理约束，不是缺陷。
 - **同步执行**：`POST /api/agent/loop` 阻塞到循环结束（最长 `max_wall_s`）。若前端需要进度条，应改为异步 + 轮询 `GET /api/agent/loop/{trace_id}`。
